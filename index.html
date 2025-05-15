@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCU-Sim | Microcontroller Simulator</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <header>
+        <div class="logo">MCU-<span>SIM</span></div>
+        <nav>
+            <ul>
+                <li><a href="#features">Features</a></li>
+                <li><a href="#simulator">Simulator</a></li>
+                <li><a href="#docs">Documentation</a></li>
+                <li><a href="#about">About</a></li>
+            </ul>
+        </nav>
+        <div class="header-buttons">
+            <a href="#download" class="button">Download</a>
+            <a href="#github" class="button button-secondary"><i class="fab fa-github"></i> GitHub</a>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="hero-content">
+            <h1>MCU-SIM</h1>
+            <h2>Microcontroller Simulator</h2>
+            <p>A powerful, open-source simulator for learning and experimenting with microcontroller programming</p>
+            <div class="hero-buttons">
+                <a href="#try-online" class="button button-large">Try Online</a>
+                <a href="#download" class="button button-large button-secondary">Download</a>
+            </div>
+        </div>
+        <div class="hero-image">
+            <img src="img/mcu-simulator.png" alt="MCU Simulator Interface">
+        </div>
+    </section>
+
+    <section id="features" class="features">
+        <h2>Key Features</h2>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fas fa-microchip"></i></div>
+                <h3>Multiple MCU Support</h3>
+                <p>Simulate popular microcontrollers including AVR, ARM, and PIC</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fas fa-code"></i></div>
+                <h3>Real-time Code Execution</h3>
+                <p>See your code execute in real-time with detailed visualization</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fas fa-bug"></i></div>
+                <h3>Powerful Debugging</h3>
+                <p>Step through code, set breakpoints, and inspect memory</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fas fa-chart-line"></i></div>
+                <h3>Signal Analysis</h3>
+                <p>Analyze I/O signals with integrated logic analyzer</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fas fa-puzzle-piece"></i></div>
+                <h3>Peripheral Simulation</h3>
+                <p>Connect virtual LEDs, displays, sensors, and more</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fas fa-graduation-cap"></i></div>
+                <h3>Educational Tools</h3>
+                <p>Perfect for learning microcontroller programming concepts</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="simulator" class="simulator-demo">
+        <h2>Try The Simulator</h2>
+        <div class="simulator-container">
+            <div class="simulator-header">
+                <div class="simulator-tabs">
+                    <button class="tab active">main.c</button>
+                    <button class="tab">config.h</button>
+                    <button class="tab">interrupts.c</button>
+                </div>
+                <div class="simulator-controls">
+                    <button class="control-button"><i class="fas fa-play"></i></button>
+                    <button class="control-button"><i class="fas fa-pause"></i></button>
+                    <button class="control-button"><i class="fas fa-step-forward"></i></button>
+                    <button class="control-button"><i class="fas fa-redo"></i></button>
+                </div>
+            </div>
+            <div class="simulator-content">
+                <div class="code-editor">
+<pre><code>#include "config.h"
+#include <avr/io.h>
+#include <util/delay.h>
+
+int main(void) {
+    // Set LED pin as output
+    DDRB |= (1 << PB5);
+    
+    while(1) {
+        // Toggle LED
+        PORTB ^= (1 << PB5);
+        // Delay for 500ms
+        _delay_ms(500);
+    }
+    
+    return 0;
+}</code></pre>
+                </div>
+                <div class="simulator-panel">
+                    <div class="panel-section">
+                        <h3>MCU</h3>
+                        <div class="select-container">
+                            <select class="mcu-select">
+                                <option>ATmega328P</option>
+                                <option>ATtiny85</option>
+                                <option>STM32F103</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="panel-section">
+                        <h3>I/O Pins</h3>
+                        <div class="io-pins">
+                            <div class="pin">PB0 <span class="pin-state low">0</span></div>
+                            <div class="pin">PB1 <span class="pin-state low">0</span></div>
+                            <div class="pin">PB2 <span class="pin-state low">0</span></div>
+                            <div class="pin">PB3 <span class="pin-state low">0</span></div>
+                            <div class="pin">PB4 <span class="pin-state low">0</span></div>
+                            <div class="pin">PB5 <span class="pin-state high">1</span></div>
+                        </div>
+                    </div>
+                    <div class="panel-section">
+                        <h3>Peripherals</h3>
+                        <div class="peripheral">
+                            <span>LED (PB5)</span>
+                            <div class="led on"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="download" class="download">
+        <h2>Download MCU-Sim</h2>
+        <p>Available for all major platforms. No installation required.</p>
+        <div class="download-options">
+            <a href="#" class="download-option">
+                <i class="fab fa-windows"></i>
+                <h3>Windows</h3>
+                <p>Windows 10/11</p>
+                <span class="button">Download (64-bit)</span>
+            </a>
+            <a href="#" class="download-option">
+                <i class="fab fa-apple"></i>
+                <h3>macOS</h3>
+                <p>macOS 10.15+</p>
+                <span class="button">Download (Universal)</span>
+            </a>
+            <a href="#" class="download-option">
+                <i class="fab fa-linux"></i>
+                <h3>Linux</h3>
+                <p>Ubuntu, Debian, etc.</p>
+                <span class="button">Download (.deb)</span>
+            </a>
+        </div>
+    </section>
+
+    <section id="docs" class="documentation">
+        <h2>Documentation</h2>
+        <div class="doc-grid">
+            <a href="#" class="doc-card">
+                <div class="doc-icon"><i class="fas fa-book"></i></div>
+                <h3>Getting Started</h3>
+                <p>Learn the basics of MCU-Sim</p>
+            </a>
+            <a href="#" class="doc-card">
+                <div class="doc-icon"><i class="fas fa-graduation-cap"></i></div>
+                <h3>Tutorials</h3>
+                <p>Step-by-step guides for beginners</p>
+            </a>
+            <a href="#" class="doc-card">
+                <div class="doc-icon"><i class="fas fa-clipboard-list"></i></div>
+                <h3>API Reference</h3>
+                <p>Complete API documentation</p>
+            </a>
+            <a href="#" class="doc-card">
+                <div class="doc-icon"><i class="fas fa-microchip"></i></div>
+                <h3>Supported MCUs</h3>
+                <p>List of supported microcontrollers</p>
+            </a>
+        </div>
+    </section>
+
+    <section id="about" class="about">
+        <h2>About MCU-Sim</h2>
+        <p>MCU-Sim is an open-source project developed by a team of embedded systems engineers and educators. Our goal is to make microcontroller programming more accessible to students, hobbyists, and professionals alike.</p>
+        <div class="about-info">
+            <div class="about-stats">
+                <div class="stat">
+                    <h3>15+</h3>
+                    <p>Supported MCUs</p>
+                </div>
+                <div class="stat">
+                    <h3>10k+</h3>
+                    <p>Active Users</p>
+                </div>
+                <div class="stat">
+                    <h3>100%</h3>
+                    <p>Open Source</p>
+                </div>
+            </div>
+            <div class="about-cta">
+                <h3>Want to contribute?</h3>
+                <p>Join our community and help improve MCU-Sim</p>
+                <a href="#" class="button">Get Involved</a>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="footer-content">
+            <div class="footer-logo">MCU-<span>SIM</span></div>
+            <div class="footer-links">
+                <div class="footer-column">
+                    <h3>Resources</h3>
+                    <ul>
+                        <li><a href="#">Documentation</a></li>
+                        <li><a href="#">Tutorials</a></li>
+                        <li><a href="#">API Reference</a></li>
+                        <li><a href="#">Examples</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Community</h3>
+                    <ul>
+                        <li><a href="#">GitHub</a></li>
+                        <li><a href="#">Discord</a></li>
+                        <li><a href="#">Forum</a></li>
+                        <li><a href="#">Report Issues</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Legal</h3>
+                    <ul>
+                        <li><a href="#">License</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Terms of Use</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2025 MCU-Sim. All rights reserved. Licensed under MIT.</p>
+            <div class="footer-social">
+                <a href="#"><i class="fab fa-github"></i></a>
+                <a href="#"><i class="fab fa-twitter"></i></a>
+                <a href="#"><i class="fab fa-discord"></i></a>
+                <a href="#"><i class="fab fa-youtube"></i></a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/script.js"></script>
+</body>
+</html>
