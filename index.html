@@ -13,14 +13,14 @@
         <nav>
             <ul>
                 <li><a href="#features">Features</a></li>
-                <li><a href="#simulator">Simulator</a></li>
+                <li><a href="#components">Components</a></li>
+                <li><a href="#open-source">Open Source</a></li>
                 <li><a href="#docs">Documentation</a></li>
-                <li><a href="#about">About</a></li>
             </ul>
         </nav>
         <div class="header-buttons">
             <a href="#download" class="button">Download</a>
-            <a href="#github" class="button button-secondary"><i class="fab fa-github"></i> GitHub</a>
+            <a href="https://github.com/supastishn/mcu-sim" class="button button-secondary"><i class="fab fa-github"></i> GitHub</a>
         </div>
     </header>
 
@@ -45,101 +45,128 @@
             <div class="feature-card">
                 <div class="feature-icon"><i class="fas fa-microchip"></i></div>
                 <h3>Multiple MCU Support</h3>
-                <p>Simulate popular microcontrollers including AVR, ARM, and PIC</p>
+                <p>Simulate popular microcontrollers including AVR, ARM, and PIC <span class="coming-soon">Coming Soon</span></p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon"><i class="fas fa-code"></i></div>
                 <h3>Real-time Code Execution</h3>
-                <p>See your code execute in real-time with detailed visualization</p>
+                <p>See your code execute in real-time with detailed visualization <span class="coming-soon">Coming Soon</span></p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon"><i class="fas fa-bug"></i></div>
                 <h3>Powerful Debugging</h3>
-                <p>Step through code, set breakpoints, and inspect memory</p>
+                <p>Step through code, set breakpoints, and inspect memory <span class="coming-soon">Coming Soon</span></p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon"><i class="fas fa-chart-line"></i></div>
                 <h3>Signal Analysis</h3>
-                <p>Analyze I/O signals with integrated logic analyzer</p>
+                <p>Analyze I/O signals with integrated logic analyzer <span class="coming-soon">Coming Soon</span></p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon"><i class="fas fa-puzzle-piece"></i></div>
                 <h3>Peripheral Simulation</h3>
-                <p>Connect virtual LEDs, displays, sensors, and more</p>
+                <p>Connect virtual LEDs, displays, sensors, and more <span class="coming-soon">Coming Soon</span></p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon"><i class="fas fa-graduation-cap"></i></div>
                 <h3>Educational Tools</h3>
-                <p>Perfect for learning microcontroller programming concepts</p>
+                <p>Perfect for learning microcontroller programming concepts <span class="coming-soon">Coming Soon</span></p>
             </div>
         </div>
     </section>
 
-    <section id="simulator" class="simulator-demo">
-        <h2>Try The Simulator</h2>
-        <div class="simulator-container">
-            <div class="simulator-header">
-                <div class="simulator-tabs">
-                    <button class="tab active">main.c</button>
-                    <button class="tab">config.h</button>
-                    <button class="tab">interrupts.c</button>
+    <section id="open-source" class="open-source">
+        <h2>Free and Open Source</h2>
+        <div class="open-source-container">
+            <div class="open-source-content">
+                <div class="open-source-icon">
+                    <i class="fas fa-handshake"></i>
                 </div>
-                <div class="simulator-controls">
-                    <button class="control-button"><i class="fas fa-play"></i></button>
-                    <button class="control-button"><i class="fas fa-pause"></i></button>
-                    <button class="control-button"><i class="fas fa-step-forward"></i></button>
-                    <button class="control-button"><i class="fas fa-redo"></i></button>
+                <h3>Licensed under GPL3</h3>
+                <p>MCU-Sim is completely free and open source. You are free to use, modify, and distribute the software under the terms of the GNU General Public License version 3.</p>
+                <p>We believe in the power of open source to make technology more accessible and to foster collaboration and innovation.</p>
+                <div class="open-source-buttons">
+                    <a href="https://github.com/supastishn/mcu-sim" class="button"><i class="fab fa-github"></i> View Source Code</a>
+                    <a href="https://www.gnu.org/licenses/gpl-3.0.html" class="button button-secondary">Learn About GPL3</a>
                 </div>
             </div>
-            <div class="simulator-content">
-                <div class="code-editor">
-<pre><code>#include "config.h"
-#include <avr/io.h>
-#include <util/delay.h>
+        </div>
+    </section>
 
-int main(void) {
-    // Set LED pin as output
-    DDRB |= (1 << PB5);
-    
-    while(1) {
-        // Toggle LED
-        PORTB ^= (1 << PB5);
-        // Delay for 500ms
-        _delay_ms(500);
-    }
-    
-    return 0;
-}</code></pre>
+    <section id="components" class="components">
+        <h2>Available Components</h2>
+        <p>Our simulator includes a wide range of electronic components for your circuit designs</p>
+        <div class="components-container">
+            <div class="components-scroll">
+                <div class="component-card">
+                    <div class="component-icon"><i class="fas fa-bolt"></i></div>
+                    <h3>Power Source</h3>
+                    <p>Voltage Source with Current Limiting</p>
                 </div>
-                <div class="simulator-panel">
-                    <div class="panel-section">
-                        <h3>MCU</h3>
-                        <div class="select-container">
-                            <select class="mcu-select">
-                                <option>ATmega328P</option>
-                                <option>ATtiny85</option>
-                                <option>STM32F103</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="panel-section">
-                        <h3>I/O Pins</h3>
-                        <div class="io-pins">
-                            <div class="pin">PB0 <span class="pin-state low">0</span></div>
-                            <div class="pin">PB1 <span class="pin-state low">0</span></div>
-                            <div class="pin">PB2 <span class="pin-state low">0</span></div>
-                            <div class="pin">PB3 <span class="pin-state low">0</span></div>
-                            <div class="pin">PB4 <span class="pin-state low">0</span></div>
-                            <div class="pin">PB5 <span class="pin-state high">1</span></div>
-                        </div>
-                    </div>
-                    <div class="panel-section">
-                        <h3>Peripherals</h3>
-                        <div class="peripheral">
-                            <span>LED (PB5)</span>
-                            <div class="led on"></div>
-                        </div>
-                    </div>
+                <div class="component-card">
+                    <div class="component-icon"><i class="fas fa-minus"></i></div>
+                    <h3>Resistor</h3>
+                    <p>Variable resistance values</p>
+                </div>
+                <div class="component-card">
+                    <div class="component-icon"><i class="far fa-lightbulb"></i></div>
+                    <h3>LED</h3>
+                    <p>Light Emitting Diode</p>
+                </div>
+                <div class="component-card">
+                    <div class="component-icon"><i class="fas fa-toggle-on"></i></div>
+                    <h3>Switch</h3>
+                    <p>SPDT (Single Pole, Double Throw)</p>
+                </div>
+                <div class="component-card">
+                    <div class="component-icon"><i class="fas fa-angle-double-right"></i></div>
+                    <h3>Diode</h3>
+                    <p>One-way current flow</p>
+                </div>
+                <div class="component-card">
+                    <div class="component-icon"><i class="fas fa-sliders-h"></i></div>
+                    <h3>Potentiometer</h3>
+                    <p>Variable resistor</p>
+                </div>
+                <div class="component-card">
+                    <div class="component-icon"><i class="fas fa-battery-full"></i></div>
+                    <h3>Battery</h3>
+                    <p>Configurable number of cells</p>
+                </div>
+                <div class="component-card">
+                    <div class="component-icon"><i class="fas fa-database"></i></div>
+                    <h3>Polarized Capacitor</h3>
+                    <p>Stores electrical charge</p>
+                </div>
+                <div class="component-card">
+                    <div class="component-icon"><i class="fas fa-database"></i></div>
+                    <h3>Non-Polarized Capacitor</h3>
+                    <p>Bidirectional capacitor</p>
+                </div>
+                <div class="component-card">
+                    <div class="component-icon"><i class="fas fa-circle-notch"></i></div>
+                    <h3>Inductor</h3>
+                    <p>Stores energy in magnetic field</p>
+                </div>
+                <div class="component-card">
+                    <div class="component-icon"><i class="fas fa-project-diagram"></i></div>
+                    <h3>NPN BJT</h3>
+                    <p>NPN Bipolar Junction Transistor</p>
+                </div>
+                <div class="component-card">
+                    <div class="component-icon"><i class="fas fa-project-diagram"></i></div>
+                    <h3>PNP BJT</h3>
+                    <p>PNP Bipolar Junction Transistor</p>
+                </div>
+                <div class="component-card">
+                    <div class="component-icon"><i class="fas fa-microchip"></i></div>
+                    <h3>MOSFET</h3>
+                    <p>Metal-Oxide-Semiconductor Field-Effect Transistor</p>
+                </div>
+                <div class="component-card">
+                    <div class="component-icon"><i class="fas fa-wave-square"></i></div>
+                    <h3>Wire</h3>
+                    <p>Connect components together</p>
                 </div>
             </div>
         </div>
@@ -196,31 +223,6 @@ int main(void) {
         </div>
     </section>
 
-    <section id="about" class="about">
-        <h2>About MCU-Sim</h2>
-        <p>MCU-Sim is an open-source project developed by a team of embedded systems engineers and educators. Our goal is to make microcontroller programming more accessible to students, hobbyists, and professionals alike.</p>
-        <div class="about-info">
-            <div class="about-stats">
-                <div class="stat">
-                    <h3>15+</h3>
-                    <p>Supported MCUs</p>
-                </div>
-                <div class="stat">
-                    <h3>10k+</h3>
-                    <p>Active Users</p>
-                </div>
-                <div class="stat">
-                    <h3>100%</h3>
-                    <p>Open Source</p>
-                </div>
-            </div>
-            <div class="about-cta">
-                <h3>Want to contribute?</h3>
-                <p>Join our community and help improve MCU-Sim</p>
-                <a href="#" class="button">Get Involved</a>
-            </div>
-        </div>
-    </section>
 
     <footer>
         <div class="footer-content">
