@@ -1,0 +1,298 @@
+[gd_scene load_steps=7 format=3 uid="uid://ccg8cvm43p62e"]
+
+[ext_resource type="Script" uid="uid://bwe0pqvubycbv" path="res://CircuitEditor3D.gd" id="1_fr742"]
+[ext_resource type="Environment" uid="uid://cwsyqgy4w2g51" path="res://default_env.tres" id="2_4l16h"]
+[ext_resource type="Script" uid="uid://duafmjvwrw5ry" path="res://CircuitGraph.gd" id="2_07q78"]
+[ext_resource type="PackedScene" uid="uid://b0v77n133ah4q" path="res://ui/VirtualJoystick.tscn" id="5_u030x"]
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_t6gqm"]
+size = Vector2(100, 100)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_24jde"]
+size = Vector3(100, 0.1, 100)
+
+[node name="Node3D2" type="Node3D"]
+script = ExtResource("1_fr742")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = ExtResource("2_4l16h")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.866025, -0.433013, 0.25, 0, 0.5, 0.866025, -0.5, 0.75, -0.433013, 0, 15, 0)
+shadow_enabled = true
+shadow_opacity = 0.7
+directional_shadow_split_1 = 0.05
+
+[node name="GroundPlane" type="MeshInstance3D" parent="."]
+mesh = SubResource("PlaneMesh_t6gqm")
+skeleton = NodePath("../Camera3D")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="GroundPlane"]
+collision_layer = 8
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="GroundPlane/StaticBody3D"]
+shape = SubResource("BoxShape3D_24jde")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 4, 0)
+size = 10.0
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="ComponentBar" type="ScrollContainer" parent="UI"]
+anchors_preset = -1
+anchor_right = 0.8
+anchor_bottom = 0.055
+grow_horizontal = 2
+mouse_filter = 0
+horizontal_scroll_mode = 2
+vertical_scroll_mode = 0
+
+[node name="ButtonList" type="HBoxContainer" parent="UI/ComponentBar"]
+custom_minimum_size = Vector2(0, 31)
+layout_mode = 2
+size_flags_horizontal = 2
+size_flags_vertical = 3
+alignment = 1
+
+[node name="AddPowerSourceButton" type="Button" parent="UI/ComponentBar/ButtonList"]
+layout_mode = 2
+text = "Add Power Source"
+
+[node name="AddResistorButton" type="Button" parent="UI/ComponentBar/ButtonList"]
+layout_mode = 2
+text = "Add Resistor"
+
+[node name="AddLEDButton" type="Button" parent="UI/ComponentBar/ButtonList"]
+layout_mode = 2
+text = "Add LED"
+
+[node name="AddSwitchButton" type="Button" parent="UI/ComponentBar/ButtonList"]
+layout_mode = 2
+text = "Add Switch"
+
+[node name="AddDiodeButton" type="Button" parent="UI/ComponentBar/ButtonList"]
+layout_mode = 2
+text = "Add Diode"
+
+[node name="AddPotentiometerButton" type="Button" parent="UI/ComponentBar/ButtonList"]
+layout_mode = 2
+text = "Add Potentiometer"
+
+[node name="AddBatteryButton" type="Button" parent="UI/ComponentBar/ButtonList"]
+layout_mode = 2
+text = "Add Battery"
+
+[node name="AddCapacitorButton" type="Button" parent="UI/ComponentBar/ButtonList"]
+layout_mode = 2
+text = "Add Polarized Capacitor"
+
+[node name="AddNonPolarizedCapacitorButton" type="Button" parent="UI/ComponentBar/ButtonList"]
+layout_mode = 2
+text = "Add Non-Polarized Capacitor"
+
+[node name="AddInductorButton" type="Button" parent="UI/ComponentBar/ButtonList"]
+layout_mode = 2
+text = "Add Inductor"
+
+[node name="AddNPNBJTButton" type="Button" parent="UI/ComponentBar/ButtonList"]
+layout_mode = 2
+text = "Add NPN BJT"
+
+[node name="AddPNPBJTButton" type="Button" parent="UI/ComponentBar/ButtonList"]
+layout_mode = 2
+text = "Add PNP BJT"
+
+[node name="AddZenerDiodeButton" type="Button" parent="UI/ComponentBar/ButtonList"]
+layout_mode = 2
+text = "Add Zener Diode"
+
+[node name="AddRelayButton" type="Button" parent="UI/ComponentBar/ButtonList"]
+layout_mode = 2
+text = "Add Relay"
+
+[node name="SimulateButton" type="Button" parent="UI/ComponentBar/ButtonList"]
+layout_mode = 2
+text = "Simulate"
+
+[node name="SelectionBar" type="VBoxContainer" parent="UI"]
+anchors_preset = -1
+anchor_left = 0.87
+anchor_right = 1.0
+anchor_bottom = 0.13
+grow_horizontal = 0
+mouse_filter = 0
+
+[node name="DeleteButton" type="Button" parent="UI/SelectionBar"]
+layout_mode = 2
+text = "Delete"
+
+[node name="ValueBox" type="HBoxContainer" parent="UI/SelectionBar"]
+layout_mode = 2
+mouse_filter = 0
+
+[node name="ValueLabel" type="Label" parent="UI/SelectionBar/ValueBox"]
+layout_mode = 2
+text = "Value:"
+
+[node name="ValueEdit" type="LineEdit" parent="UI/SelectionBar/ValueBox"]
+layout_mode = 2
+
+[node name="ZenerVoltageBox" type="HBoxContainer" parent="UI/SelectionBar"]
+visible = false
+layout_mode = 2
+mouse_filter = 0
+
+[node name="ZenerVoltageLabel" type="Label" parent="UI/SelectionBar/ZenerVoltageBox"]
+layout_mode = 2
+text = "Zener V (Vz):"
+
+[node name="ZenerVoltageEdit" type="LineEdit" parent="UI/SelectionBar/ZenerVoltageBox"]
+layout_mode = 2
+
+[node name="CurrentLimitBox" type="HBoxContainer" parent="UI/SelectionBar"]
+visible = false
+layout_mode = 2
+mouse_filter = 0
+
+[node name="CurrentLimitLabel" type="Label" parent="UI/SelectionBar/CurrentLimitBox"]
+layout_mode = 2
+text = "Current Limit (A):"
+
+[node name="CurrentLimitEdit" type="LineEdit" parent="UI/SelectionBar/CurrentLimitBox"]
+layout_mode = 2
+
+[node name="MaxVoltageBox" type="HBoxContainer" parent="UI/SelectionBar"]
+visible = false
+layout_mode = 2
+mouse_filter = 0
+
+[node name="MaxVoltageLabel" type="Label" parent="UI/SelectionBar/MaxVoltageBox"]
+layout_mode = 2
+text = "Max Voltage (V):"
+
+[node name="MaxVoltageEdit" type="LineEdit" parent="UI/SelectionBar/MaxVoltageBox"]
+layout_mode = 2
+
+[node name="VbeOnBox" type="HBoxContainer" parent="UI/SelectionBar"]
+visible = false
+layout_mode = 2
+mouse_filter = 0
+
+[node name="VbeOnLabel" type="Label" parent="UI/SelectionBar/VbeOnBox"]
+layout_mode = 2
+text = "Vbe On (V):"
+
+[node name="VbeOnEdit" type="LineEdit" parent="UI/SelectionBar/VbeOnBox"]
+layout_mode = 2
+
+[node name="CoilResistanceBox" type="HBoxContainer" parent="UI/SelectionBar"]
+visible = false
+layout_mode = 2
+mouse_filter = 0
+
+[node name="CoilResistanceLabel" type="Label" parent="UI/SelectionBar/CoilResistanceBox"]
+layout_mode = 2
+text = "Coil Resist. (Ω):"
+
+[node name="CoilResistanceEdit" type="LineEdit" parent="UI/SelectionBar/CoilResistanceBox"]
+layout_mode = 2
+
+[node name="VebOnBox" type="HBoxContainer" parent="UI/SelectionBar"]
+visible = false
+layout_mode = 2
+mouse_filter = 0
+
+[node name="VebOnLabel" type="Label" parent="UI/SelectionBar/VebOnBox"]
+layout_mode = 2
+text = "Veb On (V):"
+
+[node name="VebOnEdit" type="LineEdit" parent="UI/SelectionBar/VebOnBox"]
+layout_mode = 2
+
+[node name="VecSatBox" type="HBoxContainer" parent="UI/SelectionBar"]
+visible = false
+layout_mode = 2
+mouse_filter = 0
+
+[node name="VecSatLabel" type="Label" parent="UI/SelectionBar/VecSatBox"]
+layout_mode = 2
+text = "Vec Sat (V):"
+
+[node name="VecSatEdit" type="LineEdit" parent="UI/SelectionBar/VecSatBox"]
+layout_mode = 2
+
+[node name="TogglePowerSourceModeButton" type="Button" parent="UI/SelectionBar"]
+visible = false
+layout_mode = 2
+text = "Set to CC Mode"
+
+[node name="ToggleSwitchButton" type="Button" parent="UI/SelectionBar"]
+visible = false
+layout_mode = 2
+text = "Toggle Switch"
+
+[node name="ToggleSwitchButton2" type="Button" parent="UI/SelectionBar"]
+visible = false
+layout_mode = 2
+text = "Toggle Switch"
+
+[node name="BatteryCellBox" type="HBoxContainer" parent="UI/SelectionBar"]
+visible = false
+layout_mode = 2
+
+[node name="BatteryCellLabel" type="Label" parent="UI/SelectionBar/BatteryCellBox"]
+layout_mode = 2
+text = "Cells (1.5V each):"
+
+[node name="BatteryCellOption" type="OptionButton" parent="UI/SelectionBar/BatteryCellBox"]
+layout_mode = 2
+selected = 0
+item_count = 4
+popup/item_0/text = "1 (1.5V)"
+popup/item_0/id = 0
+popup/item_1/text = "2 (3.0V)"
+popup/item_1/id = 1
+popup/item_2/text = "3 (4.5V)"
+popup/item_2/id = 2
+popup/item_3/text = "4 (6.0V)"
+popup/item_3/id = 3
+
+[node name="PotentiometerWiperSlider" type="HSlider" parent="UI/SelectionBar"]
+visible = false
+layout_mode = 2
+max_value = 1.0
+step = 0.01
+value = 0.5
+
+[node name="MoveJoystick" parent="UI" instance=ExtResource("5_u030x")]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 50.0
+offset_top = -200.0
+offset_right = 200.0
+offset_bottom = 0.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="LookJoystick" parent="UI" instance=ExtResource("5_u030x")]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -200.0
+offset_top = -200.0
+offset_right = -50.0
+offset_bottom = 0.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="Components" type="Node3D" parent="."]
+
+[node name="Wires" type="Node3D" parent="."]
+
+[node name="CircuitGraph" type="Node" parent="."]
+script = ExtResource("2_07q78")
+metadata/_custom_type_script = "uid://duafmjvwrw5ry"

@@ -1,0 +1,83 @@
+[gd_scene load_steps=9 format=3 uid="uid://bu6d7wvgh5x2j"]
+
+[ext_resource type="Script" uid="uid://bn5nifjbonoiq" path="res://components/NonPolarizedCapacitor3D.gd" id="1_h0l0g"]
+[ext_resource type="Script" uid="uid://bhe7bl46uj0jq" path="res://components/TerminalFeedback.gd" id="2_oavw0"]
+[ext_resource type="Material" uid="uid://cv6f3hveepm7a" path="res://components/Resistor3D.tres" id="3_c1ywx"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_cqpuc"]
+albedo_color = Color(0.862745, 0.627451, 0.235294, 1)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_gqvf0"]
+top_radius = 0.1
+bottom_radius = 0.1
+height = 0.3
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_q5d0f"]
+radius = 0.075
+height = 0.7
+
+[sub_resource type="SphereMesh" id="SphereMesh_j0v4c"]
+radius = 0.05
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_n22g2"]
+size = Vector3(0.25, 0.35, 0.25)
+
+[node name="NonPolarizedCapacitor3D" type="Node3D"]
+script = ExtResource("1_h0l0g")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0, 0)
+material_override = SubResource("StandardMaterial3D_cqpuc")
+mesh = SubResource("CylinderMesh_gqvf0")
+
+[node name="Terminal1" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.25)
+collision_layer = 2
+script = ExtResource("2_oavw0")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Terminal1"]
+shape = SubResource("CapsuleShape3D_q5d0f")
+
+[node name="Visualization" type="MeshInstance3D" parent="Terminal1"]
+material_override = ExtResource("3_c1ywx")
+mesh = SubResource("SphereMesh_j0v4c")
+
+[node name="Label3D" type="Label3D" parent="Terminal1"]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0.6, 0)
+visible = false
+billboard = 1
+text = "Terminal 1"
+font_size = 20
+
+[node name="Terminal2" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.25)
+collision_layer = 2
+script = ExtResource("2_oavw0")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Terminal2"]
+shape = SubResource("CapsuleShape3D_q5d0f")
+
+[node name="Visualization" type="MeshInstance3D" parent="Terminal2"]
+material_override = ExtResource("3_c1ywx")
+mesh = SubResource("SphereMesh_j0v4c")
+
+[node name="Label3D" type="Label3D" parent="Terminal2"]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0.6, 0)
+visible = false
+billboard = 1
+text = "Terminal 2"
+font_size = 20
+
+[node name="ComponentBody" type="Area3D" parent="."]
+collision_layer = 4
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="ComponentBody"]
+shape = SubResource("BoxShape3D_n22g2")
+
+[node name="InfoLabel" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0.25, 0)
+visible = false
+text = "V: 0.00 V
+I: 0.00 A"
+font_size = 20
+outline_size = 2

@@ -1,0 +1,148 @@
+[gd_scene load_steps=13 format=3 uid="uid://b5dcfx0f0s0hx"]
+
+[ext_resource type="Script" uid="uid://c52sskr0i7gyc" path="res://components/Relay3D.gd" id="1_abcde"]
+[ext_resource type="Script" uid="uid://bhe7bl46uj0jq" path="res://components/TerminalFeedback.gd" id="2_fghij"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_RelayBody"]
+albedo_color = Color(0.4, 0.4, 0.5, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_RelayBody"]
+material = SubResource("StandardMaterial3D_RelayBody")
+size = Vector3(0.4, 0.3, 0.5)
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_omq1m"]
+radius = 0.06
+height = 1.0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_TerminalVis"]
+shading_mode = 0
+albedo_color = Color(0, 1, 0, 0.5)
+
+[sub_resource type="SphereMesh" id="SphereMesh_TerminalVis"]
+material = SubResource("StandardMaterial3D_TerminalVis")
+radius = 0.06
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_22i8g"]
+radius = 0.06
+height = 1.0
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_gnv1a"]
+radius = 0.06
+height = 1.0
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_luwat"]
+radius = 0.06
+height = 1.0
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_qwwrn"]
+radius = 0.06
+height = 1.0
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_euk0p"]
+radius = 0.06
+height = 1.0
+
+[node name="Relay3D" type="Node3D"]
+script = ExtResource("1_abcde")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_RelayBody")
+
+[node name="ComponentBody" type="Area3D" parent="."]
+collision_layer = 4
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="ComponentBody"]
+shape = SubResource("CapsuleShape3D_omq1m")
+
+[node name="InfoLabel" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.25, 0)
+visible = false
+billboard = 1
+text = "Relay Info"
+font_size = 20
+
+[node name="TerminalCoilP" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.15, 0, -0.3)
+script = ExtResource("2_fghij")
+
+[node name="Visualization" type="MeshInstance3D" parent="TerminalCoilP"]
+mesh = SubResource("SphereMesh_TerminalVis")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TerminalCoilP"]
+shape = SubResource("CapsuleShape3D_22i8g")
+
+[node name="Label3D" type="Label3D" parent="TerminalCoilP"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
+visible = false
+billboard = 1
+text = "Coil +"
+font_size = 16
+
+[node name="TerminalCoilN" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.15, 0, -0.3)
+script = ExtResource("2_fghij")
+
+[node name="Visualization" type="MeshInstance3D" parent="TerminalCoilN"]
+mesh = SubResource("SphereMesh_TerminalVis")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TerminalCoilN"]
+shape = SubResource("CapsuleShape3D_gnv1a")
+
+[node name="Label3D" type="Label3D" parent="TerminalCoilN"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
+visible = false
+billboard = 1
+text = "Coil -"
+font_size = 16
+
+[node name="TerminalCOM" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.3)
+script = ExtResource("2_fghij")
+
+[node name="Visualization" type="MeshInstance3D" parent="TerminalCOM"]
+mesh = SubResource("SphereMesh_TerminalVis")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TerminalCOM"]
+shape = SubResource("CapsuleShape3D_luwat")
+
+[node name="Label3D" type="Label3D" parent="TerminalCOM"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
+visible = false
+billboard = 1
+text = "Common"
+font_size = 16
+
+[node name="TerminalNO" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.15, 0, 0.3)
+script = ExtResource("2_fghij")
+
+[node name="Visualization" type="MeshInstance3D" parent="TerminalNO"]
+mesh = SubResource("SphereMesh_TerminalVis")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TerminalNO"]
+shape = SubResource("CapsuleShape3D_qwwrn")
+
+[node name="Label3D" type="Label3D" parent="TerminalNO"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
+visible = false
+billboard = 1
+text = "Normally Open"
+font_size = 16
+
+[node name="TerminalNC" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.15, 0, 0.3)
+script = ExtResource("2_fghij")
+
+[node name="Visualization" type="MeshInstance3D" parent="TerminalNC"]
+mesh = SubResource("SphereMesh_TerminalVis")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TerminalNC"]
+shape = SubResource("CapsuleShape3D_euk0p")
+
+[node name="Label3D" type="Label3D" parent="TerminalNC"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
+visible = false
+billboard = 1
+text = "Normally Closed"
+font_size = 16

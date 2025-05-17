@@ -1,0 +1,97 @@
+[gd_scene load_steps=11 format=3 uid="uid://dbdf8hcmrqqwg"]
+
+[ext_resource type="Script" uid="uid://cc6hn2gg88jhu" path="res://components/ZenerDiode3D.gd" id="1_zener_script"]
+[ext_resource type="Script" uid="uid://bhe7bl46uj0jq" path="res://components/TerminalFeedback.gd" id="2_term_feedback"]
+[ext_resource type="Material" uid="uid://cv6f3hveepm7a" path="res://components/Resistor3D.tres" id="3_term_material"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_zener_body"]
+albedo_color = Color(0.6, 0.2, 0.2, 1)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_b3kv5"]
+top_radius = 0.04
+bottom_radius = 0.04
+height = 0.164
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_ka2ja"]
+top_radius = 0.05
+bottom_radius = 0.05
+height = 0.02
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_jgkj1"]
+radius = 0.05
+height = 0.999
+
+[sub_resource type="SphereMesh" id="SphereMesh_terminal_vis_shape"]
+radius = 0.05
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_nigd7"]
+radius = 0.05
+height = 1.0
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_component_body_shape"]
+height = 0.179
+radius = 0.055
+
+[node name="ZenerDiode3D" type="Node3D"]
+script = ExtResource("1_zener_script")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0, 0)
+material_override = SubResource("StandardMaterial3D_zener_body")
+mesh = SubResource("CylinderMesh_b3kv5")
+
+[node name="KathodeBand" type="MeshInstance3D" parent="MeshInstance3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, 0)
+mesh = SubResource("CylinderMesh_ka2ja")
+
+[node name="TerminalAnode" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.15)
+script = ExtResource("2_term_feedback")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TerminalAnode"]
+shape = SubResource("CapsuleShape3D_jgkj1")
+
+[node name="Visualization" type="MeshInstance3D" parent="TerminalAnode"]
+material_override = ExtResource("3_term_material")
+mesh = SubResource("SphereMesh_terminal_vis_shape")
+
+[node name="Label3D" type="Label3D" parent="TerminalAnode"]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0.6, 0)
+visible = false
+billboard = 1
+text = "Anode"
+font_size = 20
+
+[node name="TerminalKathode" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.15)
+script = ExtResource("2_term_feedback")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TerminalKathode"]
+shape = SubResource("CapsuleShape3D_nigd7")
+
+[node name="Visualization" type="MeshInstance3D" parent="TerminalKathode"]
+material_override = ExtResource("3_term_material")
+mesh = SubResource("SphereMesh_terminal_vis_shape")
+
+[node name="Label3D" type="Label3D" parent="TerminalKathode"]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0.6, 0)
+visible = false
+billboard = 1
+text = "Kathode"
+font_size = 20
+
+[node name="ComponentBody" type="Area3D" parent="."]
+collision_layer = 4
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="ComponentBody"]
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0, 0)
+shape = SubResource("CylinderShape3D_component_body_shape")
+
+[node name="InfoLabel" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0.15, 0)
+visible = false
+text = "State: N/A
+Vak: N/A
+I: N/A"
+font_size = 20
+outline_size = 2
