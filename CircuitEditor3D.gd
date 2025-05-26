@@ -469,7 +469,6 @@ func _create_wire(terminal_a: Area3D, terminal_b: Area3D):
 
 	# Update the logical circuit graph
 	circuit_graph.connect_terminals(terminal_a, terminal_b)
-	circuit_graph.print_graph_state() # Debug print
 			# No need to manually update CSGPolygon, path_node property handles it.
 
 ## Snaps a 3D position to the nearest grid point on the Y=0 plane.
@@ -1574,4 +1573,3 @@ func _on_toggle_switch_button_pressed():
 		switch_node.toggle_state() # This emits state_changed, which calls component_config_changed
 		# _hide_voltage_displays() # Done by state_changed handler path
 		toggle_switch_button.text = "Turn Off" if switch_node.current_state == Switch3D.State.CONNECTED_NO else "Turn On"
-
