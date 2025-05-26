@@ -164,6 +164,7 @@ func run_all_tests():
 	if await test_pmosfet_regions():
 		passed_tests += 1
 	else:
+		print('oop')
 		failed_test_names.push_back(test_pmos_name)
 
 	var test14_name = "Test: Relay Energized and De-energized States"
@@ -900,6 +901,7 @@ func test_npn_bjt_regions() -> bool:
 
 
 func test_pnp_bjt_regions() -> bool:
+	print('test')
 	var overall_test_passed = true
 	var editor_instance: Node3D = CircuitEditorScene.instantiate()
 	add_child(editor_instance)
@@ -1505,6 +1507,7 @@ func test_nmosfet_regions() -> bool:
 	return ok
 
 func test_pmosfet_regions() -> bool:
+	print('kk')
 	var ok := true
 	var rig := TestRig.new()
 	add_child(rig)
@@ -1568,7 +1571,7 @@ func test_pmosfet_regions() -> bool:
 	g.connect_terminals(pmos_sat.terminal_g, ps_g_sat.terminal_pos)
 	g.connect_terminals(ps_g_sat.terminal_neg, ps_s_sat.terminal_neg)
 	rig.ground(ps_s_sat.terminal_neg)
-
+	print('test')
 	if not rig.solve(): ok = false
 	res = rig.results(pmos_sat)
 	if res.get("region","") != "SATURATION": ok = false
