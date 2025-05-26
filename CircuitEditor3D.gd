@@ -162,6 +162,7 @@ func _ready():
 	add_npn_bjt_button.pressed.connect(_on_add_component_button_pressed.bind(NPNBJTScene)) # Ensure NPNBJTScene is correct
 	add_pnp_bjt_button.pressed.connect(_on_add_component_button_pressed.bind(PNPBJTScene)) # Connect Add PNP BJT
 	add_zener_diode_button.pressed.connect(_on_add_component_button_pressed.bind(ZenerDiodeScene)) # Connect Add Zener Diode button
+	add_nchannelmosfet_button.pressed.connect(_on_add_component_button_pressed.bind(NChannelMOSFETScene))
 	add_relay_button.pressed.connect(_on_add_component_button_pressed.bind(RelayScene)) # Connect Add Relay button
 	simulate_button.pressed.connect(_on_simulate_button_pressed)
 	# toggle_power_source_mode_button.pressed.connect(_on_toggle_power_source_mode_button_pressed) # This button and method were removed
