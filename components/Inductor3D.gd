@@ -139,12 +139,13 @@ func gather_sim_results(
 	#region LEGACY_RESULT_CODE
 	var comp_node = comp_data.component_node
 	var comp_id = comp_node.get_instance_id()
+	var solved_current_L : float = NAN        # holds I_L for later reuse
 	if not comp_id in circuit.component_results: circuit.component_results[comp_id] = {}
 
 	if inductor_map.has(comp_id): 
 		var matrix_idx_curr_L_final = inductor_map[comp_id]
 		if matrix_idx_curr_L_final < x.size():
-			var solved_current_L = x[matrix_idx_curr_L_final] 
+			solved_current_L = x[matrix_idx_curr_L_final]
 			circuit.component_results[comp_id]["current"] = solved_current_L
 			
 			var term_1_L = comp_data.terminals["T1"]
