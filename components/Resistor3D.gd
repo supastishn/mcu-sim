@@ -68,3 +68,28 @@ func stamp(
 		A[i1][i1] += g
 	elif i2 != -1:
 		A[i2][i2] += g
+# -----------------------------------------------------------------
+# Simulation‐results extraction
+func gather_sim_results(
+		circuit      : CircuitGraph,
+		comp_data    : Dictionary,
+		_x           : Array,
+		_node_map    : Dictionary,
+		_vs_map      : Dictionary,
+		_inductor_map: Dictionary,
+		_delta_time  : float) -> void:
+	var comp_id = self.get_instance_id()
+	if not comp_id in circuit.component_results:
+		circuit.component_results[comp_id] = {}
+
+	var n1_id = circuit.terminal_connections.get(terminal1.get_instance_id(), -1)
+	var n2_id = circuit.terminal_connections.get(terminal2.get_instance_id(), -1)
+	var v1    = circuit.electrical_nodes.get(n1_id, {}).get("voltage", NAN)
+	var v2    = circuit.electrical_nodes.get(n2_id, {}).get("voltage", NAN)
+
+	var i = NAN
+	if not is_nan(v1) and not is_nan(v2):
+		var R = max(resistance, 1e-12)   # avoid divide-by-zero
+		i = (v1 - v2) / R
+
+	circuit.component_results[comp_id]["current"] = i

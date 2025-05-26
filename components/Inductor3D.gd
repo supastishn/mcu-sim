@@ -154,4 +154,8 @@ func gather_sim_results(
 			var actual_V_across_L = NAN
 			if not is_nan(V1_L) and not is_nan(V2_L): actual_V_across_L = V1_L - V2_L
 			circuit.component_results[comp_id]["voltage_across"] = actual_V_across_L
+
+	# Store current for next time-step (needed by stamp’s Backward-Euler)
+	if not is_nan(solved_current_L):
+		comp_data.properties["current_through_L_prev_dt"] = solved_current_L
 	#endregion
