@@ -1427,7 +1427,7 @@ func test_nmosfet_regions() -> bool:
 	var solved := g.solve_single_time_step(0.01)
 	if not TestUtils.assert_true(solved, "NMOS Test (OFF): Solve successful"): ok = false
 	if solved:
-		var res := g.component_results.get(mos_off.get_instance_id(), {})
+		var res = g.component_results.get(mos_off.get_instance_id(), {})
 		if not TestUtils.assert_equals(res.get("region",""), "OFF", "NMOS Test (OFF): Region is OFF"): ok = false
 		if not TestUtils.assert_approx_equals(res.get("Id", NAN), 0.0, 1e-6, "NMOS Test (OFF): Id ~ 0"): ok = false
 
@@ -1451,17 +1451,17 @@ func test_nmosfet_regions() -> bool:
 	solved = g.solve_single_time_step(0.01)
 	if not TestUtils.assert_true(solved, "NMOS Test (TRI): Solve successful"): ok = false
 	if solved:
-		var res_tri := g.component_results.get(mos_tri.get_instance_id(), {})
-		var region  := res_tri.get("region", "")
-		var Id_tri  := res_tri.get("Id", NAN)
+		var res_tri = g.component_results.get(mos_tri.get_instance_id(), {})
+		var region  = res_tri.get("region", "")
+		var Id_tri  = res_tri.get("Id", NAN)
 		if not TestUtils.assert_equals(region, "TRIODE", "NMOS Test (TRI): Region is TRIODE"): ok = false
 
-		var Vd := g.electrical_nodes.get(g.terminal_connections.get(mos_tri.terminal_d.get_instance_id(), -1), {}).get("voltage", NAN)
+		var Vd = g.electrical_nodes.get(g.terminal_connections.get(mos_tri.terminal_d.get_instance_id(), -1), {}).get("voltage", NAN)
 		var Vgs := ps_g_tri.target_voltage
-		var Vds := Vd
+		var Vds = Vd
 		var kn  := mos_tri.transconductance_parameter
 		var vt  := mos_tri.threshold_voltage
-		var Id_expect := kn * ( (Vgs - vt) * Vds - 0.5 * pow(Vds, 2) )
+		var Id_expect = kn * ( (Vgs - vt) * Vds - 0.5 * pow(Vds, 2) )
 		if Id_expect < 0: Id_expect = 0
 		if not TestUtils.assert_approx_equals(Id_tri, Id_expect, 0.01, "NMOS Test (TRI): Id matches expected"): ok = false
 
@@ -1485,9 +1485,9 @@ func test_nmosfet_regions() -> bool:
 	solved = g.solve_single_time_step(0.01)
 	if not TestUtils.assert_true(solved, "NMOS Test (SAT): Solve successful"): ok = false
 	if solved:
-		var res_sat := g.component_results.get(mos_sat.get_instance_id(), {})
+		var res_sat = g.component_results.get(mos_sat.get_instance_id(), {})
 		if not TestUtils.assert_equals(res_sat.get("region",""), "SATURATION", "NMOS Test (SAT): Region is SATURATION"): ok = false
-		var Id_sat := res_sat.get("Id", NAN)
+		var Id_sat = res_sat.get("Id", NAN)
 		var Id_expected_sat := 0.5 * mos_sat.transconductance_parameter * pow(ps_g_sat.target_voltage - mos_sat.threshold_voltage, 2)
 		if not TestUtils.assert_approx_equals(Id_sat, Id_expected_sat, 0.01, "NMOS Test (SAT): Id matches expected"): ok = false
 
