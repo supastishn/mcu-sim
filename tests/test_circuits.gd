@@ -1532,6 +1532,8 @@ func test_pmosfet_regions() -> bool:
 
 	if not rig.solve(): ok = false
 	var res = rig.results(pmos_off)
+	print_debug("    OFF solve → region=%s , Id=%s"
+	            % [res.get("region","N/A"), str(res.get("Id", NAN))])
 	if res.get("region","") != "OFF": ok = false
 	if abs(res.get("Id",0.0)) > 1e-6: ok = false
 
