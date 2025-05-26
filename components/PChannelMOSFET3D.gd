@@ -94,7 +94,7 @@ func update_nonlinear_state(circuit, comp_data, _x_iter=null, _vs_map_iter=null)
 		if Vsg <= threshold_voltage:
 			reg = "OFF"
 		else:
-			if Vsd < (Vsg - threshold_voltage):
+			if Vsd > (Vsg - threshold_voltage):
 				reg = "TRIODE"
 			else:
 				reg = "SATURATION"
@@ -157,10 +157,10 @@ func gather_sim_results(circuit,comp_data,x,node_map,vs_map,inductor_map,dt):
 		if reg=="OFF":
 			Id = 0.0
 		elif reg=="TRIODE":
-			Id = - transconductance_parameter * ( (Vsg - vt) * Vsd - 0.5*pow(Vsd,2) )
-		else:
-			Id = -0.5 * transconductance_parameter * pow(Vsg - vt,2)
-		if Id>0: Id = 0.0   # ensure current is from S to D (negative)
+			Id =  transconductance_parameter * ( (Vsg - vt) * Vsd - 0.5*pow(Vsd,2) )
+		else: # SATURATION
+			Id = 0.5 * transconductance_parameter * pow(Vsg - vt,2)
+		if Id < 0: Id = 0.0   # safety – never report negative magnitude
 	circuit.component_results[cid]["Id"]  = Id
 	circuit.component_results[cid]["Vgs"] = Vgs
 	circuit.component_results[cid]["Vds"] = Vds
