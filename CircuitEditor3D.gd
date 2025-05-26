@@ -713,6 +713,16 @@ func _select_component(component: Node3D):
 		vec_sat_label.text = "Vec Sat (V):"
 		vec_sat_edit.text = str(selected_component.vec_sat)
 		# TODO: Add visual highlight
+	# N‐Channel MOSFET: show Vt and Kn boxes
+	elif selected_component is NChannelMOSFET3D:
+		value_box.visible   = false
+		MOSFETVtBox.visible = true
+		MOSFETVtLabel.text  = "Vt (V):"
+		MOSFETVtEdit.text   = str(selected_component.threshold_voltage)
+		MOSFETKnBox.visible = true
+		MOSFETKnLabel.text  = "Kn (A/V²):"
+		MOSFETKnEdit.text   = str(selected_component.transconductance_parameter)
+		# TODO: add visual highlight if desired
 	elif selected_component is Relay3D:
 		value_box.visible = true
 		value_label.text = "Coil Threshold (V):"
@@ -1067,6 +1077,7 @@ func _on_delete_button_pressed():
 		 selected_component is NPNBJT3D or \
 		 selected_component is PNPBJT3D or \
 		 selected_component is ZenerDiode3D or \
+		 selected_component is NChannelMOSFET3D or \
 		 selected_component is Relay3D:
 		var component_to_delete = selected_component # Store ref
 		var terminals_to_check = []
