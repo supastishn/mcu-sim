@@ -421,11 +421,9 @@ func solve_single_time_step(delta_time: float) -> bool:
 
 		if N_iter == 0 and node_map_iter.is_empty() and active_vs_map_iter.is_empty() and inductor_map_iter.is_empty():
 			_is_solved = true
-			_calculate_passive_component_currents(delta_time)
 			return true
 		elif N_iter == 0 : 
 			_is_solved = true 
-			_calculate_passive_component_currents(delta_time) 
 			return true
 
 		if A_iter.is_empty() or b_iter.is_empty() or b_iter.size() != N_iter:
