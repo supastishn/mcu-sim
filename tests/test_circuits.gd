@@ -149,6 +149,14 @@ func run_all_tests():
 	else:
 		failed_test_names.push_back(test13_name)
 
+	var test_mos_name = "Test: N-Channel MOSFET Operating Regions"
+	print_rich("\n[b]{name}[/b]".format({"name": test_mos_name}))
+	total_tests += 1
+	if await test_nmosfet_regions():
+		passed_tests += 1
+	else:
+		failed_test_names.push_back(test_mos_name)
+
 	var test14_name = "Test: Relay Energized and De-energized States"
 	print_rich("\n[b]{name}[/b]".format({"name": test14_name}))
 	total_tests += 1
@@ -1384,3 +1392,105 @@ func test_led_not_lighting() -> bool:
 	
 	editor_instance.queue_free()
 	return overall_test_passed
+
+
+func test_nmosfet_regions() -> bool:
+	var ok := true
+	var ed_inst : Node3D = CircuitEditorScene.instantiate()
+	add_child(ed_inst)
+	await get_tree().process_frame
+	var ed : CircuitEditor3D = ed_inst
+	var g  : CircuitGraph   = ed.circuit_graph
+	if not (is_instance_valid(ed) and is_instance_valid(g)):
+		printerr("  SETUP FAIL: N-MOSFET Test – editor/graph invalid.")
+		if is_instance_valid(ed_inst): ed_inst.queue_free()
+		return false
+
+	# ---------- OFF (cut-off) ----------
+	print("  N-MOSFET Test: OFF region.")
+	var ps_d_off  : PowerSource3D     = ed._add_component(ed.PowerSourceScene, Vector3.ZERO)
+	var ps_g_off  : PowerSource3D     = ed._add_component(ed.PowerSourceScene, Vector3(0,0,1))
+	var r_off     : Resistor3D        = ed._add_component(ed.ResistorScene,     Vector3(1,0,0))
+	var mos_off   : NChannelMOSFET3D  = ed._add_component(ed.NChannelMOSFETScene, Vector3(2,0,0))
+
+	ps_d_off.target_voltage = 5.0 ; g.component_config_changed(ps_d_off)
+	ps_g_off.target_voltage = 0.0 ; g.component_config_changed(ps_g_off)
+	r_off.resistance        = 1000.0 ; g.component_config_changed(r_off)
+
+	g.connect_terminals(ps_d_off.terminal_pos, r_off.terminal1)
+	g.connect_terminals(r_off.terminal2, mos_off.terminal_d)
+	g.connect_terminals(mos_off.terminal_g,  ps_g_off.terminal_pos)
+	g.connect_terminals(mos_off.terminal_s,  ps_d_off.terminal_neg) # common GND
+	g.connect_terminals(ps_g_off.terminal_neg, ps_d_off.terminal_neg)
+	g.set_ground_node(ps_d_off.terminal_neg)
+
+	var solved := g.solve_single_time_step(0.01)
+	if not TestUtils.assert_true(solved, "NMOS Test (OFF): Solve successful"): ok = false
+	if solved:
+		var res := g.component_results.get(mos_off.get_instance_id(), {})
+		if not TestUtils.assert_equals(res.get("region",""), "OFF", "NMOS Test (OFF): Region is OFF"): ok = false
+		if not TestUtils.assert_approx_equals(res.get("Id", NAN), 0.0, 1e-6, "NMOS Test (OFF): Id ~ 0"): ok = false
+
+	_cleanup_components_and_graph(ed, g)
+
+	# ---------- TRIODE ----------
+	print("  N-MOSFET Test: TRIODE region.")
+	var ps_d_tri : PowerSource3D     = ed._add_component(ed.PowerSourceScene, Vector3.ZERO)
+	var ps_g_tri : PowerSource3D     = ed._add_component(ed.PowerSourceScene, Vector3(0,0,1))
+	var mos_tri  : NChannelMOSFET3D  = ed._add_component(ed.NChannelMOSFETScene, Vector3(2,0,0))
+
+	ps_d_tri.target_voltage = 2.0 ; g.component_config_changed(ps_d_tri)
+	ps_g_tri.target_voltage = 5.0 ; g.component_config_changed(ps_g_tri)
+
+	g.connect_terminals(ps_d_tri.terminal_pos, mos_tri.terminal_d)
+	g.connect_terminals(mos_tri.terminal_g,  ps_g_tri.terminal_pos)
+	g.connect_terminals(mos_tri.terminal_s,  ps_d_tri.terminal_neg)
+	g.connect_terminals(ps_g_tri.terminal_neg, ps_d_tri.terminal_neg)
+	g.set_ground_node(ps_d_tri.terminal_neg)
+
+	solved = g.solve_single_time_step(0.01)
+	if not TestUtils.assert_true(solved, "NMOS Test (TRI): Solve successful"): ok = false
+	if solved:
+		var res_tri := g.component_results.get(mos_tri.get_instance_id(), {})
+		var region  := res_tri.get("region", "")
+		var Id_tri  := res_tri.get("Id", NAN)
+		if not TestUtils.assert_equals(region, "TRIODE", "NMOS Test (TRI): Region is TRIODE"): ok = false
+
+		var Vd := g.electrical_nodes.get(g.terminal_connections.get(mos_tri.terminal_d.get_instance_id(), -1), {}).get("voltage", NAN)
+		var Vgs := ps_g_tri.target_voltage
+		var Vds := Vd
+		var kn  := mos_tri.transconductance_parameter
+		var vt  := mos_tri.threshold_voltage
+		var Id_expect := kn * ( (Vgs - vt) * Vds - 0.5 * pow(Vds, 2) )
+		if Id_expect < 0: Id_expect = 0
+		if not TestUtils.assert_approx_equals(Id_tri, Id_expect, 0.01, "NMOS Test (TRI): Id matches expected"): ok = false
+
+	_cleanup_components_and_graph(ed, g)
+
+	# ---------- SATURATION ----------
+	print("  N-MOSFET Test: SATURATION region.")
+	var ps_d_sat : PowerSource3D     = ed._add_component(ed.PowerSourceScene, Vector3.ZERO)
+	var ps_g_sat : PowerSource3D     = ed._add_component(ed.PowerSourceScene, Vector3(0,0,1))
+	var mos_sat  : NChannelMOSFET3D  = ed._add_component(ed.NChannelMOSFETScene, Vector3(2,0,0))
+
+	ps_d_sat.target_voltage = 10.0 ; g.component_config_changed(ps_d_sat)
+	ps_g_sat.target_voltage = 5.0  ; g.component_config_changed(ps_g_sat)
+
+	g.connect_terminals(ps_d_sat.terminal_pos, mos_sat.terminal_d)
+	g.connect_terminals(mos_sat.terminal_g,  ps_g_sat.terminal_pos)
+	g.connect_terminals(mos_sat.terminal_s,  ps_d_sat.terminal_neg)
+	g.connect_terminals(ps_g_sat.terminal_neg, ps_d_sat.terminal_neg)
+	g.set_ground_node(ps_d_sat.terminal_neg)
+
+	solved = g.solve_single_time_step(0.01)
+	if not TestUtils.assert_true(solved, "NMOS Test (SAT): Solve successful"): ok = false
+	if solved:
+		var res_sat := g.component_results.get(mos_sat.get_instance_id(), {})
+		if not TestUtils.assert_equals(res_sat.get("region",""), "SATURATION", "NMOS Test (SAT): Region is SATURATION"): ok = false
+		var Id_sat := res_sat.get("Id", NAN)
+		var Id_expected_sat := 0.5 * mos_sat.transconductance_parameter * pow(ps_g_sat.target_voltage - mos_sat.threshold_voltage, 2)
+		if not TestUtils.assert_approx_equals(Id_sat, Id_expected_sat, 0.01, "NMOS Test (SAT): Id matches expected"): ok = false
+
+	_cleanup_components_and_graph(ed, g)
+	ed_inst.queue_free()
+	return ok
