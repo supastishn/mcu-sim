@@ -606,6 +606,17 @@ func _build_mna_system(delta_time: float) -> Dictionary:
 			
 			cd_item_prep.properties["_internal_Vg_stamp"] = electrical_nodes.get(node_g_id_nmos_prep, {}).get("voltage", 0.0)
 			cd_item_prep.properties["_internal_Vs_stamp"] = electrical_nodes.get(node_s_id_nmos_prep, {}).get("voltage", 0.0)
+		elif cd_item_prep.type == "PChannelMOSFET":
+			var term_g_pmos = cd_item_prep.terminals["G"]
+			var term_s_pmos = cd_item_prep.terminals["S"]
+			var node_g_id_pmos = terminal_connections.get(
+				term_g_pmos.get_instance_id(), -1) if is_instance_valid(term_g_pmos) else -1
+			var node_s_id_pmos = terminal_connections.get(
+				term_s_pmos.get_instance_id(), -1) if is_instance_valid(term_s_pmos) else -1
+			cd_item_prep.properties["_int_Vg"] = electrical_nodes.get(
+				node_g_id_pmos, {}).get("voltage", 0.0)
+			cd_item_prep.properties["_int_Vs"] = electrical_nodes.get(
+				node_s_id_pmos, {}).get("voltage", 0.0)
 
 	for comp_data_item in components:
 		var component_node = comp_data_item.component_node
