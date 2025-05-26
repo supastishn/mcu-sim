@@ -103,6 +103,19 @@ func update_nonlinear_state(circuit, comp_data, _x_iter=null, _vs_map_iter=null)
 		return true
 	return false
 
+# --------------------------------------------------------------
+# generic G-stamp helper (same style as other component scripts)
+func _stamp_conductance(A: Array, g: float, idx1: int, idx2: int) -> void:
+	if idx1 != -1 and idx2 != -1:
+		A[idx1][idx1] += g
+		A[idx2][idx2] += g
+		A[idx1][idx2] -= g
+		A[idx2][idx1] -= g
+	elif idx1 != -1:
+		A[idx1][idx1] += g
+	elif idx2 != -1:
+		A[idx2][idx2] += g
+
 # ---------- STAMP ----------
 func stamp(A,b,node_map,vs_map,inductor_map,term_conn,comp_data,dt):
 	var reg = comp_data.properties["operating_region"]
@@ -114,22 +127,17 @@ func stamp(A,b,node_map,vs_map,inductor_map,term_conn,comp_data,dt):
 	var idx_g = node_map.get(term_conn.get(terminal_g.get_instance_id(),-1), -1)
 
 	var G_gate_leak = 1e-12
-	var _gs = func(g,i1,i2):
-		if i1!=-1 and i2!=-1:
-			A[i1][i1]+=g; A[i2][i2]+=g; A[i1][i2]-=g; A[i2][i1]-=g
-		elif i1!=-1: A[i1][i1]+=g
-		elif i2!=-1: A[i2][i2]+=g
 
-	_gs.call(G_gate_leak,idx_g,idx_s)
-	_gs.call(G_gate_leak,idx_g,idx_d)
+	_stamp_conductance(A, G_gate_leak, idx_g, idx_s)
+	_stamp_conductance(A, G_gate_leak, idx_g, idx_d)
 
 	if reg=="OFF":
-		_gs.call(1e-9,idx_s,idx_d)
+		_stamp_conductance(A, 1e-9, idx_s, idx_d)
 	elif reg=="TRIODE":
 		var Vsg = comp_data.properties.get("_int_Vs",0.0) - comp_data.properties.get("_int_Vg",0.0)
 		var cond = kp * max(0.01, Vsg - vt)
 		cond = clamp(cond,1e-3,1e9)
-		_gs.call(cond,idx_s,idx_d)
+		_stamp_conductance(A, cond, idx_s, idx_d)
 	else: # SATURATION
 		var Vsg = comp_data.properties.get("_int_Vs",0.0) - comp_data.properties.get("_int_Vg",0.0)
 		var Id_sat = 0.0
@@ -168,8 +176,3 @@ func gather_sim_results(circuit,comp_data,x,node_map,vs_map,inductor_map,dt):
 	circuit.component_results[cid]["Vds"] = Vds
 	circuit.component_results[cid]["region"] = reg
 
-func _physics_process(_dt):
-	# store latest Vs/Vg for next build pass (minimalistic)
-	if get_parent() and get_parent() is CircuitGraph:
-		return
-	pass
