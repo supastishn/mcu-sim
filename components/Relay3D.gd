@@ -80,6 +80,93 @@ func show_info(results: Dictionary):
 			var mat = StandardMaterial3D.new()
 			mat.albedo_color = Color.DARK_GREEN
 			mesh_instance.material_override = mat
+
+# -------------------------------------------------------------------------
+# MNA‐stamping interface
+func stamp(
+	A: Array,
+	b: Array, # Unused by Relay logic here, switch part is passive
+	node_map: Dictionary,
+	vs_map: Dictionary, # Unused by Relay
+	inductor_map: Dictionary, # Unused by Relay
+	terminal_connections: Dictionary,
+	comp_data: Dictionary, # Used for is_energized, coil_resistance, input_signal_resistance
+	delta_time: float # Unused by Relay
+):
+	# --- Coil Path (VCC to GND) ---
+	var R_coil_path_val: float
+	var g_coil_path_val: float
+	var R_coil_actual_prop = coil_resistance # Direct access to exported property
+	if R_coil_actual_prop <= 1e-9: R_coil_actual_prop = 1e-9
+
+	var vcc_id = terminal_vcc.get_instance_id()
+	var gnd_id = terminal_gnd.get_instance_id()
+	var node_vcc_lookup = terminal_connections.get(vcc_id, -1)
+	var node_gnd_lookup = terminal_connections.get(gnd_id, -1)
+	var idx_vcc = node_map.get(node_vcc_lookup, -1)
+	var idx_gnd = node_map.get(node_gnd_lookup, -1)
+
+	# Helper for inlining _stamp_conductance
+	var _inline_stamp_conductance = func(matrix_A, g_val, idx1, idx2):
+		if idx1 != -1 and idx2 != -1:
+			matrix_A[idx1][idx1] += g_val
+			matrix_A[idx2][idx2] += g_val
+			matrix_A[idx1][idx2] -= g_val
+			matrix_A[idx2][idx1] -= g_val
+		elif idx1 != -1:
+			matrix_A[idx1][idx1] += g_val
+		elif idx2 != -1:
+			matrix_A[idx2][idx2] += g_val
+
+	# The coil is always connected, its resistance doesn't change based on energized state for stamping.
+	# The energized state determines the switch contacts, not the coil's own impedance here.
+	# However, the original _stamp_relay used R_SWITCH_OPEN if not energized for the coil path.
+	# This seems incorrect if the coil is always physically present.
+	# Sticking to original logic:
+	if comp_data.properties["is_energized"]: # State from comp_data
+		R_coil_path_val = R_coil_actual_prop
+	else:
+		R_coil_path_val = CircuitGraph.R_SWITCH_OPEN # Original logic, implies coil disconnects if not energized
+	g_coil_path_val = 1.0 / R_coil_path_val
+	_inline_stamp_conductance.call(A, g_coil_path_val, idx_vcc, idx_gnd)
+
+	# --- Signal Input Path (Signal to GND) ---
+	# This represents the input impedance of the signal pin.
+	var R_signal_in_prop = comp_data.properties["input_signal_resistance"] # From comp_data setup
+	if R_signal_in_prop <= 1e-9: R_signal_in_prop = 1e-9
+	var g_signal_in_val = 1.0 / R_signal_in_prop
+	
+	var sig_id = terminal_signal.get_instance_id()
+	var node_sig_lookup = terminal_connections.get(sig_id, -1)
+	var idx_sig = node_map.get(node_sig_lookup, -1)
+	_inline_stamp_conductance.call(A, g_signal_in_val, idx_sig, idx_gnd) # Signal referenced to GND
+
+	# --- Switch Contacts (COM, NO, NC) ---
+	var R_sw_closed_const = CircuitGraph.R_SWITCH_CLOSED
+	var g_sw_closed_val = 1.0 / R_sw_closed_const
+	var R_sw_open_const = CircuitGraph.R_SWITCH_OPEN
+	var g_sw_open_val = 1.0 / R_sw_open_const
+
+	var com_sw_id = terminal_com.get_instance_id()
+	var no_sw_id = terminal_no.get_instance_id()
+	var nc_sw_id = terminal_nc.get_instance_id()
+
+	var node_com_lookup_sw = terminal_connections.get(com_sw_id, -1)
+	var node_no_lookup_sw = terminal_connections.get(no_sw_id, -1)
+	var node_nc_lookup_sw = terminal_connections.get(nc_sw_id, -1)
+
+	var idx_com_sw = node_map.get(node_com_lookup_sw, -1)
+	var idx_no_sw = node_map.get(node_no_lookup_sw, -1)
+	var idx_nc_sw = node_map.get(node_nc_lookup_sw, -1)
+
+	if comp_data.properties["is_energized"]: # State from comp_data
+		_inline_stamp_conductance.call(A, g_sw_closed_val, idx_com_sw, idx_no_sw) # COM-NO closed
+		_inline_stamp_conductance.call(A, g_sw_open_val, idx_com_sw, idx_nc_sw)   # COM-NC open
+		_inline_stamp_conductance.call(A, g_sw_open_val, idx_no_sw, idx_nc_sw)    # NO-NC open (high impedance between them)
+	else: # De-energized
+		_inline_stamp_conductance.call(A, g_sw_open_val, idx_com_sw, idx_no_sw)     # COM-NO open
+		_inline_stamp_conductance.call(A, g_sw_closed_val, idx_com_sw, idx_nc_sw)   # COM-NC closed
+		_inline_stamp_conductance.call(A, g_sw_open_val, idx_no_sw, idx_nc_sw)      # NO-NC open
 	else:
 		state_str = "State: De-energized (COM-NC)"
 		if is_instance_valid(mesh_instance) and mesh_instance.material_override:

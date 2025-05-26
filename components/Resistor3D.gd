@@ -31,3 +31,40 @@ func show_current(current_value: float):
 func hide_current():
 	if not current_label: return
 	current_label.visible = false
+
+# -------------------------------------------------------------------------
+# MNA‐stamping interface
+func stamp(
+	A: Array,
+	b: Array,
+	node_map: Dictionary,
+	vs_map: Dictionary, # Unused by Resistor
+	inductor_map: Dictionary, # Unused by Resistor
+	terminal_connections: Dictionary,
+	comp_data: Dictionary, # Unused by Resistor (static properties accessed directly)
+	delta_time: float # Unused by Resistor
+):
+	# stamp a linear resistor between terminal1 and terminal2
+	var R = resistance # Direct access to exported property
+	if R == 0.0: R = 1e-9
+	var g = 1.0 / R
+	
+	var t1_instance_id = terminal1.get_instance_id()
+	var t2_instance_id = terminal2.get_instance_id()
+	
+	var n1 = terminal_connections.get(t1_instance_id, -1)
+	var n2 = terminal_connections.get(t2_instance_id, -1)
+	
+	var i1 = node_map.get(n1, -1)
+	var i2 = node_map.get(n2, -1)
+	
+	# Inlined _stamp_conductance(A, g, i1, i2)
+	if i1 != -1 and i2 != -1:
+		A[i1][i1] += g
+		A[i2][i2] += g
+		A[i1][i2] -= g
+		A[i2][i1] -= g
+	elif i1 != -1:
+		A[i1][i1] += g
+	elif i2 != -1:
+		A[i2][i2] += g

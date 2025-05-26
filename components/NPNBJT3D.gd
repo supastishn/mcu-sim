@@ -102,3 +102,105 @@ func hide_info():
 
 func reset_visual_state():
 	hide_info()
+
+# -------------------------------------------------------------------------
+# MNA‐stamping interface
+func stamp(
+	A: Array,
+	b: Array,
+	node_map: Dictionary,
+	vs_map: Dictionary, # Unused by NPNBJT
+	inductor_map: Dictionary, # Unused by NPNBJT
+	terminal_connections: Dictionary,
+	comp_data: Dictionary, # Used for operating_region, beta_dc, vbe_on, vce_sat
+	delta_time: float # Unused by NPNBJT
+):
+	var region = comp_data.properties["operating_region"]
+	var beta_val = beta_dc # Direct access to exported property
+	var vbe_on_model_val = vbe_on # Direct access
+	var vce_sat_model_val = vce_sat # Direct access
+
+	var c_id = terminal_c.get_instance_id()
+	var b_id = terminal_b.get_instance_id()
+	var e_id = terminal_e.get_instance_id()
+
+	var node_c_lookup = terminal_connections.get(c_id, -1)
+	var node_b_lookup = terminal_connections.get(b_id, -1)
+	var node_e_lookup = terminal_connections.get(e_id, -1)
+
+	var idx_c = node_map.get(node_c_lookup, -1)
+	var idx_b = node_map.get(node_b_lookup, -1)
+	var idx_e = node_map.get(node_e_lookup, -1)
+
+	var R_be_active_model_const = 50.0  # Model parameter
+	var R_ce_sat_model_const = 5.0    # Model parameter
+	var R_bjt_off_model_const = 1.0e9 # Model parameter
+
+	# Helper for inlining _stamp_conductance
+	var _inline_stamp_conductance = func(matrix_A, g_val, idx1, idx2):
+		if idx1 != -1 and idx2 != -1:
+			matrix_A[idx1][idx1] += g_val
+			matrix_A[idx2][idx2] += g_val
+			matrix_A[idx1][idx2] -= g_val
+			matrix_A[idx2][idx1] -= g_val
+		elif idx1 != -1:
+			matrix_A[idx1][idx1] += g_val
+		elif idx2 != -1:
+			matrix_A[idx2][idx2] += g_val
+
+	if region == "OFF":
+		var g_off = 1.0 / R_bjt_off_model_const
+		_inline_stamp_conductance.call(A, g_off, idx_b, idx_e) # Base-Emitter path
+		_inline_stamp_conductance.call(A, g_off, idx_c, idx_e) # Collector-Emitter path
+		_inline_stamp_conductance.call(A, g_off, idx_c, idx_b) # Collector-Base path (less common, but for completeness)
+		
+	elif region == "ACTIVE":
+		# Base-Emitter diode model (forward biased)
+		var G_be_active = 1.0 / R_be_active_model_const
+		var Is_be_active = vbe_on_model_val / R_be_active_model_const # Current source part for Vbe_on
+		if idx_b != -1: A[idx_b][idx_b] += G_be_active; b[idx_b] += Is_be_active
+		if idx_e != -1: A[idx_e][idx_e] += G_be_active; b[idx_e] -= Is_be_active # Current flows from B to E
+		if idx_b != -1 and idx_e != -1:
+			A[idx_b][idx_e] -= G_be_active
+			A[idx_e][idx_b] -= G_be_active
+		
+		# Collector current controlled source Ic = beta * Ib
+		# Ib approx (Vb - Ve - Vbe_on) / R_be_active
+		# So, Ic = beta * ( (Vb - Ve - Vbe_on) / R_be_active )
+		# Ic = (beta/R_be_active) * Vb - (beta/R_be_active) * Ve - (beta*Vbe_on/R_be_active)
+		# This is a VCCS: Gm = beta / R_be_active
+		var Gm_bjt_active = beta_val / R_be_active_model_const
+		var Ic_const_offset_active = beta_val * vbe_on_model_val / R_be_active_model_const # This is -beta * Is_be_active
+
+		# Stamp for Ic flowing into Collector from Emitter (controlled by Vbe)
+		# KCL at Collector: ... + Gm*Vb - Gm*Ve - Ic_offset = 0 => ... - Gm*Vb + Gm*Ve + Ic_offset = 0 (if current defined out of node)
+		# Current Ic flows C -> E.
+		# At node C: A[idx_c][idx_b] += Gm; A[idx_c][idx_e] -= Gm; b[idx_c] -= Ic_const_offset
+		# At node E: A[idx_e][idx_b] -= Gm; A[idx_e][idx_e] += Gm; b[idx_e] += Ic_const_offset
+		if idx_c != -1:
+			if idx_b != -1: A[idx_c][idx_b] += Gm_bjt_active
+			if idx_e != -1: A[idx_c][idx_e] -= Gm_bjt_active
+			b[idx_c] += Ic_const_offset_active # Current source into C
+		if idx_e != -1: # Current source out of E
+			if idx_b != -1: A[idx_e][idx_b] -= Gm_bjt_active
+			if idx_e != -1: A[idx_e][idx_e] += Gm_bjt_active # Gm part
+			b[idx_e] -= Ic_const_offset_active
+
+	elif region == "SATURATION":
+		# Base-Emitter diode (still forward biased, same model as active for simplicity)
+		var G_be_sat = 1.0 / R_be_active_model_const # Using R_be_active for saturation too
+		var Is_be_sat = vbe_on_model_val / R_be_active_model_const
+		if idx_b != -1: A[idx_b][idx_b] += G_be_sat; b[idx_b] += Is_be_sat
+		if idx_e != -1: A[idx_e][idx_e] += G_be_sat; b[idx_e] -= Is_be_sat
+		if idx_b != -1 and idx_e != -1:
+			A[idx_b][idx_e] -= G_be_sat
+			A[idx_e][idx_b] -= G_be_sat
+			
+		# Collector-Emitter voltage source (Vce_sat) modeled with a small resistance
+		var G_ce_sat = 1.0 / R_ce_sat_model_const
+		var Is_ce_sat = vce_sat_model_val / R_ce_sat_model_const # Current source part for Vce_sat
+		if idx_c != -1: A[idx_c][idx_c] += G_ce_sat; b[idx_c] += Is_ce_sat
+		if idx_e != -1: A[idx_e][idx_e] += G_ce_sat; b[idx_e] -= Is_ce_sat # Current flows from C to E
+		if idx_c != -1 and idx_e != -1:
+			A[idx_c][idx_e] -= G_ce_sat
+			A[idx_e][idx_c] -= G_ce_sat

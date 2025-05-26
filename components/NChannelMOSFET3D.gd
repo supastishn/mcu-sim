@@ -102,3 +102,93 @@ func reset_visual_state():
 	hide_info()
 	if is_instance_valid(mesh_instance):
 		mesh_instance.material_override = null 
+
+# -------------------------------------------------------------------------
+# MNA‐stamping interface
+func stamp(
+	A: Array,
+	b: Array,
+	node_map: Dictionary,
+	vs_map: Dictionary, # Unused by NChannelMOSFET
+	inductor_map: Dictionary, # Unused by NChannelMOSFET
+	terminal_connections: Dictionary,
+	comp_data: Dictionary, # Used for operating_region, Vt, Kn, and potentially Vg_prev_iter, Vs_prev_iter
+	delta_time: float # Unused by NChannelMOSFET
+):
+	var region_nmos_mna_val = comp_data.properties["operating_region"]
+	var vt_nmos_mna_prop = threshold_voltage # Direct access to exported property
+	var kn_nmos_mna_prop = transconductance_parameter # Direct access
+
+	var d_id = terminal_d.get_instance_id()
+	var g_id = terminal_g.get_instance_id()
+	var s_id = terminal_s.get_instance_id()
+
+	var node_d_lookup = terminal_connections.get(d_id, -1)
+	var node_g_lookup = terminal_connections.get(g_id, -1)
+	var node_s_lookup = terminal_connections.get(s_id, -1)
+
+	var idx_d = node_map.get(node_d_lookup, -1)
+	var idx_g = node_map.get(node_g_lookup, -1)
+	var idx_s = node_map.get(node_s_lookup, -1)
+
+	# Gate has very high impedance, model with small leakage conductance
+	var G_gate_leakage_const = 1e-12 
+	# Helper for inlining _stamp_conductance
+	var _inline_stamp_conductance = func(matrix_A, g_val, idx1, idx2):
+		if idx1 != -1 and idx2 != -1:
+			matrix_A[idx1][idx1] += g_val
+			matrix_A[idx2][idx2] += g_val
+			matrix_A[idx1][idx2] -= g_val
+			matrix_A[idx2][idx1] -= g_val
+		elif idx1 != -1:
+			matrix_A[idx1][idx1] += g_val
+		elif idx2 != -1:
+			matrix_A[idx2][idx2] += g_val
+	
+	_inline_stamp_conductance.call(A, G_gate_leakage_const, idx_g, idx_d)
+	_inline_stamp_conductance.call(A, G_gate_leakage_const, idx_g, idx_s)
+
+	if region_nmos_mna_val == "OFF":
+		var G_ds_off_const = 1e-9 # Drain-Source off conductance
+		_inline_stamp_conductance.call(A, G_ds_off_const, idx_d, idx_s)
+	else:
+		# These voltages are from the previous non-linear iteration,
+		# assumed to be populated in comp_data.properties by CircuitGraph if needed for stamping.
+		# Keys like "_internal_Vg_stamp" and "_internal_Vs_stamp" would be used.
+		var Vg_prev_iter_val = comp_data.properties.get("_internal_Vg_stamp", 0.0) 
+		var Vs_prev_iter_val = comp_data.properties.get("_internal_Vs_stamp", 0.0)
+		var Vgs_for_model_val = Vg_prev_iter_val - Vs_prev_iter_val
+
+		if region_nmos_mna_val == "TRIODE":
+			# Model as a VCR (Voltage Controlled Resistor)
+			# Rds = 1 / (Kn * (Vgs - Vt)) -- simplified, actual is more complex with Vds
+			# For MNA, often linearized around operating point.
+			# Here, using a conductance based on Vgs.
+			var effective_conductance_triode = kn_nmos_mna_prop * max(0.01, Vgs_for_model_val - vt_nmos_mna_prop)
+			# This is actually gds = Kn * (Vgs - Vt - Vds) + Kn * Vds = Kn * (Vgs - Vt)
+			# More accurate for triode: Id = Kn * ((Vgs - Vt)Vds - 0.5*Vds^2)
+			# d(Id)/d(Vds) = Kn * (Vgs - Vt - Vds)
+			# For simplicity, using the provided model's approximation:
+			var R_ds_triode_approx_val = 1.0 / effective_conductance_triode
+			if R_ds_triode_approx_val > 1e9: R_ds_triode_approx_val = 1e9
+			if R_ds_triode_approx_val < 1e-3: R_ds_triode_approx_val = 1e-3 # Avoid zero resistance
+			var G_ds_triode_val = 1.0 / R_ds_triode_approx_val
+			_inline_stamp_conductance.call(A, G_ds_triode_val, idx_d, idx_s)
+			
+		elif region_nmos_mna_val == "SATURATION":
+			# Model as a current source Id = 0.5 * Kn * (Vgs - Vt)^2
+			# This is a non-linear current source. For MNA, it's often linearized.
+			# Id = Id0 + gm*(Vgs - Vgs0)
+			# Here, the original _stamp_nmos directly put Id_sat_val into 'b' vector.
+			# This means it's treated as a constant current source for this iteration step.
+			var Id_sat_calc_val = 0.0
+			if Vgs_for_model_val > vt_nmos_mna_prop:
+				Id_sat_calc_val = 0.5 * kn_nmos_mna_prop * pow(Vgs_for_model_val - vt_nmos_mna_prop, 2.0)
+			
+			# Current Id_sat_calc_val flows from Drain to Source
+			if idx_d != -1: b[idx_d] -= Id_sat_calc_val # Current leaving drain node in KCL
+			if idx_s != -1: b[idx_s] += Id_sat_calc_val # Current entering source node in KCL
+			
+			# Optionally, add output conductance g_ds (1/r_o) if channel length modulation is modeled
+			# var G_ds_sat_output_conductance = 1e-6 # Example small output conductance
+			# _inline_stamp_conductance.call(A, G_ds_sat_output_conductance, idx_d, idx_s)

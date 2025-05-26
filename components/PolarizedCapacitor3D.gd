@@ -87,3 +87,56 @@ func hide_info():
 func reset_visual_state():
 	is_visually_exploded = false
 	hide_info()
+
+# -------------------------------------------------------------------------
+# MNA‐stamping interface
+func stamp(
+	A: Array,
+	b: Array,
+	node_map: Dictionary,
+	vs_map: Dictionary, # Unused by PolarizedCapacitor
+	inductor_map: Dictionary, # Unused by PolarizedCapacitor
+	terminal_connections: Dictionary,
+	comp_data: Dictionary, # Used for is_exploded, capacitance, voltage_across_cap_prev_dt
+	delta_time: float
+):
+	var G_eq: float
+	var I_eq_source: float = 0.0
+	
+	if comp_data.get("is_exploded", false): # State from comp_data
+		G_eq = 1e-9 # Effectively open if exploded
+	else:
+		var C_val = capacitance # Direct access to exported property
+		if C_val <= 1e-12: C_val = 1e-12
+		var Vc_prev_dt_val = comp_data.properties.get("voltage_across_cap_prev_dt", 0.0) # State from comp_data
+		
+		if delta_time <= 1e-9: # Avoid division by zero or very small dt
+			G_eq = 1e9 # Effectively a short for DC analysis if dt is zero
+			I_eq_source = 0.0 # Or handle as error
+		else:
+			G_eq = C_val / delta_time
+			I_eq_source = G_eq * Vc_prev_dt_val
+			
+	var t1_instance_id = terminal1.get_instance_id() if is_instance_valid(terminal1) else -1
+	var t2_instance_id = terminal2.get_instance_id() if is_instance_valid(terminal2) else -1
+
+	var node1_lookup_id = terminal_connections.get(t1_instance_id, -1)
+	var node2_lookup_id = terminal_connections.get(t2_instance_id, -1)
+
+	var idx1 = node_map.get(node1_lookup_id, -1)
+	var idx2 = node_map.get(node2_lookup_id, -1)
+
+	# Inlined _stamp_conductance(A, G_eq, idx1, idx2)
+	if idx1 != -1 and idx2 != -1:
+		A[idx1][idx1] += G_eq
+		A[idx2][idx2] += G_eq
+		A[idx1][idx2] -= G_eq
+		A[idx2][idx1] -= G_eq
+	elif idx1 != -1:
+		A[idx1][idx1] += G_eq
+	elif idx2 != -1:
+		A[idx2][idx2] += G_eq
+		
+	# Stamp current source part
+	if idx1 != -1: b[idx1] += I_eq_source
+	if idx2 != -1: b[idx2] -= I_eq_source

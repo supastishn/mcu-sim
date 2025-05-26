@@ -32,3 +32,46 @@ func show_current(current_value: float):
 func hide_current():
 	if not current_label: return
 	current_label.visible = false
+
+# -------------------------------------------------------------------------
+# MNA‐stamping interface
+func stamp(
+	A: Array,
+	b: Array,
+	node_map: Dictionary,
+	vs_map: Dictionary, # Unused by Diode
+	inductor_map: Dictionary, # Unused by Diode
+	terminal_connections: Dictionary,
+	comp_data: Dictionary, # Used for 'conducting' state
+	delta_time: float # Unused by Diode
+):
+	var on = comp_data.get("conducting", false)
+	var R_on = CircuitGraph.R_DIODE_ON # Accessing const from CircuitGraph
+	var R_off = CircuitGraph.R_DIODE_OFF # Accessing const from CircuitGraph
+	var g = 1.0 / (R_on if on else R_off)
+
+	var anode_instance_id = terminal_anode.get_instance_id()
+	var kathode_instance_id = terminal_kathode.get_instance_id()
+
+	var na = terminal_connections.get(anode_instance_id, -1)
+	var nk = terminal_connections.get(kathode_instance_id, -1)
+
+	var ia = node_map.get(na, -1)
+	var ik = node_map.get(nk, -1)
+
+	if on:
+		var Vf = forward_voltage # Direct access to exported property
+		var offset_val = Vf / R_on # Renamed from 'off' to 'offset_val' to avoid confusion
+		if ia != -1: b[ia] += offset_val
+		if ik != -1: b[ik] -= offset_val
+	
+	# Inlined _stamp_conductance(A, g, ia, ik)
+	if ia != -1 and ik != -1:
+		A[ia][ia] += g
+		A[ik][ik] += g
+		A[ia][ik] -= g
+		A[ik][ia] -= g
+	elif ia != -1:
+		A[ia][ia] += g
+	elif ik != -1:
+		A[ik][ik] += g

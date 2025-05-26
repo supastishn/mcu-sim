@@ -66,3 +66,52 @@ func show_current(current_t1_w: float, current_w_t2: float):
 func hide_current():
 	if not current_label: return
 	current_label.visible = false
+
+# -------------------------------------------------------------------------
+# MNA‐stamping interface
+func stamp(
+	A: Array,
+	b: Array, # Unused by Potentiometer
+	node_map: Dictionary,
+	vs_map: Dictionary, # Unused by Potentiometer
+	inductor_map: Dictionary, # Unused by Potentiometer
+	terminal_connections: Dictionary,
+	comp_data: Dictionary, # Used for total_resistance and wiper_position from comp_data.properties
+	delta_time: float # Unused by Potentiometer
+):
+	var total_R_val = comp_data.properties["total_resistance"] # Accessing via comp_data as per original _stamp_potentiometer
+	var wiper_pos_val = comp_data.properties["wiper_position"] # Accessing via comp_data
+
+	var R1 = total_R_val * wiper_pos_val
+	if R1 < 1e-9: R1 = 1e-9
+	var g1 = 1.0 / R1
+	
+	var R2 = total_R_val * (1.0 - wiper_pos_val)
+	if R2 < 1e-9: R2 = 1e-9
+	var g2 = 1.0 / R2
+
+	var t1_id = terminal1.get_instance_id() if is_instance_valid(terminal1) else -1
+	var t2_id = terminal2.get_instance_id() if is_instance_valid(terminal2) else -1
+	var tw_id = terminal_wiper.get_instance_id() if is_instance_valid(terminal_wiper) else -1
+
+	var node1_lookup_id = terminal_connections.get(t1_id, -1)
+	var node2_lookup_id = terminal_connections.get(t2_id, -1)
+	var nodeW_lookup_id = terminal_connections.get(tw_id, -1)
+
+	var idx1 = node_map.get(node1_lookup_id, -1)
+	var idx2 = node_map.get(node2_lookup_id, -1)
+	var idxW = node_map.get(nodeW_lookup_id, -1)
+
+	# Stamp R1 (between terminal1 and wiper)
+	if idx1 != -1: A[idx1][idx1] += g1
+	if idxW != -1: A[idxW][idxW] += g1
+	if idx1 != -1 and idxW != -1:
+		A[idx1][idxW] -= g1
+		A[idxW][idx1] -= g1
+	
+	# Stamp R2 (between wiper and terminal2)
+	if idxW != -1: A[idxW][idxW] += g2
+	if idx2 != -1: A[idx2][idx2] += g2
+	if idxW != -1 and idx2 != -1:
+		A[idxW][idx2] -= g2
+		A[idx2][idxW] -= g2

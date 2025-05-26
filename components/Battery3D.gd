@@ -96,3 +96,40 @@ func show_current(actual_current: float, actual_voltage: float):
 func hide_current():
 	if not current_label: return
 	current_label.visible = false
+
+# -------------------------------------------------------------------------
+# MNA‐stamping interface
+func stamp(
+	A: Array,
+	b: Array,
+	node_map: Dictionary,
+	vs_map: Dictionary, # This is active_vs_id_to_matrix_index
+	inductor_map: Dictionary, # Unused by Battery
+	terminal_connections: Dictionary,
+	comp_data: Dictionary, # Used for target_voltage from comp_data.properties
+	delta_time: float # Unused by Battery
+):
+	var pos_term_instance_id = terminal_pos.get_instance_id() if is_instance_valid(terminal_pos) else -1
+	var neg_term_instance_id = terminal_neg.get_instance_id() if is_instance_valid(terminal_neg) else -1
+
+	var pos_node_lookup_id = terminal_connections.get(pos_term_instance_id, -1)
+	var neg_node_lookup_id = terminal_connections.get(neg_term_instance_id, -1)
+
+	var pos_idx = node_map.get(pos_node_lookup_id, -1)
+	var neg_idx = node_map.get(neg_node_lookup_id, -1)
+	
+	var battery_instance_id = self.get_instance_id()
+	if not vs_map.has(battery_instance_id):
+		printerr("Critical Error: Battery {batid} not found in vs_map.".format({"batid": battery_instance_id}))
+		return
+	var battery_current_matrix_idx = vs_map[battery_instance_id]
+	
+	var V_target_val = comp_data.properties["target_voltage"] # From comp_data as per original
+	
+	b[battery_current_matrix_idx] = V_target_val
+	if pos_idx != -1:
+		A[battery_current_matrix_idx][pos_idx] = 1.0
+		A[pos_idx][battery_current_matrix_idx] = 1.0
+	if neg_idx != -1:
+		A[battery_current_matrix_idx][neg_idx] = -1.0
+		A[neg_idx][battery_current_matrix_idx] = -1.0
