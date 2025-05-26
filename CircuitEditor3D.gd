@@ -59,6 +59,7 @@ var _drag_start_position: Vector2 = Vector2.ZERO # Screen position where mouse w
 @onready var add_npn_bjt_button: Button = $UI/ComponentBar/ButtonList/AddNPNBJTButton # Add NPN BJT Button
 @onready var add_pnp_bjt_button: Button = $UI/ComponentBar/ButtonList/AddPNPBJTButton # Add PNP BJT Button
 @onready var add_zener_diode_button: Button = $UI/ComponentBar/ButtonList/AddZenerDiodeButton # Add Zener Diode button
+@onready var add_nchannelmosfet_button: Button = $UI/ComponentBar/ButtonList/AddNChannelMOSFETButton
 @onready var add_relay_button: Button = $UI/ComponentBar/ButtonList/AddRelayButton # Add Relay Button
 @onready var simulate_button: Button = $UI/ComponentBar/ButtonList/SimulateButton
 @onready var selection_bar: VBoxContainer = $UI/SelectionBar
