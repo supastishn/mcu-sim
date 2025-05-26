@@ -870,7 +870,6 @@ func _perform_simulation_step():
 
 	if circuit_graph.solve_single_time_step(SIMULATION_TIME_STEP):
 		print("  Simulation step successful.")
-		circuit_graph.print_graph_state()
 		_update_led_states()       
 		_update_voltage_displays() 
 	else:
