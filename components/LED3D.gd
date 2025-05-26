@@ -141,52 +141,52 @@ func hide_current():
 # -----------------------------------------------------------------
 # Simulation-results extraction
 func gather_sim_results(
-        circuit      : CircuitGraph,
-        comp_data    : Dictionary,
-        x            : Array,
-        node_map     : Dictionary,
-        vs_map       : Dictionary,
-        inductor_map : Dictionary,
-        delta_time   : float) -> void:
-    #region LEGACY_RESULT_CODE
-    var comp_node = comp_data.component_node
-    var comp_id = comp_node.get_instance_id()
-    if not comp_id in circuit.component_results: circuit.component_results[comp_id] = {}
+		circuit      : CircuitGraph,
+		comp_data    : Dictionary,
+		x            : Array,
+		node_map     : Dictionary,
+		vs_map       : Dictionary,
+		inductor_map : Dictionary,
+		delta_time   : float) -> void:
+	#region LEGACY_RESULT_CODE
+	var comp_node = comp_data.component_node
+	var comp_id = comp_node.get_instance_id()
+	if not comp_id in circuit.component_results: circuit.component_results[comp_id] = {}
 
-    var R_led_model = circuit.R_LED_ON
-    var term_a = comp_data.terminals["A"]
-    var term_k = comp_data.terminals["K"]
-    var node_a_id = circuit.terminal_connections.get(term_a.get_instance_id(), -1)
-    var node_k_id = circuit.terminal_connections.get(term_k.get_instance_id(), -1)
-    var Va = circuit.electrical_nodes.get(node_a_id, {}).get("voltage", NAN)
-    var Vk = circuit.electrical_nodes.get(node_k_id, {}).get("voltage", NAN)
-    var Vf_led = comp_data.properties["forward_voltage"]
-    var current = 0.0
-    var log_msg_suffix = ""
-    var is_logically_burned = comp_data.get("is_burned", false)
+	var R_led_model = circuit.R_LED_ON
+	var term_a = comp_data.terminals["A"]
+	var term_k = comp_data.terminals["K"]
+	var node_a_id = circuit.terminal_connections.get(term_a.get_instance_id(), -1)
+	var node_k_id = circuit.terminal_connections.get(term_k.get_instance_id(), -1)
+	var Va = circuit.electrical_nodes.get(node_a_id, {}).get("voltage", NAN)
+	var Vk = circuit.electrical_nodes.get(node_k_id, {}).get("voltage", NAN)
+	var Vf_led = comp_data.properties["forward_voltage"]
+	var current = 0.0
+	var log_msg_suffix = ""
+	var is_logically_burned = comp_data.get("is_burned", false)
 
-    if is_logically_burned:
-        current = 0.0
-        log_msg_suffix = "Burned (Current is 0)"
-    elif comp_data.get("conducting", false) and not is_nan(Va) and not is_nan(Vk):
-        var effective_voltage_across_Rd_on = (Va - Vk) - Vf_led
-        if effective_voltage_across_Rd_on > 0:
-            current = effective_voltage_across_Rd_on / R_led_model
-        else:
-            current = 0.0 
+	if is_logically_burned:
+		current = 0.0
+		log_msg_suffix = "Burned (Current is 0)"
+	elif comp_data.get("conducting", false) and not is_nan(Va) and not is_nan(Vk):
+		var effective_voltage_across_Rd_on = (Va - Vk) - Vf_led
+		if effective_voltage_across_Rd_on > 0:
+			current = effective_voltage_across_Rd_on / R_led_model
+		else:
+			current = 0.0 
 
-        log_msg_suffix = "Conducting"
-        if current > comp_data.properties["max_current"]:
-            comp_data.is_burned = true
-            comp_data.conducting = false 
-            current = 0.0 
-            log_msg_suffix = "JUST BURNED! (Current is 0)"
-    else: 
-        current = 0.0
-        log_msg_suffix = "Not Conducting (Below Vf or error)"
-    
-    circuit.component_results[comp_id]["current"] = current
-    #endregion
+		log_msg_suffix = "Conducting"
+		if current > comp_data.properties["max_current"]:
+			comp_data.is_burned = true
+			comp_data.conducting = false 
+			current = 0.0 
+			log_msg_suffix = "JUST BURNED! (Current is 0)"
+	else: 
+		current = 0.0
+		log_msg_suffix = "Not Conducting (Below Vf or error)"
+	
+	circuit.component_results[comp_id]["current"] = current
+	#endregion
 
 func stamp(
 	A: Array,

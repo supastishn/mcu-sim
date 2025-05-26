@@ -83,54 +83,54 @@ func reset_visual_state():
 # -----------------------------------------------------------------
 # Simulation-results extraction
 func gather_sim_results(
-        circuit      : CircuitGraph,
-        comp_data    : Dictionary,
-        x            : Array,
-        node_map     : Dictionary,
-        vs_map       : Dictionary,
-        inductor_map : Dictionary,
-        delta_time   : float) -> void:
-    #region LEGACY_RESULT_CODE
-    var comp_node = comp_data.component_node
-    var comp_id = comp_node.get_instance_id()
-    if not comp_id in circuit.component_results: circuit.component_results[comp_id] = {}
+		circuit      : CircuitGraph,
+		comp_data    : Dictionary,
+		x            : Array,
+		node_map     : Dictionary,
+		vs_map       : Dictionary,
+		inductor_map : Dictionary,
+		delta_time   : float) -> void:
+	#region LEGACY_RESULT_CODE
+	var comp_node = comp_data.component_node
+	var comp_id = comp_node.get_instance_id()
+	if not comp_id in circuit.component_results: circuit.component_results[comp_id] = {}
 
-    var state_z = comp_data.properties["operating_state"]
-    var Vf_z_calc = comp_data.properties["forward_voltage"]
-    var Vz_calc = comp_data.properties["zener_voltage"] 
-    var R_on_z_model = 0.1 
+	var state_z = comp_data.properties["operating_state"]
+	var Vf_z_calc = comp_data.properties["forward_voltage"]
+	var Vz_calc = comp_data.properties["zener_voltage"] 
+	var R_on_z_model = 0.1 
 
-    var term_a_z_node = comp_data.terminals["A"]
-    var term_k_z_node = comp_data.terminals["K"]
-    var node_a_id_z_val = circuit.terminal_connections.get(term_a_z_node.get_instance_id(), -1)
-    var node_k_id_z_val = circuit.terminal_connections.get(term_k_z_node.get_instance_id(), -1)
+	var term_a_z_node = comp_data.terminals["A"]
+	var term_k_z_node = comp_data.terminals["K"]
+	var node_a_id_z_val = circuit.terminal_connections.get(term_a_z_node.get_instance_id(), -1)
+	var node_k_id_z_val = circuit.terminal_connections.get(term_k_z_node.get_instance_id(), -1)
 
-    var Va_z_val = circuit.electrical_nodes.get(node_a_id_z_val, {}).get("voltage", NAN)
-    var Vk_z_val = circuit.electrical_nodes.get(node_k_id_z_val, {}).get("voltage", NAN)
-    
-    var current_zener = NAN
-    var Vak_z_val = NAN
+	var Va_z_val = circuit.electrical_nodes.get(node_a_id_z_val, {}).get("voltage", NAN)
+	var Vk_z_val = circuit.electrical_nodes.get(node_k_id_z_val, {}).get("voltage", NAN)
+	
+	var current_zener = NAN
+	var Vak_z_val = NAN
 
-    if not is_nan(Va_z_val) and not is_nan(Vk_z_val):
-        Vak_z_val = Va_z_val - Vk_z_val
-        if state_z == "FORWARD":
-            if Vak_z_val > Vf_z_calc:
-                current_zener = (Vak_z_val - Vf_z_calc) / R_on_z_model 
-            else:
-                current_zener = 0.0
-        elif state_z == "ZENER":
-            if (Vk_z_val - Va_z_val) > Vz_calc : 
-                current_zener = -( (Vk_z_val - Va_z_val) - Vz_calc ) / R_on_z_model
-            else: 
-                current_zener = 0.0
+	if not is_nan(Va_z_val) and not is_nan(Vk_z_val):
+		Vak_z_val = Va_z_val - Vk_z_val
+		if state_z == "FORWARD":
+			if Vak_z_val > Vf_z_calc:
+				current_zener = (Vak_z_val - Vf_z_calc) / R_on_z_model 
+			else:
+				current_zener = 0.0
+		elif state_z == "ZENER":
+			if (Vk_z_val - Va_z_val) > Vz_calc : 
+				current_zener = -( (Vk_z_val - Va_z_val) - Vz_calc ) / R_on_z_model
+			else: 
+				current_zener = 0.0
 
-        elif state_z == "OFF":
-            current_zener = 0.0
-    
-    circuit.component_results[comp_id]["current"] = current_zener
-    circuit.component_results[comp_id]["voltage_ak"] = Vak_z_val 
-    circuit.component_results[comp_id]["state"] = state_z
-    #endregion
+		elif state_z == "OFF":
+			current_zener = 0.0
+	
+	circuit.component_results[comp_id]["current"] = current_zener
+	circuit.component_results[comp_id]["voltage_ak"] = Vak_z_val 
+	circuit.component_results[comp_id]["state"] = state_z
+	#endregion
 
 func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, _x_iter = null, _vs_map_iter = null) -> bool:
 	var term_a_z = comp_data.terminals["A"]

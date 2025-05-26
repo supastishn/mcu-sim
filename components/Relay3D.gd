@@ -244,66 +244,66 @@ func reset_visual_state():
 # -----------------------------------------------------------------
 # Simulation-results extraction
 func gather_sim_results(
-        circuit      : CircuitGraph,
-        comp_data    : Dictionary,
-        x            : Array,
-        node_map     : Dictionary,
-        vs_map       : Dictionary,
-        inductor_map : Dictionary,
-        delta_time   : float) -> void:
-    #region LEGACY_RESULT_CODE
-    var comp_node = comp_data.component_node
-    var comp_id = comp_node.get_instance_id()
-    if not comp_id in circuit.component_results: circuit.component_results[comp_id] = {}
+		circuit      : CircuitGraph,
+		comp_data    : Dictionary,
+		x            : Array,
+		node_map     : Dictionary,
+		vs_map       : Dictionary,
+		inductor_map : Dictionary,
+		delta_time   : float) -> void:
+	#region LEGACY_RESULT_CODE
+	var comp_node = comp_data.component_node
+	var comp_id = comp_node.get_instance_id()
+	if not comp_id in circuit.component_results: circuit.component_results[comp_id] = {}
 
-    var term_vcc_res = comp_data.terminals["VCC"]
-    var term_gnd_res = comp_data.terminals["GND"]
-    var term_sig_res = comp_data.terminals["Signal"]
-    
-    var node_vcc_id_res = circuit.terminal_connections.get(term_vcc_res.get_instance_id(), -1)
-    var node_gnd_id_res = circuit.terminal_connections.get(term_gnd_res.get_instance_id(), -1)
-    var node_sig_id_res = circuit.terminal_connections.get(term_sig_res.get_instance_id(), -1)
+	var term_vcc_res = comp_data.terminals["VCC"]
+	var term_gnd_res = comp_data.terminals["GND"]
+	var term_sig_res = comp_data.terminals["Signal"]
+	
+	var node_vcc_id_res = circuit.terminal_connections.get(term_vcc_res.get_instance_id(), -1)
+	var node_gnd_id_res = circuit.terminal_connections.get(term_gnd_res.get_instance_id(), -1)
+	var node_sig_id_res = circuit.terminal_connections.get(term_sig_res.get_instance_id(), -1)
 
-    var V_vcc_res = circuit.electrical_nodes.get(node_vcc_id_res, {}).get("voltage", NAN)
-    var V_gnd_res = circuit.electrical_nodes.get(node_gnd_id_res, {}).get("voltage", NAN)
-    var V_sig_res = circuit.electrical_nodes.get(node_sig_id_res, {}).get("voltage", NAN)
-    
-    var actual_signal_voltage = NAN
-    if not is_nan(V_sig_res) and not is_nan(V_gnd_res):
-        actual_signal_voltage = V_sig_res - V_gnd_res
-        
-    var actual_vcc_voltage = NAN
-    if not is_nan(V_vcc_res) and not is_nan(V_gnd_res):
-        actual_vcc_voltage = V_vcc_res - V_gnd_res
+	var V_vcc_res = circuit.electrical_nodes.get(node_vcc_id_res, {}).get("voltage", NAN)
+	var V_gnd_res = circuit.electrical_nodes.get(node_gnd_id_res, {}).get("voltage", NAN)
+	var V_sig_res = circuit.electrical_nodes.get(node_sig_id_res, {}).get("voltage", NAN)
+	
+	var actual_signal_voltage = NAN
+	if not is_nan(V_sig_res) and not is_nan(V_gnd_res):
+		actual_signal_voltage = V_sig_res - V_gnd_res
+		
+	var actual_vcc_voltage = NAN
+	if not is_nan(V_vcc_res) and not is_nan(V_gnd_res):
+		actual_vcc_voltage = V_vcc_res - V_gnd_res
 
-    var actual_coil_current = NAN
-    var coil_R_val_res = comp_data.properties["coil_resistance"]
-    var is_energized_res = comp_data.properties["is_energized"]
+	var actual_coil_current = NAN
+	var coil_R_val_res = comp_data.properties["coil_resistance"]
+	var is_energized_res = comp_data.properties["is_energized"]
 
-    if is_energized_res and not is_nan(actual_vcc_voltage) and coil_R_val_res > 1e-9:
-        actual_coil_current = actual_vcc_voltage / coil_R_val_res
-    elif not is_energized_res: 
-        actual_coil_current = 0.0
-    
-    circuit.component_results[comp_id]["signal_voltage"] = actual_signal_voltage
-    circuit.component_results[comp_id]["vcc_voltage"] = actual_vcc_voltage
-    circuit.component_results[comp_id]["coil_current"] = actual_coil_current
-    circuit.component_results[comp_id]["is_energized"] = is_energized_res
-    circuit.component_results[comp_id]["signal_threshold"] = comp_data.properties["signal_voltage_threshold"]
+	if is_energized_res and not is_nan(actual_vcc_voltage) and coil_R_val_res > 1e-9:
+		actual_coil_current = actual_vcc_voltage / coil_R_val_res
+	elif not is_energized_res: 
+		actual_coil_current = 0.0
+	
+	circuit.component_results[comp_id]["signal_voltage"] = actual_signal_voltage
+	circuit.component_results[comp_id]["vcc_voltage"] = actual_vcc_voltage
+	circuit.component_results[comp_id]["coil_current"] = actual_coil_current
+	circuit.component_results[comp_id]["is_energized"] = is_energized_res
+	circuit.component_results[comp_id]["signal_threshold"] = comp_data.properties["signal_voltage_threshold"]
 
-    var R_sw_closed_calc = CircuitGraph.R_SWITCH_CLOSED
-    var com_term_calc = comp_data.terminals["COM"]
-    var no_term_calc = comp_data.terminals["NO"]
-    var nc_term_calc = comp_data.terminals["NC"]
-    var V_com_calc = circuit.electrical_nodes.get(circuit.terminal_connections.get(com_term_calc.get_instance_id(), -1), {}).get("voltage", NAN)
-    var V_no_calc = circuit.electrical_nodes.get(circuit.terminal_connections.get(no_term_calc.get_instance_id(), -1), {}).get("voltage", NAN)
-    var V_nc_calc = circuit.electrical_nodes.get(circuit.terminal_connections.get(nc_term_calc.get_instance_id(), -1), {}).get("voltage", NAN)
-    
-    var contact_current_str = ""
-    if is_energized_res and not is_nan(V_com_calc) and not is_nan(V_no_calc):
-        var i_no = (V_com_calc - V_no_calc) / R_sw_closed_calc
-        contact_current_str = ", I_NO={ino_s}A".format({"ino_s": String.num(i_no,3)})
-    elif not is_energized_res and not is_nan(V_com_calc) and not is_nan(V_nc_calc):
-        var i_nc = (V_com_calc - V_nc_calc) / R_sw_closed_calc
-        contact_current_str = ", I_NC={inc_s}A".format({"inc_s": String.num(i_nc,3)})
-    #endregion
+	var R_sw_closed_calc = CircuitGraph.R_SWITCH_CLOSED
+	var com_term_calc = comp_data.terminals["COM"]
+	var no_term_calc = comp_data.terminals["NO"]
+	var nc_term_calc = comp_data.terminals["NC"]
+	var V_com_calc = circuit.electrical_nodes.get(circuit.terminal_connections.get(com_term_calc.get_instance_id(), -1), {}).get("voltage", NAN)
+	var V_no_calc = circuit.electrical_nodes.get(circuit.terminal_connections.get(no_term_calc.get_instance_id(), -1), {}).get("voltage", NAN)
+	var V_nc_calc = circuit.electrical_nodes.get(circuit.terminal_connections.get(nc_term_calc.get_instance_id(), -1), {}).get("voltage", NAN)
+	
+	var contact_current_str = ""
+	if is_energized_res and not is_nan(V_com_calc) and not is_nan(V_no_calc):
+		var i_no = (V_com_calc - V_no_calc) / R_sw_closed_calc
+		contact_current_str = ", I_NO={ino_s}A".format({"ino_s": String.num(i_no,3)})
+	elif not is_energized_res and not is_nan(V_com_calc) and not is_nan(V_nc_calc):
+		var i_nc = (V_com_calc - V_nc_calc) / R_sw_closed_calc
+		contact_current_str = ", I_NC={inc_s}A".format({"inc_s": String.num(i_nc,3)})
+	#endregion

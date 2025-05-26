@@ -131,45 +131,45 @@ func stamp(
 # -----------------------------------------------------------------
 # Simulation-results extraction
 func gather_sim_results(
-        circuit      : CircuitGraph,
-        comp_data    : Dictionary,
-        x            : Array,
-        node_map     : Dictionary,
-        vs_map       : Dictionary,
-        inductor_map : Dictionary,
-        delta_time   : float) -> void:
-    #region LEGACY_RESULT_CODE
-    var comp_node = comp_data.component_node
-    var comp_id = comp_node.get_instance_id()
-    if not comp_id in circuit.component_results: circuit.component_results[comp_id] = {}
+		circuit      : CircuitGraph,
+		comp_data    : Dictionary,
+		x            : Array,
+		node_map     : Dictionary,
+		vs_map       : Dictionary,
+		inductor_map : Dictionary,
+		delta_time   : float) -> void:
+	#region LEGACY_RESULT_CODE
+	var comp_node = comp_data.component_node
+	var comp_id = comp_node.get_instance_id()
+	if not comp_id in circuit.component_results: circuit.component_results[comp_id] = {}
 
-    var C_np_val = comp_data.properties["capacitance"]
-    var max_V_np_cap = comp_data.properties["max_voltage"] 
-    var Vc_prev_dt_np_val = comp_data.properties.get("voltage_across_cap_prev_dt", 0.0)
+	var C_np_val = comp_data.properties["capacitance"]
+	var max_V_np_cap = comp_data.properties["max_voltage"] 
+	var Vc_prev_dt_np_val = comp_data.properties.get("voltage_across_cap_prev_dt", 0.0)
 
-    var term1_np_cap_node = comp_data.terminals["T1"]
-    var term2_np_cap_node = comp_data.terminals["T2"]
-    var node1_id_np_cap_val = circuit.terminal_connections.get(term1_np_cap_node.get_instance_id(), -1)
-    var node2_id_np_cap_val = circuit.terminal_connections.get(term2_np_cap_node.get_instance_id(), -1)
+	var term1_np_cap_node = comp_data.terminals["T1"]
+	var term2_np_cap_node = comp_data.terminals["T2"]
+	var node1_id_np_cap_val = circuit.terminal_connections.get(term1_np_cap_node.get_instance_id(), -1)
+	var node2_id_np_cap_val = circuit.terminal_connections.get(term2_np_cap_node.get_instance_id(), -1)
 
-    var V1_np_cap_t = circuit.electrical_nodes.get(node1_id_np_cap_val, {}).get("voltage", NAN)
-    var V2_np_cap_t = circuit.electrical_nodes.get(node2_id_np_cap_val, {}).get("voltage", NAN)
-    
-    var current_np_cap = NAN
-    var Vc_np_t = NAN
+	var V1_np_cap_t = circuit.electrical_nodes.get(node1_id_np_cap_val, {}).get("voltage", NAN)
+	var V2_np_cap_t = circuit.electrical_nodes.get(node2_id_np_cap_val, {}).get("voltage", NAN)
+	
+	var current_np_cap = NAN
+	var Vc_np_t = NAN
 
-    if not is_nan(V1_np_cap_t) and not is_nan(V2_np_cap_t):
-        Vc_np_t = V1_np_cap_t - V2_np_cap_t
-        current_np_cap = C_np_val * (Vc_np_t - Vc_prev_dt_np_val) / delta_time
-        comp_data.properties["voltage_across_cap_prev_dt"] = Vc_np_t 
-        
-        var over_voltage_info = ""
-        if abs(Vc_np_t) > max_V_np_cap: 
-            over_voltage_info = " (WARNING: Exceeds Max Voltage {max_v_s}V)".format({"max_v_s": String.num(max_V_np_cap,2)})
+	if not is_nan(V1_np_cap_t) and not is_nan(V2_np_cap_t):
+		Vc_np_t = V1_np_cap_t - V2_np_cap_t
+		current_np_cap = C_np_val * (Vc_np_t - Vc_prev_dt_np_val) / delta_time
+		comp_data.properties["voltage_across_cap_prev_dt"] = Vc_np_t 
+		
+		var over_voltage_info = ""
+		if abs(Vc_np_t) > max_V_np_cap: 
+			over_voltage_info = " (WARNING: Exceeds Max Voltage {max_v_s}V)".format({"max_v_s": String.num(max_V_np_cap,2)})
 
-    else:
-        pass
+	else:
+		pass
 
-    circuit.component_results[comp_id]["current"] = current_np_cap
-    circuit.component_results[comp_id]["voltage_across"] = Vc_np_t
-    #endregion
+	circuit.component_results[comp_id]["current"] = current_np_cap
+	circuit.component_results[comp_id]["voltage_across"] = Vc_np_t
+	#endregion

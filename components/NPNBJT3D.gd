@@ -106,69 +106,69 @@ func reset_visual_state():
 # -----------------------------------------------------------------
 # Simulation-results extraction
 func gather_sim_results(
-        circuit      : CircuitGraph,
-        comp_data    : Dictionary,
-        x            : Array,
-        node_map     : Dictionary,
-        vs_map       : Dictionary,
-        inductor_map : Dictionary,
-        delta_time   : float) -> void:
-    #region LEGACY_RESULT_CODE
-    var comp_node = comp_data.component_node
-    var comp_id = comp_node.get_instance_id()
-    if not comp_id in circuit.component_results: circuit.component_results[comp_id] = {}
+		circuit      : CircuitGraph,
+		comp_data    : Dictionary,
+		x            : Array,
+		node_map     : Dictionary,
+		vs_map       : Dictionary,
+		inductor_map : Dictionary,
+		delta_time   : float) -> void:
+	#region LEGACY_RESULT_CODE
+	var comp_node = comp_data.component_node
+	var comp_id = comp_node.get_instance_id()
+	if not comp_id in circuit.component_results: circuit.component_results[comp_id] = {}
 
-    var Vc = circuit.electrical_nodes.get(circuit.terminal_connections.get(comp_data.terminals["C"].get_instance_id(), -1), {}).get("voltage", NAN)
-    var Vb = circuit.electrical_nodes.get(circuit.terminal_connections.get(comp_data.terminals["B"].get_instance_id(), -1), {}).get("voltage", NAN)
-    var Ve = circuit.electrical_nodes.get(circuit.terminal_connections.get(comp_data.terminals["E"].get_instance_id(), -1), {}).get("voltage", NAN)
-    
-    var region = comp_data.properties["operating_region"]
-    var beta = comp_data.properties["beta_dc"]
-    var vbe_on_calc = comp_data.properties["vbe_on"]
-    var vce_sat_calc = comp_data.properties["vce_sat"]
-    
-    var Ic: float = NAN
-    var Ib: float = NAN
-    var Ie: float = NAN
-    
-    var R_be_active_model_calc = 50.0
-    var R_ce_sat_model_calc = 5.0
+	var Vc = circuit.electrical_nodes.get(circuit.terminal_connections.get(comp_data.terminals["C"].get_instance_id(), -1), {}).get("voltage", NAN)
+	var Vb = circuit.electrical_nodes.get(circuit.terminal_connections.get(comp_data.terminals["B"].get_instance_id(), -1), {}).get("voltage", NAN)
+	var Ve = circuit.electrical_nodes.get(circuit.terminal_connections.get(comp_data.terminals["E"].get_instance_id(), -1), {}).get("voltage", NAN)
+	
+	var region = comp_data.properties["operating_region"]
+	var beta = comp_data.properties["beta_dc"]
+	var vbe_on_calc = comp_data.properties["vbe_on"]
+	var vce_sat_calc = comp_data.properties["vce_sat"]
+	
+	var Ic: float = NAN
+	var Ib: float = NAN
+	var Ie: float = NAN
+	
+	var R_be_active_model_calc = 50.0
+	var R_ce_sat_model_calc = 5.0
 
-    if not is_nan(Vc) and not is_nan(Vb) and not is_nan(Ve):
-        var Vbe_actual = Vb - Ve
-        var Vce_actual = Vc - Ve
-        
-        if region == "OFF":
-            Ib = 0.0; Ic = 0.0; Ie = 0.0
-        elif region == "ACTIVE":
-            if Vbe_actual > vbe_on_calc:
-                Ib = (Vbe_actual - vbe_on_calc) / R_be_active_model_calc
-            else: 
-                Ib = 0.0
-            if Ib < 0.0: Ib = 0.0 
-            
-            Ic = beta * Ib
-            Ie = Ic + Ib
-        elif region == "SATURATION":
-            if Vbe_actual > vbe_on_calc:
-                Ib = (Vbe_actual - vbe_on_calc) / R_be_active_model_calc
-            else:
-                Ib = 0.0
-            if Ib < 0.0: Ib = 0.0
+	if not is_nan(Vc) and not is_nan(Vb) and not is_nan(Ve):
+		var Vbe_actual = Vb - Ve
+		var Vce_actual = Vc - Ve
+		
+		if region == "OFF":
+			Ib = 0.0; Ic = 0.0; Ie = 0.0
+		elif region == "ACTIVE":
+			if Vbe_actual > vbe_on_calc:
+				Ib = (Vbe_actual - vbe_on_calc) / R_be_active_model_calc
+			else: 
+				Ib = 0.0
+			if Ib < 0.0: Ib = 0.0 
+			
+			Ic = beta * Ib
+			Ie = Ic + Ib
+		elif region == "SATURATION":
+			if Vbe_actual > vbe_on_calc:
+				Ib = (Vbe_actual - vbe_on_calc) / R_be_active_model_calc
+			else:
+				Ib = 0.0
+			if Ib < 0.0: Ib = 0.0
 
-            if Vce_actual > vce_sat_calc: 
-                Ic = (Vce_actual - vce_sat_calc) / R_ce_sat_model_calc
-            else: 
-                Ic = 0.0 
-            if Ic < 0.0: Ic = 0.0 
+			if Vce_actual > vce_sat_calc: 
+				Ic = (Vce_actual - vce_sat_calc) / R_ce_sat_model_calc
+			else: 
+				Ic = 0.0 
+			if Ic < 0.0: Ic = 0.0 
 
-            Ie = Ic + Ib
-    
-    circuit.component_results[comp_id]["Ic"] = Ic
-    circuit.component_results[comp_id]["Ib"] = Ib
-    circuit.component_results[comp_id]["Ie"] = Ie
-    circuit.component_results[comp_id]["region"] = region 
-    #endregion
+			Ie = Ic + Ib
+	
+	circuit.component_results[comp_id]["Ic"] = Ic
+	circuit.component_results[comp_id]["Ib"] = Ib
+	circuit.component_results[comp_id]["Ie"] = Ie
+	circuit.component_results[comp_id]["region"] = region 
+	#endregion
 
 func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, _x_iter = null, _vs_map_iter = null) -> bool:
 	var term_c = comp_data.terminals["C"]

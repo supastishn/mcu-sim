@@ -6,15 +6,15 @@ class_name PolarizedCapacitor3D
 signal configuration_changed(component_node: Node3D)
 
 
-@export var capacitance: float = 1.0e-6 : set = set_capacitance 
+@export var capacitance: float = 1.0e-6 : set = set_capacitance
 
-@export var max_voltage: float = 16.0 : set = set_max_voltage 
+@export var max_voltage: float = 16.0 : set = set_max_voltage
 
-@onready var terminal1: Area3D = $Terminal1 
-@onready var terminal2: Area3D = $Terminal2 
-@onready var info_label: Label3D = $InfoLabel 
+@onready var terminal1: Area3D = $Terminal1
+@onready var terminal2: Area3D = $Terminal2
+@onready var info_label: Label3D = $InfoLabel
 
-var is_visually_exploded: bool = false 
+var is_visually_exploded: bool = false
 
 func _ready():
 	if not terminal1 or not terminal2:
@@ -26,23 +26,23 @@ func _ready():
 	
 
 func set_capacitance(value: float):
-	var new_cap = max(1e-12, value) 
+	var new_cap = max(1e-12, value)
 	if not is_equal_approx(capacitance, new_cap):
 		capacitance = new_cap
 		print("PolarizedCapacitor {cap_name} capacitance set to: {cap_str} F".format({"cap_name": name, "cap_str": String.num_scientific(capacitance)}))
-		if is_inside_tree(): 
+		if is_inside_tree():
 			emit_signal("configuration_changed", self)
-	elif capacitance != new_cap: 
+	elif capacitance != new_cap:
 		capacitance = new_cap
 
 func set_max_voltage(value: float):
-	var new_max_v = max(0.1, value) 
+	var new_max_v = max(0.1, value)
 	if not is_equal_approx(max_voltage, new_max_v):
 		max_voltage = new_max_v
 		print("PolarizedCapacitor {cap_name} max_voltage set to: {max_v_str} V".format({"cap_name": name, "max_v_str": String.num(max_voltage, 2)}))
 		if is_inside_tree():
 			emit_signal("configuration_changed", self)
-	elif max_voltage != new_max_v: 
+	elif max_voltage != new_max_v:
 		max_voltage = new_max_v
 
 
@@ -54,7 +54,7 @@ func show_info(current_value: float, voltage_value: float, p_is_logically_explod
 
 	if is_visually_exploded:
 		info_label.text = "EXPLODED!"
-		info_label.modulate = Color.RED 
+		info_label.modulate = Color.RED
 		info_label.visible = true
 		return
 
@@ -62,9 +62,9 @@ func show_info(current_value: float, voltage_value: float, p_is_logically_explod
 
 	var current_str = "I: N/A"
 	if not is_nan(current_value):
-		if abs(current_value) < 1e-3 and abs(current_value) > 1e-12: 
+		if abs(current_value) < 1e-3 and abs(current_value) > 1e-12:
 			current_str = "I: {val_str} µA".format({"val_str": String.num(current_value * 1e6, 2)})
-		elif abs(current_value) < 1.0: 
+		elif abs(current_value) < 1.0:
 			current_str = "I: {val_str} mA".format({"val_str": String.num(current_value * 1e3, 2)})
 		else:
 			current_str = "I: {val_str} A".format({"val_str": String.num(current_value, 2)})
@@ -80,8 +80,8 @@ func show_info(current_value: float, voltage_value: float, p_is_logically_explod
 func hide_info():
 	if not info_label: return
 	info_label.visible = false
-	info_label.text = "" 
-	info_label.modulate = Color.WHITE 
+	info_label.text = ""
+	info_label.modulate = Color.WHITE
 
 
 func reset_visual_state():
@@ -144,50 +144,50 @@ func stamp(
 # -----------------------------------------------------------------
 # Simulation-results extraction
 func gather_sim_results(
-        circuit      : CircuitGraph,
-        comp_data    : Dictionary,
-        x            : Array,
-        node_map     : Dictionary,
-        vs_map       : Dictionary,
-        inductor_map : Dictionary,
-        delta_time   : float) -> void:
-    #region LEGACY_RESULT_CODE
-    var comp_node = comp_data.component_node
-    var comp_id = comp_node.get_instance_id()
-    if not comp_id in circuit.component_results: circuit.component_results[comp_id] = {}
+	circuit      : CircuitGraph,
+	comp_data    : Dictionary,
+	x            : Array,
+	node_map     : Dictionary,
+	vs_map       : Dictionary,
+	inductor_map : Dictionary,
+	delta_time   : float) -> void:
+	#region LEGACY_RESULT_CODE
+var comp_node = comp_data.component_node
+	var comp_id = comp_node.get_instance_id()
+	if not comp_id in circuit.component_results: circuit.component_results[comp_id] = {}
 
-    var C_val = comp_data.properties["capacitance"]
-    var max_V_cap = comp_data.properties["max_voltage"]
-    var Vc_prev_dt_val = comp_data.properties.get("voltage_across_cap_prev_dt", 0.0)
+	var C_val = comp_data.properties["capacitance"]
+	var max_V_cap = comp_data.properties["max_voltage"]
+	var Vc_prev_dt_val = comp_data.properties.get("voltage_across_cap_prev_dt", 0.0)
 
-    var term1_cap_node = comp_data.terminals["T1"] 
-    var term2_cap_node = comp_data.terminals["T2"] 
-    var node1_id_cap_val = circuit.terminal_connections.get(term1_cap_node.get_instance_id(), -1)
-    var node2_id_cap_val = circuit.terminal_connections.get(term2_cap_node.get_instance_id(), -1)
+	var term1_cap_node = comp_data.terminals["T1"]
+	var term2_cap_node = comp_data.terminals["T2"]
+	var node1_id_cap_val = circuit.terminal_connections.get(term1_cap_node.get_instance_id(), -1)
+	var node2_id_cap_val = circuit.terminal_connections.get(term2_cap_node.get_instance_id(), -1)
 
-    var V1_cap_t = circuit.electrical_nodes.get(node1_id_cap_val, {}).get("voltage", NAN) 
-    var V2_cap_t = circuit.electrical_nodes.get(node2_id_cap_val, {}).get("voltage", NAN) 
-    
-    var current_cap = NAN
-    var Vc_t = NAN 
+	var V1_cap_t = circuit.electrical_nodes.get(node1_id_cap_val, {}).get("voltage", NAN)
+	var V2_cap_t = circuit.electrical_nodes.get(node2_id_cap_val, {}).get("voltage", NAN)
+	
+	var current_cap = NAN
+	var Vc_t = NAN
 
-    if comp_data.get("is_exploded", false):
-        current_cap = 0.0 
-        if not is_nan(V1_cap_t) and not is_nan(V2_cap_t): Vc_t = V1_cap_t - V2_cap_t
-    elif not is_nan(V1_cap_t) and not is_nan(V2_cap_t):
-        Vc_t = V1_cap_t - V2_cap_t 
-        
-        var reverse_polarity_tolerance = -0.1 
-        if Vc_t > max_V_cap or Vc_t < reverse_polarity_tolerance: 
-            comp_data.is_exploded = true
-            current_cap = 0.0 
-        else: 
-            current_cap = C_val * (Vc_t - Vc_prev_dt_val) / delta_time
-            comp_data.properties["voltage_across_cap_prev_dt"] = Vc_t 
-    else: 
-        pass
-    
-    circuit.component_results[comp_id]["current"] = current_cap
-    circuit.component_results[comp_id]["voltage_across"] = Vc_t
-    circuit.component_results[comp_id]["is_exploded"] = comp_data.get("is_exploded", false)
-    #endregion
+	if comp_data.get("is_exploded", false):
+		current_cap = 0.0
+		if not is_nan(V1_cap_t) and not is_nan(V2_cap_t): Vc_t = V1_cap_t - V2_cap_t
+	elif not is_nan(V1_cap_t) and not is_nan(V2_cap_t):
+		Vc_t = V1_cap_t - V2_cap_t
+		
+		var reverse_polarity_tolerance = -0.1
+		if Vc_t > max_V_cap or Vc_t < reverse_polarity_tolerance:
+			comp_data.is_exploded = true
+			current_cap = 0.0
+		else:
+			current_cap = C_val * (Vc_t - Vc_prev_dt_val) / delta_time
+			comp_data.properties["voltage_across_cap_prev_dt"] = Vc_t
+	else:
+		pass
+	
+	circuit.component_results[comp_id]["current"] = current_cap
+	circuit.component_results[comp_id]["voltage_across"] = Vc_t
+	circuit.component_results[comp_id]["is_exploded"] = comp_data.get("is_exploded", false)
+	#endregion

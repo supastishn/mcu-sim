@@ -119,48 +119,48 @@ func stamp(
 # -----------------------------------------------------------------
 # Simulation-results extraction
 func gather_sim_results(
-        circuit      : CircuitGraph,
-        comp_data    : Dictionary,
-        x            : Array,
-        node_map     : Dictionary,
-        vs_map       : Dictionary,
-        inductor_map : Dictionary,
-        delta_time   : float) -> void:
-    #region LEGACY_RESULT_CODE
-    var comp_node = comp_data.component_node
-    var comp_id = comp_node.get_instance_id()
-    if not comp_id in circuit.component_results: circuit.component_results[comp_id] = {}
+		circuit      : CircuitGraph,
+		comp_data    : Dictionary,
+		x            : Array,
+		node_map     : Dictionary,
+		vs_map       : Dictionary,
+		inductor_map : Dictionary,
+		delta_time   : float) -> void:
+	#region LEGACY_RESULT_CODE
+	var comp_node = comp_data.component_node
+	var comp_id = comp_node.get_instance_id()
+	if not comp_id in circuit.component_results: circuit.component_results[comp_id] = {}
 
-    var total_R = comp_data.properties["total_resistance"]
-    var wiper_pos = comp_data.properties["wiper_position"]
+	var total_R = comp_data.properties["total_resistance"]
+	var wiper_pos = comp_data.properties["wiper_position"]
 
-    var R1_val = total_R * wiper_pos
-    if R1_val < 1e-12: R1_val = 1e-12 
-    
-    var R2_val = total_R * (1.0 - wiper_pos)
-    if R2_val < 1e-12: R2_val = 1e-12
+	var R1_val = total_R * wiper_pos
+	if R1_val < 1e-12: R1_val = 1e-12 
+	
+	var R2_val = total_R * (1.0 - wiper_pos)
+	if R2_val < 1e-12: R2_val = 1e-12
 
-    var term1_node = comp_data.terminals["T1"]
-    var term2_node = comp_data.terminals["T2"]
-    var termW_node = comp_data.terminals["W"]
+	var term1_node = comp_data.terminals["T1"]
+	var term2_node = comp_data.terminals["T2"]
+	var termW_node = comp_data.terminals["W"]
 
-    var node1_id = circuit.terminal_connections.get(term1_node.get_instance_id(), -1)
-    var node2_id = circuit.terminal_connections.get(term2_node.get_instance_id(), -1)
-    var nodeW_id = circuit.terminal_connections.get(termW_node.get_instance_id(), -1)
+	var node1_id = circuit.terminal_connections.get(term1_node.get_instance_id(), -1)
+	var node2_id = circuit.terminal_connections.get(term2_node.get_instance_id(), -1)
+	var nodeW_id = circuit.terminal_connections.get(termW_node.get_instance_id(), -1)
 
-    var V1 = circuit.electrical_nodes.get(node1_id, {}).get("voltage", NAN)
-    var V2 = circuit.electrical_nodes.get(node2_id, {}).get("voltage", NAN)
-    var VW = circuit.electrical_nodes.get(nodeW_id, {}).get("voltage", NAN)
+	var V1 = circuit.electrical_nodes.get(node1_id, {}).get("voltage", NAN)
+	var V2 = circuit.electrical_nodes.get(node2_id, {}).get("voltage", NAN)
+	var VW = circuit.electrical_nodes.get(nodeW_id, {}).get("voltage", NAN)
 
-    var current1W = NAN
-    if not is_nan(V1) and not is_nan(VW):
-        current1W = (V1 - VW) / R1_val if R1_val > 1e-12 else (V1 - VW) * 1e12 
+	var current1W = NAN
+	if not is_nan(V1) and not is_nan(VW):
+		current1W = (V1 - VW) / R1_val if R1_val > 1e-12 else (V1 - VW) * 1e12 
 
-    var currentW2 = NAN
-    if not is_nan(VW) and not is_nan(V2):
-        currentW2 = (VW - V2) / R2_val if R2_val > 1e-12 else (VW - V2) * 1e12
+	var currentW2 = NAN
+	if not is_nan(VW) and not is_nan(V2):
+		currentW2 = (VW - V2) / R2_val if R2_val > 1e-12 else (VW - V2) * 1e12
 
-    circuit.component_results[comp_id]["current_T1_W"] = current1W
-    circuit.component_results[comp_id]["current_W_T2"] = currentW2
-    circuit.component_results[comp_id]["current_Wiper_Net"] = current1W - currentW2 if not is_nan(current1W) and not is_nan(currentW2) else NAN
-    #endregion
+	circuit.component_results[comp_id]["current_T1_W"] = current1W
+	circuit.component_results[comp_id]["current_W_T2"] = currentW2
+	circuit.component_results[comp_id]["current_Wiper_Net"] = current1W - currentW2 if not is_nan(current1W) and not is_nan(currentW2) else NAN
+	#endregion

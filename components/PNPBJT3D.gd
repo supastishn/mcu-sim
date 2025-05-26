@@ -106,68 +106,68 @@ func reset_visual_state():
 # -----------------------------------------------------------------
 # Simulation-results extraction
 func gather_sim_results(
-        circuit      : CircuitGraph,
-        comp_data    : Dictionary,
-        x            : Array,
-        node_map     : Dictionary,
-        vs_map       : Dictionary,
-        inductor_map : Dictionary,
-        delta_time   : float) -> void:
-    #region LEGACY_RESULT_CODE
-    var comp_node = comp_data.component_node
-    var comp_id = comp_node.get_instance_id()
-    if not comp_id in circuit.component_results: circuit.component_results[comp_id] = {}
+		circuit      : CircuitGraph,
+		comp_data    : Dictionary,
+		x            : Array,
+		node_map     : Dictionary,
+		vs_map       : Dictionary,
+		inductor_map : Dictionary,
+		delta_time   : float) -> void:
+	#region LEGACY_RESULT_CODE
+	var comp_node = comp_data.component_node
+	var comp_id = comp_node.get_instance_id()
+	if not comp_id in circuit.component_results: circuit.component_results[comp_id] = {}
 
-    var Ve_pnp_calc = circuit.electrical_nodes.get(circuit.terminal_connections.get(comp_data.terminals["E"].get_instance_id(), -1), {}).get("voltage", NAN)
-    var Vb_pnp_calc = circuit.electrical_nodes.get(circuit.terminal_connections.get(comp_data.terminals["B"].get_instance_id(), -1), {}).get("voltage", NAN)
-    var Vc_pnp_calc = circuit.electrical_nodes.get(circuit.terminal_connections.get(comp_data.terminals["C"].get_instance_id(), -1), {}).get("voltage", NAN)
-    
-    var region_pnp_calc = comp_data.properties["operating_region"]
-    var beta_pnp_calc = comp_data.properties["beta_dc"]
-    var veb_on_pnp_model_calc = comp_data.properties["veb_on"]
-    var vec_sat_pnp_model_calc = comp_data.properties["vec_sat"]
-    
-    var Ic_pnp: float = NAN 
-    var Ib_pnp: float = NAN 
-    var Ie_pnp: float = NAN 
-    
-    var R_eb_active_model_pnp_calc = 50.0
-    var R_ec_sat_model_pnp_calc = 5.0
+	var Ve_pnp_calc = circuit.electrical_nodes.get(circuit.terminal_connections.get(comp_data.terminals["E"].get_instance_id(), -1), {}).get("voltage", NAN)
+	var Vb_pnp_calc = circuit.electrical_nodes.get(circuit.terminal_connections.get(comp_data.terminals["B"].get_instance_id(), -1), {}).get("voltage", NAN)
+	var Vc_pnp_calc = circuit.electrical_nodes.get(circuit.terminal_connections.get(comp_data.terminals["C"].get_instance_id(), -1), {}).get("voltage", NAN)
+	
+	var region_pnp_calc = comp_data.properties["operating_region"]
+	var beta_pnp_calc = comp_data.properties["beta_dc"]
+	var veb_on_pnp_model_calc = comp_data.properties["veb_on"]
+	var vec_sat_pnp_model_calc = comp_data.properties["vec_sat"]
+	
+	var Ic_pnp: float = NAN 
+	var Ib_pnp: float = NAN 
+	var Ie_pnp: float = NAN 
+	
+	var R_eb_active_model_pnp_calc = 50.0
+	var R_ec_sat_model_pnp_calc = 5.0
 
-    if not is_nan(Ve_pnp_calc) and not is_nan(Vb_pnp_calc) and not is_nan(Vc_pnp_calc):
-        var Veb_actual_pnp = Ve_pnp_calc - Vb_pnp_calc
-        var Vec_actual_pnp = Ve_pnp_calc - Vc_pnp_calc
-        
-        if region_pnp_calc == "OFF":
-            Ib_pnp = 0.0; Ic_pnp = 0.0; Ie_pnp = 0.0
-        elif region_pnp_calc == "ACTIVE":
-            if Veb_actual_pnp > veb_on_pnp_model_calc:
-                Ib_pnp = (Veb_actual_pnp - veb_on_pnp_model_calc) / R_eb_active_model_pnp_calc
-            else:
-                Ib_pnp = 0.0
-            if Ib_pnp < 0.0: Ib_pnp = 0.0
-            
-            Ic_pnp = beta_pnp_calc * Ib_pnp
-            Ie_pnp = Ic_pnp + Ib_pnp
-        elif region_pnp_calc == "SATURATION":
-            if Veb_actual_pnp > veb_on_pnp_model_calc:
-                Ib_pnp = (Veb_actual_pnp - veb_on_pnp_model_calc) / R_eb_active_model_pnp_calc
-            else:
-                Ib_pnp = 0.0
-            if Ib_pnp < 0.0: Ib_pnp = 0.0
+	if not is_nan(Ve_pnp_calc) and not is_nan(Vb_pnp_calc) and not is_nan(Vc_pnp_calc):
+		var Veb_actual_pnp = Ve_pnp_calc - Vb_pnp_calc
+		var Vec_actual_pnp = Ve_pnp_calc - Vc_pnp_calc
+		
+		if region_pnp_calc == "OFF":
+			Ib_pnp = 0.0; Ic_pnp = 0.0; Ie_pnp = 0.0
+		elif region_pnp_calc == "ACTIVE":
+			if Veb_actual_pnp > veb_on_pnp_model_calc:
+				Ib_pnp = (Veb_actual_pnp - veb_on_pnp_model_calc) / R_eb_active_model_pnp_calc
+			else:
+				Ib_pnp = 0.0
+			if Ib_pnp < 0.0: Ib_pnp = 0.0
+			
+			Ic_pnp = beta_pnp_calc * Ib_pnp
+			Ie_pnp = Ic_pnp + Ib_pnp
+		elif region_pnp_calc == "SATURATION":
+			if Veb_actual_pnp > veb_on_pnp_model_calc:
+				Ib_pnp = (Veb_actual_pnp - veb_on_pnp_model_calc) / R_eb_active_model_pnp_calc
+			else:
+				Ib_pnp = 0.0
+			if Ib_pnp < 0.0: Ib_pnp = 0.0
 
-            if Vec_actual_pnp > vec_sat_pnp_model_calc:
-                Ic_pnp = (Vec_actual_pnp - vec_sat_pnp_model_calc) / R_ec_sat_model_pnp_calc
-            else:
-                Ic_pnp = 0.0 
-            if Ic_pnp < 0.0: Ic_pnp = 0.0
-            Ie_pnp = Ic_pnp + Ib_pnp
-    
-    circuit.component_results[comp_id]["Ic"] = Ic_pnp
-    circuit.component_results[comp_id]["Ib"] = Ib_pnp
-    circuit.component_results[comp_id]["Ie"] = Ie_pnp
-    circuit.component_results[comp_id]["region"] = region_pnp_calc
-    #endregion
+			if Vec_actual_pnp > vec_sat_pnp_model_calc:
+				Ic_pnp = (Vec_actual_pnp - vec_sat_pnp_model_calc) / R_ec_sat_model_pnp_calc
+			else:
+				Ic_pnp = 0.0 
+			if Ic_pnp < 0.0: Ic_pnp = 0.0
+			Ie_pnp = Ic_pnp + Ib_pnp
+	
+	circuit.component_results[comp_id]["Ic"] = Ic_pnp
+	circuit.component_results[comp_id]["Ib"] = Ib_pnp
+	circuit.component_results[comp_id]["Ie"] = Ie_pnp
+	circuit.component_results[comp_id]["region"] = region_pnp_calc
+	#endregion
 
 func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, _x_iter = null, _vs_map_iter = null) -> bool:
 	var term_e_pnp = comp_data.terminals["E"]

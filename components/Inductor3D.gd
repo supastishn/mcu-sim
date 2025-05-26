@@ -129,29 +129,29 @@ func stamp(
 # -----------------------------------------------------------------
 # Simulation-results extraction
 func gather_sim_results(
-        circuit      : CircuitGraph,
-        comp_data    : Dictionary,
-        x            : Array,
-        node_map     : Dictionary,
-        vs_map       : Dictionary,
-        inductor_map : Dictionary,
-        delta_time   : float) -> void:
-    #region LEGACY_RESULT_CODE
-    var comp_node = comp_data.component_node
-    var comp_id = comp_node.get_instance_id()
-    if not comp_id in circuit.component_results: circuit.component_results[comp_id] = {}
+		circuit      : CircuitGraph,
+		comp_data    : Dictionary,
+		x            : Array,
+		node_map     : Dictionary,
+		vs_map       : Dictionary,
+		inductor_map : Dictionary,
+		delta_time   : float) -> void:
+	#region LEGACY_RESULT_CODE
+	var comp_node = comp_data.component_node
+	var comp_id = comp_node.get_instance_id()
+	if not comp_id in circuit.component_results: circuit.component_results[comp_id] = {}
 
-    if inductor_map.has(comp_id): 
-        var matrix_idx_curr_L_final = inductor_map[comp_id]
-        if matrix_idx_curr_L_final < x.size():
-            var solved_current_L = x[matrix_idx_curr_L_final] 
-            circuit.component_results[comp_id]["current"] = solved_current_L
-            
-            var term_1_L = comp_data.terminals["T1"]
-            var term_2_L = comp_data.terminals["T2"]
-            var V1_L = circuit.electrical_nodes.get(circuit.terminal_connections.get(term_1_L.get_instance_id(), -1), {}).get("voltage", NAN)
-            var V2_L = circuit.electrical_nodes.get(circuit.terminal_connections.get(term_2_L.get_instance_id(), -1), {}).get("voltage", NAN)
-            var actual_V_across_L = NAN
-            if not is_nan(V1_L) and not is_nan(V2_L): actual_V_across_L = V1_L - V2_L
-            circuit.component_results[comp_id]["voltage_across"] = actual_V_across_L
-    #endregion
+	if inductor_map.has(comp_id): 
+		var matrix_idx_curr_L_final = inductor_map[comp_id]
+		if matrix_idx_curr_L_final < x.size():
+			var solved_current_L = x[matrix_idx_curr_L_final] 
+			circuit.component_results[comp_id]["current"] = solved_current_L
+			
+			var term_1_L = comp_data.terminals["T1"]
+			var term_2_L = comp_data.terminals["T2"]
+			var V1_L = circuit.electrical_nodes.get(circuit.terminal_connections.get(term_1_L.get_instance_id(), -1), {}).get("voltage", NAN)
+			var V2_L = circuit.electrical_nodes.get(circuit.terminal_connections.get(term_2_L.get_instance_id(), -1), {}).get("voltage", NAN)
+			var actual_V_across_L = NAN
+			if not is_nan(V1_L) and not is_nan(V2_L): actual_V_across_L = V1_L - V2_L
+			circuit.component_results[comp_id]["voltage_across"] = actual_V_across_L
+	#endregion

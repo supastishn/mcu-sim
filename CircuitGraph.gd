@@ -512,17 +512,17 @@ func solve_single_time_step(delta_time: float) -> bool:
 		_is_solved = false
 
 	for comp_data_item in components:
-	    var node = comp_data_item.component_node
-	    if is_instance_valid(node) \
-	       and node.has_method("gather_sim_results"):
-	        node.gather_sim_results(
-	            self,
-	            comp_data_item,
-	            x,
-	            result_iter.node_map,
-	            result_iter.vs_map,
-	            result_iter.inductor_map,
-	            delta_time)
+		var node = comp_data_item.component_node
+		if is_instance_valid(node) \
+		   and node.has_method("gather_sim_results"):
+			node.gather_sim_results(
+				self,
+				comp_data_item,
+				x,
+				result_iter.node_map,
+				result_iter.vs_map,
+				result_iter.inductor_map,
+				delta_time)
 
 	return _is_solved
 
