@@ -1,6 +1,6 @@
 [gd_scene load_steps=8 format=3 uid="uid://bh5ta2q1a0563"]
 
-[ext_resource type="Script" uid="uid://coxsf3mjydgqm" path="res://components/NChannelMOSFET3D.gd" id="1_mosfet_script"]
+[ext_resource type="Script" path="res://components/PChannelMOSFET3D.gd" id="1_pmosfet_script"]
 [ext_resource type="Script" uid="uid://bhe7bl46uj0jq" path="res://components/TerminalFeedback.gd" id="2_terminal_feedback"]
 [ext_resource type="Material" uid="uid://cv6f3hveepm7a" path="res://components/Resistor3D.tres" id="3_terminal_material"]
 
@@ -18,7 +18,7 @@ radius = 0.05
 size = Vector3(0.2, 0.4, 0.5)
 
 [node name="PChannelMOSFET3D" type="Node3D"]
-script = ExtResource("1_mosfet_script")
+script = ExtResource("1_pmosfet_script")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="."]
 mesh = SubResource("BoxMesh_mosfet_body_mesh")
