@@ -78,7 +78,52 @@ func hide_current():
 	if not current_label: return
 	current_label.visible = false
 
+func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter: Array, vs_map_iter: Dictionary) -> bool:
+	# x_iter is the current iteration's solution vector (circuit._current_iteration_solution)
+	# vs_map_iter is the current iteration's voltage source map (circuit._current_iteration_vs_map)
+	# These would need to be set by CircuitGraph.solve_single_time_step before calling this.
 
+	var ps_node = comp_data.component_node
+	var ps_id = ps_node.get_instance_id()
+	var I_limit = comp_data.properties.target_current 
+	var V_target_ps = comp_data.properties.target_voltage
+	var previous_op_mode = comp_data.properties.current_operating_mode
+	var new_op_mode = previous_op_mode
+	var state_changed = false
+
+	if previous_op_mode == "CV":
+		if x_iter != null and vs_map_iter != null: # Check if solver data is available
+			var vs_current_idx = vs_map_iter.get(ps_id, -1)
+			if vs_current_idx != -1 and vs_current_idx < x_iter.size():
+				var current_mna_val_for_ps = x_iter[vs_current_idx] 
+				var current_supplied_by_ps = -current_mna_val_for_ps
+				if abs(current_supplied_by_ps) > (I_limit + 1e-9): # Using a small tolerance for float comparison
+					new_op_mode = "CC"
+					comp_data.properties.cc_current_direction_sign = sign(current_supplied_by_ps) # Store direction for CC mode
+	
+	elif previous_op_mode == "CC":
+		var term_p_ps = comp_data.terminals["POS"]
+		var term_n_ps = comp_data.terminals["NEG"]
+		var node_p_id_ps = circuit.terminal_connections.get(term_p_ps.get_instance_id(), -1)
+		var node_n_id_ps = circuit.terminal_connections.get(term_n_ps.get_instance_id(), -1)
+		
+		var Vp_ps = NAN
+		if circuit.electrical_nodes.has(node_p_id_ps): Vp_ps = circuit.electrical_nodes[node_p_id_ps].voltage
+		var Vn_ps = NAN
+		if circuit.electrical_nodes.has(node_n_id_ps): Vn_ps = circuit.electrical_nodes[node_n_id_ps].voltage
+		
+		if not is_nan(Vp_ps) and not is_nan(Vn_ps):
+			var V_across_cc = Vp_ps - Vn_ps
+			var cc_direction_sign = comp_data.properties.get("cc_current_direction_sign", 1.0)
+			# If voltage rises above target voltage (considering direction) while in CC, switch back to CV
+			if cc_direction_sign * V_across_cc > cc_direction_sign * V_target_ps + 1e-6: # Tolerance for float comparison
+				new_op_mode = "CV"
+	
+	if new_op_mode != previous_op_mode:
+		comp_data.properties.current_operating_mode = new_op_mode
+		state_changed = true
+		
+	return state_changed
 
 func stamp(
 	A: Array,

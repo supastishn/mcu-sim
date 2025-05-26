@@ -49,7 +49,26 @@ func _ready():
 	
 	reset_visual_state() 
 
-
+func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, _x_iter = null, _vs_map_iter = null) -> bool:
+	var term_a = comp_data.terminals["A"]
+	var term_k = comp_data.terminals["K"]
+	var node_a_id = circuit.terminal_connections.get(term_a.get_instance_id(), -1)
+	var node_k_id = circuit.terminal_connections.get(term_k.get_instance_id(), -1)
+	
+	var Va = NAN
+	if circuit.electrical_nodes.has(node_a_id): Va = circuit.electrical_nodes[node_a_id].voltage
+	var Vk = NAN
+	if circuit.electrical_nodes.has(node_k_id): Vk = circuit.electrical_nodes[node_k_id].voltage
+	
+	var forward_voltage_threshold = comp_data.properties["forward_voltage"]
+	var should_conduct = false
+	if not is_nan(Va) and not is_nan(Vk) and (Va - Vk) >= forward_voltage_threshold:
+		should_conduct = true
+		
+	if comp_data["conducting"] != should_conduct:
+		comp_data["conducting"] = should_conduct
+		return true
+	return false
 
 
 func update_visual_state(current: float, p_is_logically_burned: bool):

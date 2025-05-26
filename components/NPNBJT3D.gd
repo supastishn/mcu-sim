@@ -103,7 +103,54 @@ func hide_info():
 func reset_visual_state():
 	hide_info()
 
+func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, _x_iter = null, _vs_map_iter = null) -> bool:
+	var term_c = comp_data.terminals["C"]
+	var term_b = comp_data.terminals["B"]
+	var term_e = comp_data.terminals["E"]
+	var node_c_id = circuit.terminal_connections.get(term_c.get_instance_id(), -1)
+	var node_b_id = circuit.terminal_connections.get(term_b.get_instance_id(), -1)
+	var node_e_id = circuit.terminal_connections.get(term_e.get_instance_id(), -1)
 
+	var Vc = NAN
+	if circuit.electrical_nodes.has(node_c_id): Vc = circuit.electrical_nodes[node_c_id].voltage
+	var Vb = NAN
+	if circuit.electrical_nodes.has(node_b_id): Vb = circuit.electrical_nodes[node_b_id].voltage
+	var Ve = NAN
+	if circuit.electrical_nodes.has(node_e_id): Ve = circuit.electrical_nodes[node_e_id].voltage
+	
+	var vbe_on_bjt = comp_data.properties["vbe_on"]
+	var vce_sat_bjt = comp_data.properties["vce_sat"]
+	var previous_region = comp_data.properties["operating_region"]
+	var new_region = previous_region 
+
+	if is_nan(Vb) or is_nan(Ve) or is_nan(Vc):
+		new_region = "OFF" 
+		# print_debug("  NPNBJT {name} region check: Vb, Ve, or Vc is NaN. Setting to OFF.".format({ "name": comp_data.component_node.name }))
+	else:
+		var Vbe = Vb - Ve
+		var Vce = Vc - Ve
+		var vbe_tolerance = 1e-5 
+		
+		# print_debug("  NPNBJT {name} ({prev_reg}) Check: Vb={vb_s}V, Ve={ve_s}V, Vc={vc_s}V => Vbe={vbe_s}V, Vce={vce_s}V. Thresholds: Vbe_on={vbe_on_s}V, Vce_sat={vce_sat_s}V".format({
+		# 	"name": comp_data.component_node.name, "prev_reg": previous_region,
+		# 	"vb_s": String.num(Vb,4), "ve_s": String.num(Ve,4), "vc_s": String.num(Vc,4),
+		# 	"vbe_s": String.num(Vbe,4), "vce_s": String.num(Vce,4),
+		# 	"vbe_on_s": String.num(vbe_on_bjt,4), "vce_sat_s": String.num(vce_sat_bjt,4)
+		# }))
+
+		if Vbe < (vbe_on_bjt - vbe_tolerance): 
+			new_region = "OFF"
+		else: 
+			var vce_saturation_check_upper_bound = vce_sat_bjt + circuit.BJT_SATURATION_VOLTAGE_MARGIN
+			if Vce <= vce_saturation_check_upper_bound: 
+				new_region = "SATURATION"
+			else: 
+				new_region = "ACTIVE"
+	
+	if new_region != previous_region:
+		comp_data.properties["operating_region"] = new_region
+		return true
+	return false
 
 func stamp(
 	A: Array,

@@ -103,7 +103,46 @@ func hide_info():
 func reset_visual_state():
 	hide_info()
 
+func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, _x_iter = null, _vs_map_iter = null) -> bool:
+	var term_e_pnp = comp_data.terminals["E"]
+	var term_b_pnp = comp_data.terminals["B"]
+	var term_c_pnp = comp_data.terminals["C"]
+	var node_e_id_pnp = circuit.terminal_connections.get(term_e_pnp.get_instance_id(), -1)
+	var node_b_id_pnp = circuit.terminal_connections.get(term_b_pnp.get_instance_id(), -1)
+	var node_c_id_pnp = circuit.terminal_connections.get(term_c_pnp.get_instance_id(), -1)
 
+	var Ve_pnp = NAN
+	if circuit.electrical_nodes.has(node_e_id_pnp): Ve_pnp = circuit.electrical_nodes[node_e_id_pnp].voltage
+	var Vb_pnp = NAN
+	if circuit.electrical_nodes.has(node_b_id_pnp): Vb_pnp = circuit.electrical_nodes[node_b_id_pnp].voltage
+	var Vc_pnp = NAN
+	if circuit.electrical_nodes.has(node_c_id_pnp): Vc_pnp = circuit.electrical_nodes[node_c_id_pnp].voltage
+	
+	var veb_on_pnp_model = comp_data.properties["veb_on"]
+	var vec_sat_pnp_model = comp_data.properties["vec_sat"]
+	var previous_region_pnp = comp_data.properties["operating_region"]
+	var new_region_pnp = previous_region_pnp
+
+	if is_nan(Ve_pnp) or is_nan(Vb_pnp) or is_nan(Vc_pnp):
+		new_region_pnp = "OFF"
+	else:
+		var Veb_pnp = Ve_pnp - Vb_pnp 
+		var Vec_pnp = Ve_pnp - Vc_pnp 
+		var veb_tolerance_pnp = 1e-5
+		
+		if Veb_pnp < (veb_on_pnp_model - veb_tolerance_pnp): 
+			new_region_pnp = "OFF"
+		else: 
+			var vec_saturation_check_upper_bound_pnp = vec_sat_pnp_model + circuit.BJT_SATURATION_VOLTAGE_MARGIN
+			if Vec_pnp <= vec_saturation_check_upper_bound_pnp: 
+				new_region_pnp = "SATURATION"
+			else: 
+				new_region_pnp = "ACTIVE"
+	
+	if new_region_pnp != previous_region_pnp:
+		comp_data.properties["operating_region"] = new_region_pnp
+		return true
+	return false
 
 func stamp(
 	A: Array,

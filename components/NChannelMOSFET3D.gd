@@ -103,7 +103,44 @@ func reset_visual_state():
 	if is_instance_valid(mesh_instance):
 		mesh_instance.material_override = null 
 
+func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, _x_iter = null, _vs_map_iter = null) -> bool:
+	var term_d_nmos = comp_data.terminals["D"]
+	var term_g_nmos = comp_data.terminals["G"]
+	var term_s_nmos = comp_data.terminals["S"]
+	var node_d_id_nmos = circuit.terminal_connections.get(term_d_nmos.get_instance_id(), -1)
+	var node_g_id_nmos = circuit.terminal_connections.get(term_g_nmos.get_instance_id(), -1)
+	var node_s_id_nmos = circuit.terminal_connections.get(term_s_nmos.get_instance_id(), -1)
 
+	var Vd_nmos = NAN
+	if circuit.electrical_nodes.has(node_d_id_nmos): Vd_nmos = circuit.electrical_nodes[node_d_id_nmos].voltage
+	var Vg_nmos = NAN
+	if circuit.electrical_nodes.has(node_g_id_nmos): Vg_nmos = circuit.electrical_nodes[node_g_id_nmos].voltage
+	var Vs_nmos = NAN
+	if circuit.electrical_nodes.has(node_s_id_nmos): Vs_nmos = circuit.electrical_nodes[node_s_id_nmos].voltage
+	
+	var vt_nmos_model = comp_data.properties["threshold_voltage"]
+	var previous_region_nmos = comp_data.properties["operating_region"]
+	var new_region_nmos = previous_region_nmos
+
+	if is_nan(Vg_nmos) or is_nan(Vs_nmos) or is_nan(Vd_nmos):
+		new_region_nmos = "OFF"
+	else:
+		var Vgs_nmos = Vg_nmos - Vs_nmos
+		var Vds_nmos = Vd_nmos - Vs_nmos
+		var vgs_vt_diff = Vgs_nmos - vt_nmos_model
+		
+		if Vgs_nmos <= vt_nmos_model: 
+			new_region_nmos = "OFF"
+		else: 
+			if Vds_nmos < vgs_vt_diff: 
+				new_region_nmos = "TRIODE"
+			else: 
+				new_region_nmos = "SATURATION"
+	
+	if new_region_nmos != previous_region_nmos:
+		comp_data.properties["operating_region"] = new_region_nmos
+		return true
+	return false
 
 func stamp(
 	A: Array,

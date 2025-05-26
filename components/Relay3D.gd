@@ -89,6 +89,43 @@ func show_info(results: Dictionary):
 			mat.albedo_color = Color(0.4, 0.4, 0.5, 1)
 			mesh_instance.material_override = mat
 
+func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, _x_iter = null, _vs_map_iter = null) -> bool:
+	var term_vcc_relay = comp_data.terminals["VCC"]
+	var term_gnd_relay = comp_data.terminals["GND"]
+	var term_sig_relay = comp_data.terminals["Signal"]
+	
+	var node_vcc_id = circuit.terminal_connections.get(term_vcc_relay.get_instance_id(), -1)
+	var node_gnd_id = circuit.terminal_connections.get(term_gnd_relay.get_instance_id(), -1)
+	var node_sig_id = circuit.terminal_connections.get(term_sig_relay.get_instance_id(), -1)
+
+	var V_vcc = NAN
+	if circuit.electrical_nodes.has(node_vcc_id): V_vcc = circuit.electrical_nodes[node_vcc_id].voltage
+	var V_gnd = NAN
+	if circuit.electrical_nodes.has(node_gnd_id): V_gnd = circuit.electrical_nodes[node_gnd_id].voltage
+	var V_sig = NAN
+	if circuit.electrical_nodes.has(node_sig_id): V_sig = circuit.electrical_nodes[node_sig_id].voltage
+	
+	var sig_threshold_relay = comp_data.properties["signal_voltage_threshold"]
+	var previous_energized_state = comp_data.properties["is_energized"]
+	var new_energized_state = previous_energized_state
+
+	if is_nan(V_vcc) or is_nan(V_gnd) or is_nan(V_sig):
+		new_energized_state = false 
+	else:
+		var actual_signal_voltage = V_sig - V_gnd
+		var actual_vcc_supply_voltage = V_vcc - V_gnd
+		var vcc_min_voltage_for_operation = 0.5 # Define or get from comp_data if it varies
+
+		var signal_is_high_enough = actual_signal_voltage >= (sig_threshold_relay - 1e-5)
+		var vcc_is_sufficient = actual_vcc_supply_voltage >= vcc_min_voltage_for_operation
+		
+		new_energized_state = signal_is_high_enough and vcc_is_sufficient
+	
+	if new_energized_state != previous_energized_state:
+		comp_data.properties["is_energized"] = new_energized_state
+		return true
+	return false
+
 
 
 

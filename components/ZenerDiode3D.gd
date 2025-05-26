@@ -80,7 +80,40 @@ func hide_info():
 func reset_visual_state():
 	hide_info()
 
+func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, _x_iter = null, _vs_map_iter = null) -> bool:
+	var term_a_z = comp_data.terminals["A"]
+	var term_k_z = comp_data.terminals["K"]
+	var node_a_id_z = circuit.terminal_connections.get(term_a_z.get_instance_id(), -1)
+	var node_k_id_z = circuit.terminal_connections.get(term_k_z.get_instance_id(), -1)
+	
+	var Va_z = NAN
+	if circuit.electrical_nodes.has(node_a_id_z): Va_z = circuit.electrical_nodes[node_a_id_z].voltage
+	var Vk_z = NAN
+	if circuit.electrical_nodes.has(node_k_id_z): Vk_z = circuit.electrical_nodes[node_k_id_z].voltage
+	
+	var Vf_z_model = comp_data.properties["forward_voltage"]
+	var Vz_model = comp_data.properties["zener_voltage"] 
+	var previous_state_z = comp_data.properties["operating_state"]
+	var new_state_z = previous_state_z
 
+	if is_nan(Va_z) or is_nan(Vk_z):
+		new_state_z = "OFF" 
+	else:
+		var Vak_z = Va_z - Vk_z 
+		var zener_voltage_threshold = -Vz_model 
+		var zener_on_margin = 1e-5 
+
+		if Vak_z >= (Vf_z_model - 1e-5): 
+			new_state_z = "FORWARD"
+		elif Vak_z <= (zener_voltage_threshold + zener_on_margin): 
+			new_state_z = "ZENER"
+		else: 
+			new_state_z = "OFF"
+	
+	if new_state_z != previous_state_z:
+		comp_data.properties["operating_state"] = new_state_z
+		return true
+	return false
 
 func stamp(
 	A: Array,
