@@ -160,7 +160,9 @@ func gather_sim_results(circuit,comp_data,x,node_map,vs_map,inductor_map,dt):
 			Id =  transconductance_parameter * ( (Vsg - vt) * Vsd - 0.5*pow(Vsd,2) )
 		else: # SATURATION
 			Id = 0.5 * transconductance_parameter * pow(Vsg - vt,2)
-		if Id < 0: Id = 0.0   # safety – never report negative magnitude
+	# ensure we always store a positive current magnitude
+	if not is_nan(Id) and Id < 0.0:
+		Id = -Id
 	circuit.component_results[cid]["Id"]  = Id
 	circuit.component_results[cid]["Vgs"] = Vgs
 	circuit.component_results[cid]["Vds"] = Vds
