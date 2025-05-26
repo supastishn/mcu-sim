@@ -33,6 +33,47 @@ func hide_current():
 	if not current_label: return
 	current_label.visible = false
 
+# -----------------------------------------------------------------
+# Simulation-results extraction
+func gather_sim_results(
+        circuit      : CircuitGraph,
+        comp_data    : Dictionary,
+        x            : Array,
+        node_map     : Dictionary,
+        vs_map       : Dictionary,
+        inductor_map : Dictionary,
+        delta_time   : float) -> void:
+    #region LEGACY_RESULT_CODE
+    var comp_node = comp_data.component_node
+    var comp_id = comp_node.get_instance_id()
+    if not comp_id in circuit.component_results: circuit.component_results[comp_id] = {}
+
+    var R_diode_on_model = circuit.R_DIODE_ON
+    var Vf_diode_calc = comp_data.properties["forward_voltage"]
+    var term_a = comp_data.terminals["A"]
+    var term_k = comp_data.terminals["K"]
+    var node_a_id = circuit.terminal_connections.get(term_a.get_instance_id(), -1)
+    var node_k_id = circuit.terminal_connections.get(term_k.get_instance_id(), -1)
+    var Va = circuit.electrical_nodes.get(node_a_id, {}).get("voltage", NAN)
+    var Vk = circuit.electrical_nodes.get(node_k_id, {}).get("voltage", NAN)
+    var current = 0.0
+    var log_msg_suffix = "Not Conducting"
+
+    if comp_data.get("conducting", false) and not is_nan(Va) and not is_nan(Vk):
+        var V_ak_calc = Va - Vk
+        if V_ak_calc > Vf_diode_calc: 
+            current = (V_ak_calc - Vf_diode_calc) / R_diode_on_model
+        else:
+            current = 0.0 
+        log_msg_suffix = "Conducting (flag was true)"
+    else: 
+        current = 0.0
+        if is_nan(Va) or is_nan(Vk):
+            log_msg_suffix = "Not Conducting (NaN voltages)"
+
+    circuit.component_results[comp_id]["current"] = current
+    #endregion
+
 func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, _x_iter = null, _vs_map_iter = null) -> bool:
 	var term_a = comp_data.terminals["A"]
 	var term_k = comp_data.terminals["K"]

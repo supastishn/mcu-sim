@@ -126,3 +126,33 @@ func stamp(
 		_inline_stamp_conductance.call(A, g_open, idx_com, idx_nc)  # NO to COM is closed, NC to COM is open
 		_inline_stamp_conductance.call(A, g_closed, idx_com, idx_no)
 		_inline_stamp_conductance.call(A, g_open, idx_nc, idx_no) # NC to NO should be open
+
+# -----------------------------------------------------------------
+# Simulation-results extraction
+func gather_sim_results(
+        circuit      : CircuitGraph,
+        comp_data    : Dictionary,
+        x            : Array,
+        node_map     : Dictionary,
+        vs_map       : Dictionary,
+        inductor_map : Dictionary,
+        delta_time   : float) -> void:
+    #region LEGACY_RESULT_CODE
+    var comp_node = comp_data.component_node
+    var comp_id = comp_node.get_instance_id()
+    if not comp_id in circuit.component_results: circuit.component_results[comp_id] = {}
+
+    var state: Switch3D.State = comp_data.state 
+    var R_closed = CircuitGraph.R_SWITCH_CLOSED
+    var term_com = comp_data.terminals["COM"]
+    var node_com_id = circuit.terminal_connections.get(term_com.get_instance_id(), -1)
+    var V_com = circuit.electrical_nodes.get(node_com_id, {}).get("voltage", NAN)
+    var active_term_name = "NC" if state == Switch3D.State.CONNECTED_NC else "NO"
+    var active_term = comp_data.terminals[active_term_name]
+    var active_node_id = circuit.terminal_connections.get(active_term.get_instance_id(), -1)
+    var V_active = circuit.electrical_nodes.get(active_node_id, {}).get("voltage", NAN)
+    var current = NAN
+    if not is_nan(V_com) and not is_nan(V_active):
+        current = (V_com - V_active) / R_closed
+    circuit.component_results[comp_id]["current"] = current
+    #endregion

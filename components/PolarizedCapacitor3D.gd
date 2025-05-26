@@ -140,3 +140,54 @@ func stamp(
 	# Stamp current source part
 	if idx1 != -1: b[idx1] += I_eq_source
 	if idx2 != -1: b[idx2] -= I_eq_source
+
+# -----------------------------------------------------------------
+# Simulation-results extraction
+func gather_sim_results(
+        circuit      : CircuitGraph,
+        comp_data    : Dictionary,
+        x            : Array,
+        node_map     : Dictionary,
+        vs_map       : Dictionary,
+        inductor_map : Dictionary,
+        delta_time   : float) -> void:
+    #region LEGACY_RESULT_CODE
+    var comp_node = comp_data.component_node
+    var comp_id = comp_node.get_instance_id()
+    if not comp_id in circuit.component_results: circuit.component_results[comp_id] = {}
+
+    var C_val = comp_data.properties["capacitance"]
+    var max_V_cap = comp_data.properties["max_voltage"]
+    var Vc_prev_dt_val = comp_data.properties.get("voltage_across_cap_prev_dt", 0.0)
+
+    var term1_cap_node = comp_data.terminals["T1"] 
+    var term2_cap_node = comp_data.terminals["T2"] 
+    var node1_id_cap_val = circuit.terminal_connections.get(term1_cap_node.get_instance_id(), -1)
+    var node2_id_cap_val = circuit.terminal_connections.get(term2_cap_node.get_instance_id(), -1)
+
+    var V1_cap_t = circuit.electrical_nodes.get(node1_id_cap_val, {}).get("voltage", NAN) 
+    var V2_cap_t = circuit.electrical_nodes.get(node2_id_cap_val, {}).get("voltage", NAN) 
+    
+    var current_cap = NAN
+    var Vc_t = NAN 
+
+    if comp_data.get("is_exploded", false):
+        current_cap = 0.0 
+        if not is_nan(V1_cap_t) and not is_nan(V2_cap_t): Vc_t = V1_cap_t - V2_cap_t
+    elif not is_nan(V1_cap_t) and not is_nan(V2_cap_t):
+        Vc_t = V1_cap_t - V2_cap_t 
+        
+        var reverse_polarity_tolerance = -0.1 
+        if Vc_t > max_V_cap or Vc_t < reverse_polarity_tolerance: 
+            comp_data.is_exploded = true
+            current_cap = 0.0 
+        else: 
+            current_cap = C_val * (Vc_t - Vc_prev_dt_val) / delta_time
+            comp_data.properties["voltage_across_cap_prev_dt"] = Vc_t 
+    else: 
+        pass
+    
+    circuit.component_results[comp_id]["current"] = current_cap
+    circuit.component_results[comp_id]["voltage_across"] = Vc_t
+    circuit.component_results[comp_id]["is_exploded"] = comp_data.get("is_exploded", false)
+    #endregion

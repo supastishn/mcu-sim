@@ -171,3 +171,47 @@ func stamp(
 			b[pos_idx] += actual_current_to_stamp 
 		if neg_idx != -1:
 			b[neg_idx] -= actual_current_to_stamp 
+
+# -----------------------------------------------------------------
+# Simulation-results extraction
+func gather_sim_results(
+        circuit      : CircuitGraph,
+        comp_data    : Dictionary,
+        x            : Array,
+        node_map     : Dictionary,
+        vs_map       : Dictionary,
+        inductor_map : Dictionary,
+        delta_time   : float) -> void:
+    #region LEGACY_RESULT_CODE
+    var comp_node = comp_data.component_node
+    var comp_id = comp_node.get_instance_id()
+    if not comp_id in circuit.component_results: circuit.component_results[comp_id] = {}
+
+    var ps_op_mode = comp_data.properties.get("current_operating_mode", "CV")
+    if ps_op_mode == "CV":
+        if vs_map.has(comp_id): 
+            var matrix_idx_curr_final = vs_map[comp_id]
+            if matrix_idx_curr_final < x.size():
+                var solved_current_mna = x[matrix_idx_curr_final] 
+                circuit.component_results[comp_id]["current"] = -solved_current_mna 
+                
+                var term_p_fv = comp_data.terminals["POS"]
+                var term_n_fv = comp_data.terminals["NEG"]
+                var Vp_fv = circuit.electrical_nodes.get(circuit.terminal_connections.get(term_p_fv.get_instance_id(), -1), {}).get("voltage", NAN)
+                var Vn_fv = circuit.electrical_nodes.get(circuit.terminal_connections.get(term_n_fv.get_instance_id(), -1), {}).get("voltage", NAN)
+                var actual_V_across_fv = NAN
+                if not is_nan(Vp_fv) and not is_nan(Vn_fv): actual_V_across_fv = Vp_fv - Vn_fv
+                circuit.component_results[comp_id]["voltage"] = actual_V_across_fv
+                circuit.component_results[comp_id]["operating_mode"] = "CV" 
+    elif ps_op_mode == "CC":
+        var cc_current_val = comp_data.properties.cc_current_direction_sign * comp_data.properties.target_current
+        circuit.component_results[comp_id]["current"] = cc_current_val
+        circuit.component_results[comp_id]["operating_mode"] = "CC"
+        var term_p_cc = comp_data.terminals["POS"]
+        var term_n_cc = comp_data.terminals["NEG"]
+        var Vp_cc = circuit.electrical_nodes.get(circuit.terminal_connections.get(term_p_cc.get_instance_id(), -1), {}).get("voltage", NAN)
+        var Vn_cc = circuit.electrical_nodes.get(circuit.terminal_connections.get(term_n_cc.get_instance_id(), -1), {}).get("voltage", NAN)
+        var actual_V_across_cc = NAN
+        if not is_nan(Vp_cc) and not is_nan(Vn_cc): actual_V_across_cc = Vp_cc - Vn_cc
+        circuit.component_results[comp_id]["voltage"] = actual_V_across_cc
+    #endregion

@@ -103,6 +103,53 @@ func reset_visual_state():
 	if is_instance_valid(mesh_instance):
 		mesh_instance.material_override = null 
 
+# -----------------------------------------------------------------
+# Simulation-results extraction
+func gather_sim_results(
+        circuit      : CircuitGraph,
+        comp_data    : Dictionary,
+        x            : Array,
+        node_map     : Dictionary,
+        vs_map       : Dictionary,
+        inductor_map : Dictionary,
+        delta_time   : float) -> void:
+    #region LEGACY_RESULT_CODE
+    var comp_node = comp_data.component_node
+    var comp_id = comp_node.get_instance_id()
+    if not comp_id in circuit.component_results: circuit.component_results[comp_id] = {}
+
+    var Vd_nmos_calc = circuit.electrical_nodes.get(circuit.terminal_connections.get(comp_data.terminals["D"].get_instance_id(), -1), {}).get("voltage", NAN)
+    var Vg_nmos_calc = circuit.electrical_nodes.get(circuit.terminal_connections.get(comp_data.terminals["G"].get_instance_id(), -1), {}).get("voltage", NAN)
+    var Vs_nmos_calc = circuit.electrical_nodes.get(circuit.terminal_connections.get(comp_data.terminals["S"].get_instance_id(), -1), {}).get("voltage", NAN)
+    
+    var region_nmos_calc = comp_data.properties["operating_region"]
+    var vt_nmos_model_calc = comp_data.properties["threshold_voltage"]
+    var kn_nmos_model_calc = comp_data.properties["transconductance_parameter"]
+    
+    var Id_nmos: float = NAN
+    var Vgs_nmos_actual: float = NAN
+    var Vds_nmos_actual: float = NAN
+
+    if not is_nan(Vg_nmos_calc) and not is_nan(Vs_nmos_calc) and not is_nan(Vd_nmos_calc):
+        Vgs_nmos_actual = Vg_nmos_calc - Vs_nmos_calc
+        Vds_nmos_actual = Vd_nmos_calc - Vs_nmos_calc
+        var vgs_vt_diff_calc = Vgs_nmos_actual - vt_nmos_model_calc
+
+        if region_nmos_calc == "OFF": 
+            Id_nmos = 0.0
+        elif region_nmos_calc == "TRIODE": 
+            Id_nmos = kn_nmos_model_calc * (vgs_vt_diff_calc * Vds_nmos_actual - 0.5 * pow(Vds_nmos_actual, 2.0))
+            if Id_nmos < 0 : Id_nmos = 0 
+        elif region_nmos_calc == "SATURATION": 
+            Id_nmos = 0.5 * kn_nmos_model_calc * pow(vgs_vt_diff_calc, 2.0)
+            if Id_nmos < 0 : Id_nmos = 0 
+    
+    circuit.component_results[comp_id]["Id"] = Id_nmos
+    circuit.component_results[comp_id]["Vgs"] = Vgs_nmos_actual
+    circuit.component_results[comp_id]["Vds"] = Vds_nmos_actual
+    circuit.component_results[comp_id]["region"] = region_nmos_calc
+    #endregion
+
 func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, _x_iter = null, _vs_map_iter = null) -> bool:
 	var term_d_nmos = comp_data.terminals["D"]
 	var term_g_nmos = comp_data.terminals["G"]
