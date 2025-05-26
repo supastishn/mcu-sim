@@ -22,6 +22,7 @@ var InductorScene = preload("res://components/Inductor3D.tscn") # Preload Induct
 var NPNBJTScene = preload("res://components/NPNBJT3D.tscn") # Ensure this path is correct
 var PNPBJTScene = preload("res://components/PNPBJT3D.tscn") # Preload PNP BJT scene
 var ZenerDiodeScene = preload("res://components/ZenerDiode3D.tscn") # Preload Zener Diode scene
+var NChannelMOSFETScene = preload("res://components/NChannelMOSFET3D.tscn") # Preload N-Ch MOSFET scene
 var RelayScene = preload("res://components/Relay3D.tscn") # Preload Relay scene
 
 
