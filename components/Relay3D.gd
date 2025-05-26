@@ -80,6 +80,15 @@ func show_info(results: Dictionary):
 			var mat = StandardMaterial3D.new()
 			mat.albedo_color = Color.DARK_GREEN
 			mesh_instance.material_override = mat
+	else:
+		state_str = "State: De-energized (COM-NC)"
+		if is_instance_valid(mesh_instance) and mesh_instance.material_override:
+			mesh_instance.material_override.albedo_color = Color(0.4, 0.4, 0.5, 1)
+		elif is_instance_valid(mesh_instance):
+			var mat = StandardMaterial3D.new()
+			mat.albedo_color = Color(0.4, 0.4, 0.5, 1)
+			mesh_instance.material_override = mat
+
 
 
 
@@ -167,32 +176,7 @@ func stamp(
 		_inline_stamp_conductance.call(A, g_sw_open_val, idx_com_sw, idx_no_sw)     
 		_inline_stamp_conductance.call(A, g_sw_closed_val, idx_com_sw, idx_nc_sw)   
 		_inline_stamp_conductance.call(A, g_sw_open_val, idx_no_sw, idx_nc_sw)      
-	else:
-		state_str = "State: De-energized (COM-NC)"
-		if is_instance_valid(mesh_instance) and mesh_instance.material_override:
-			mesh_instance.material_override.albedo_color = Color(0.4, 0.4, 0.5, 1) 
-		elif is_instance_valid(mesh_instance):
-			var mat = StandardMaterial3D.new()
-			mat.albedo_color = Color(0.4, 0.4, 0.5, 1)
-			mesh_instance.material_override = mat
-
-
-	var threshold_str = "Sig Thresh: N/A"
-	if results.has("signal_threshold") and not is_nan(results.signal_threshold):
-		threshold_str = "Sig Thresh: {val_str} V".format({"val_str": String.num(results.signal_threshold, 2)})
-	else: 
-		threshold_str = "Sig Thresh: {val_str} V".format({"val_str": String.num(signal_voltage_threshold, 2)})
-
-	var coil_i_str = "Coil I: N/A" 
-	if results.has("coil_current") and not is_nan(results.coil_current):
-		coil_i_str = "Coil I: {val_str}".format({"val_str": _format_current(results.coil_current)})
-		
-	info_label.text = "{vcc_str}, {sig_str}\n{st_str}, {th_str}\n{ci_str}".format({
-		"vcc_str": vcc_v_str, "sig_str": sig_v_str, 
-		"st_str": state_str, "th_str": threshold_str, 
-		"ci_str": coil_i_str
-		})
-	info_label.visible = true
+	return          # or ‘pass’
 
 func _format_current(current_value: float) -> String: 
 	if abs(current_value) < 1e-6 and abs(current_value) > 1e-15 : 
