@@ -1,7 +1,7 @@
 extends Node
 
 const TestUtils = preload("res://tests/test_utils.gd")
-const CircuitEditorScene = preload("res://CircuitEditor3D.tscn")
+const Helpers = preload("res://tests/test_helpers.gd")
 
 var total_tests = 0
 var passed_tests = 0
@@ -141,65 +141,53 @@ func run_all_tests():
 
 func test_simple_powersupply_resistor_led_circuit() -> bool:
 	var overall_test_passed = true
-	var editor_instance: Node3D = CircuitEditorScene.instantiate()
-	add_child(editor_instance)
-	await get_tree().process_frame 
+	var rig := Helpers.TestRig.new()
+	add_child(rig)
+	await rig.init()
+	var g = rig.graph
+	var ed = rig.editor
 
-	var editor_script: CircuitEditor3D = editor_instance as CircuitEditor3D
-	var graph_script: CircuitGraph = editor_instance.circuit_graph
+	var ps_node : PowerSource3D = rig.add(ed.PowerSourceScene, Vector3(0,0,0))
+	var res_node : Resistor3D = rig.add(ed.ResistorScene, Vector3(1,0,0))
+	var led_node : LED3D = rig.add(ed.LEDScene, Vector3(2,0,0))
 
-	if not is_instance_valid(editor_script) or not is_instance_valid(graph_script):
-		printerr("  SETUP FAIL: Could not get editor or graph script.")
-		if is_instance_valid(editor_instance): editor_instance.queue_free()
-		return false
-
-	var ps_node: PowerSource3D = editor_script._add_component(editor_script.PowerSourceScene, Vector3(0,0,0)) as PowerSource3D
-	var res_node: Resistor3D = editor_script._add_component(editor_script.ResistorScene, Vector3(1,0,0)) as Resistor3D
-	var led_node: LED3D = editor_script._add_component(editor_script.LEDScene, Vector3(2,0,0)) as LED3D
-
-	if not is_instance_valid(ps_node) or not is_instance_valid(res_node) or not is_instance_valid(led_node):
-		printerr("  SETUP FAIL: Failed to instantiate one or more components.")
-		if is_instance_valid(editor_instance): editor_instance.queue_free()
-		return false
-	
 	ps_node.target_voltage = 5.0
 	ps_node.target_current = 0.1 
-	graph_script.component_config_changed(ps_node) 
+	rig.cfg(ps_node)
 
 	res_node.resistance = 220.0
-	graph_script.component_config_changed(res_node)
+	rig.cfg(res_node)
 
 	led_node.forward_voltage = 2.0
 	led_node.min_current_to_light = 0.001 
 	led_node.max_current_before_burn = 0.020 
-	graph_script.component_config_changed(led_node)
+	rig.cfg(led_node)
 
+	rig.connect(ps_node.terminal_pos, res_node.terminal1)
+	rig.connect(res_node.terminal2, led_node.terminal_anode)
+	rig.connect(led_node.terminal_kathode, ps_node.terminal_neg)
 
-	graph_script.connect_terminals(ps_node.terminal_pos, res_node.terminal1)
-	graph_script.connect_terminals(res_node.terminal2, led_node.terminal_anode)
-	graph_script.connect_terminals(led_node.terminal_kathode, ps_node.terminal_neg)
+	rig.ground(ps_node.terminal_neg)
 
-	graph_script.set_ground_node(ps_node.terminal_neg)
-
-	var solve_success: bool = graph_script.solve_single_time_step(0.01)
+	var solve_success: bool = rig.solve()
 	if not TestUtils.assert_true(solve_success, "Simulation solve_single_time_step successful"): overall_test_passed = false
 
 	if solve_success:
 		var expected_current = (5.0 - 2.0) / 220.0
 		var tolerance = 0.001 
 
-		var res_results = graph_script.component_results.get(res_node.get_instance_id(), {})
+		var res_results = rig.results(res_node)
 		var res_current = res_results.get("current", NAN)
 		if not TestUtils.assert_not_nan(res_current, "Resistor current is not NaN"): overall_test_passed = false
 		if not TestUtils.assert_approx_equals(res_current, expected_current, tolerance, "Resistor current matches expected"): overall_test_passed = false
 		
-		var led_results = graph_script.component_results.get(led_node.get_instance_id(), {})
+		var led_results = rig.results(led_node)
 		var led_current = led_results.get("current", NAN)
 		if not TestUtils.assert_not_nan(led_current, "LED current is not NaN"): overall_test_passed = false
 		if not TestUtils.assert_approx_equals(led_current, expected_current, tolerance, "LED current matches expected"): overall_test_passed = false
 
 		var led_graph_data
-		for comp_data in graph_script.components:
+		for comp_data in g.components:
 			if comp_data.component_node == led_node:
 				led_graph_data = comp_data
 				break
@@ -211,11 +199,11 @@ func test_simple_powersupply_resistor_led_circuit() -> bool:
 			printerr("  ASSERT FAIL: Could not find LED graph data.")
 			overall_test_passed = false
 			
-		var ps_results = graph_script.component_results.get(ps_node.get_instance_id(), {})
+		var ps_results = rig.results(ps_node)
 		var ps_op_mode = ps_results.get("operating_mode", "ERROR")
 		if not TestUtils.assert_equals(ps_op_mode, "CV", "Power Supply is in CV mode"): overall_test_passed = false
 
-	editor_instance.queue_free()
+	rig.cleanup()
 	return overall_test_passed
 
 
@@ -1257,23 +1245,6 @@ func test_relay_behavior() -> bool:
 	editor_instance.queue_free()
 	return overall_test_passed
 
-func _cleanup_components_and_graph(editor: CircuitEditor3D, graph: CircuitGraph):
-	var all_component_nodes = []
-	for comp_data_item in graph.components: all_component_nodes.append(comp_data_item.component_node)
-	for comp_n in all_component_nodes: graph.remove_component(comp_n)
-	
-	for child in editor.components_node.get_children(): child.queue_free()
-	for child in editor.wires_node.get_children(): child.queue_free()
-	
-	graph.electrical_nodes.clear()
-	graph.terminal_connections.clear()
-	graph.component_results.clear()
-	graph.ground_node_id = -1
-	graph._next_node_id = 0 
-	graph._is_solved = false
-	graph._needs_rebuild = true
-	
-	await get_tree().process_frame 
 
 func test_led_burnout() -> bool:
 	var overall_test_passed = true
