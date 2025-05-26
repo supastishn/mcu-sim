@@ -732,7 +732,7 @@ func _select_component(component: Node3D):
 	elif selected_component is Relay3D:
 		value_box.visible = true
 		value_label.text = "Coil Threshold (V):"
-		value_edit.text = str(selected_component.coil_voltage_threshold)
+		value_edit.text = str(selected_component.signal_voltage_threshold)
 		coil_resistance_box.visible = true
 		coil_resistance_label.text = "Coil Resist. (Ω):"
 		coil_resistance_edit.text = str(selected_component.coil_resistance)
@@ -1020,7 +1020,7 @@ func _on_selected_value_changed(new_text: String):
 	elif selected_component is PNPBJT3D: 
 		selected_component.beta_dc = new_value 
 	elif selected_component is Relay3D: 
-		selected_component.coil_voltage_threshold = new_value 
+		selected_component.signal_voltage_threshold = new_value 
 	
 	
 	
@@ -1557,7 +1557,7 @@ func _on_zener_diode_config_changed(zener_node: ZenerDiode3D):
 func _on_relay_config_changed(relay_node: Relay3D):
 	print("CircuitEditor notified of Relay {name} config change. Threshold: {thresh_str}V, CoilR: {coilr_str}Ω".format({
 		"name": relay_node.name,
-		"thresh_str": String.num(relay_node.coil_voltage_threshold, 2),
+		"thresh_str": String.num(relay_node.signal_voltage_threshold, 2),
 		"coilr_str": String.num(relay_node.coil_resistance, 1)
 		}))
 	circuit_graph.component_config_changed(relay_node)
