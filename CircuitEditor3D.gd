@@ -1107,6 +1107,12 @@ func _on_delete_button_pressed():
 			terminals_to_check = [component_to_delete.terminal_c, component_to_delete.terminal_b, component_to_delete.terminal_e]
 		elif component_to_delete is PNPBJT3D:
 			terminals_to_check = [component_to_delete.terminal_e, component_to_delete.terminal_b, component_to_delete.terminal_c] # EBC for PNP
+		elif component_to_delete is NChannelMOSFET3D:
+			terminals_to_check = [
+				component_to_delete.terminal_d,
+				component_to_delete.terminal_g,
+				component_to_delete.terminal_s
+			]
 		elif component_to_delete is Relay3D:
 			terminals_to_check = [
 				component_to_delete.terminal_coil_p, component_to_delete.terminal_coil_n,
