@@ -904,7 +904,7 @@ func _stamp_led(A:Array, b:Array, node_map:Dictionary, comp_data:Dictionary) -> 
 	var on    = comp_data.get("conducting", false) and not burned
 	var R_on  = R_LED_ON
 	var R_off = R_LED_OFF
-	var g     = 1.0 / (on ? R_on : R_off)
+	var g     = 1.0 / (R_on if on else R_off)
 	var a = comp_data.terminals["A"]
 	var k = comp_data.terminals["K"]
 	var na = terminal_connections[a.get_instance_id()]
@@ -922,7 +922,7 @@ func _stamp_diode(A:Array, b:Array, node_map:Dictionary, comp_data:Dictionary) -
 	var on  = comp_data.get("conducting", false)
 	var Ron = R_DIODE_ON
 	var Roff= R_DIODE_OFF
-	var g   = 1.0 / (on ? Ron : Roff)
+	var g   = 1.0 / (Ron if on else Roff)
 	var a = comp_data.terminals["A"]
 	var k = comp_data.terminals["K"]
 	var na = terminal_connections[a.get_instance_id()]
