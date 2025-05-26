@@ -97,17 +97,15 @@ func hide_current():
 	if not current_label: return
 	current_label.visible = false
 
-# -------------------------------------------------------------------------
-# MNA‐stamping interface
 func stamp(
 	A: Array,
 	b: Array,
 	node_map: Dictionary,
-	vs_map: Dictionary, # This is active_vs_id_to_matrix_index
-	inductor_map: Dictionary, # Unused by Battery
+	vs_map: Dictionary,
+	inductor_map: Dictionary,
 	terminal_connections: Dictionary,
-	comp_data: Dictionary, # Used for target_voltage from comp_data.properties
-	delta_time: float # Unused by Battery
+	comp_data: Dictionary,
+	delta_time: float
 ):
 	var pos_term_instance_id = terminal_pos.get_instance_id() if is_instance_valid(terminal_pos) else -1
 	var neg_term_instance_id = terminal_neg.get_instance_id() if is_instance_valid(terminal_neg) else -1
@@ -124,7 +122,7 @@ func stamp(
 		return
 	var battery_current_matrix_idx = vs_map[battery_instance_id]
 	
-	var V_target_val = comp_data.properties["target_voltage"] # From comp_data as per original
+	var V_target_val = comp_data.properties["target_voltage"]
 	
 	b[battery_current_matrix_idx] = V_target_val
 	if pos_idx != -1:
