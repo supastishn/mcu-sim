@@ -183,9 +183,9 @@ func test_simple_powersupply_resistor_led_circuit() -> bool:
 	led_node.max_current_before_burn = 0.020 
 	rig.cfg(led_node)
 
-	rig.connect(ps_node.terminal_pos, res_node.terminal1)
-	rig.connect(res_node.terminal2, led_node.terminal_anode)
-	rig.connect(led_node.terminal_kathode, ps_node.terminal_neg)
+	rig.wire(ps_node.terminal_pos, res_node.terminal1)
+	rig.wire(res_node.terminal2, led_node.terminal_anode)
+	rig.wire(led_node.terminal_kathode, ps_node.terminal_neg)
 
 	rig.ground(ps_node.terminal_neg)
 
