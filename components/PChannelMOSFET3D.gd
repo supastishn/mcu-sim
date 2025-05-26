@@ -94,7 +94,7 @@ func update_nonlinear_state(circuit, comp_data, _x_iter=null, _vs_map_iter=null)
 		if Vsg <= threshold_voltage:
 			reg = "OFF"
 		else:
-			if Vsd > (Vsg - threshold_voltage):
+			if Vsd <= (Vsg - threshold_voltage):
 				reg = "TRIODE"
 			else:
 				reg = "SATURATION"
@@ -145,6 +145,9 @@ func stamp(A,b,node_map,vs_map,inductor_map,term_conn,comp_data,dt):
 			Id_sat = -0.5 * kp * pow(Vsg - vt,2.0)   # negative current (S->D)
 		if idx_s!=-1: b[idx_s] += Id_sat
 		if idx_d!=-1: b[idx_d] -= Id_sat
+		# add a tiny output-resistance so the matrix is well-conditioned
+		var Gds_sat := 1e-6      #  ≈ 1 MΩ
+		_stamp_conductance(A, Gds_sat, idx_s, idx_d)
 
 # ---------- gather_sim_results ----------
 func gather_sim_results(circuit,comp_data,x,node_map,vs_map,inductor_map,dt):
