@@ -175,4 +175,3 @@ func gather_sim_results(circuit,comp_data,x,node_map,vs_map,inductor_map,dt):
 	circuit.component_results[cid]["Vgs"] = Vgs
 	circuit.component_results[cid]["Vds"] = Vds
 	circuit.component_results[cid]["region"] = reg
-
