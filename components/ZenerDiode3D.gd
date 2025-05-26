@@ -80,21 +80,21 @@ func hide_info():
 func reset_visual_state():
 	hide_info()
 
-# -------------------------------------------------------------------------
-# MNA‐stamping interface
+
+
 func stamp(
 	A: Array,
 	b: Array,
 	node_map: Dictionary,
-	vs_map: Dictionary, # Unused by ZenerDiode
-	inductor_map: Dictionary, # Unused by ZenerDiode
+	vs_map: Dictionary, 
+	inductor_map: Dictionary, 
 	terminal_connections: Dictionary,
-	comp_data: Dictionary, # Used for operating_state, forward_voltage, zener_voltage
-	delta_time: float # Unused by ZenerDiode
+	comp_data: Dictionary, 
+	delta_time: float 
 ):
 	var state_zener_val = comp_data.properties["operating_state"]
-	var Vf_zener_model_prop = forward_voltage # Direct access to exported property
-	var Vz_zener_model_prop = zener_voltage   # Direct access
+	var Vf_zener_model_prop = forward_voltage 
+	var Vz_zener_model_prop = zener_voltage   
 
 	var a_id = terminal_anode.get_instance_id() if is_instance_valid(terminal_anode) else -1
 	var k_id = terminal_kathode.get_instance_id() if is_instance_valid(terminal_kathode) else -1
@@ -105,12 +105,12 @@ func stamp(
 	var idx_a = node_map.get(node_a_lookup, -1)
 	var idx_k = node_map.get(node_k_lookup, -1)
 
-	var R_on_model_const = 0.1    # Model parameter for on-resistance
+	var R_on_model_const = 0.1    
 	var G_on_model_val = 1.0 / R_on_model_const
-	var R_off_model_const = 1.0e9 # Model parameter for off-resistance
+	var R_off_model_const = 1.0e9 
 	var G_off_model_val = 1.0 / R_off_model_const
 
-	# Helper for inlining _stamp_conductance
+	
 	var _inline_stamp_conductance = func(matrix_A, g_val, idx1, idx2):
 		if idx1 != -1 and idx2 != -1:
 			matrix_A[idx1][idx1] += g_val
@@ -125,25 +125,25 @@ func stamp(
 	if state_zener_val == "OFF":
 		_inline_stamp_conductance.call(A, G_off_model_val, idx_a, idx_k)
 	elif state_zener_val == "FORWARD":
-		# Model: Ideal diode with Vf + series Ron
-		# I = (Vak - Vf) / Ron  => G*Vak - G*Vf
+		
+		
 		_inline_stamp_conductance.call(A, G_on_model_val, idx_a, idx_k)
 		var current_offset_fwd_val = G_on_model_val * Vf_zener_model_prop
-		# Current flows A to K
-		if idx_a != -1: b[idx_a] += current_offset_fwd_val # Current source into Anode
-		if idx_k != -1: b[idx_k] -= current_offset_fwd_val # Current source out of Kathode
+		
+		if idx_a != -1: b[idx_a] += current_offset_fwd_val 
+		if idx_k != -1: b[idx_k] -= current_offset_fwd_val 
 	elif state_zener_val == "ZENER":
-		# Model: Ideal Zener diode with Vz + series Ron (in reverse)
-		# I_rev = (Vka - Vz) / Ron => G*Vka - G*Vz
-		# Current flows K to A (conventional current is A to K, so I = -I_rev)
-		# I = -( (Vk - Va) - Vz ) / Ron = ( (Va - Vk) + Vz ) / Ron
-		# I = G*(Va - Vk) + G*Vz
-		_inline_stamp_conductance.call(A, G_on_model_val, idx_a, idx_k) # Conductance part
+		
+		
+		
+		
+		
+		_inline_stamp_conductance.call(A, G_on_model_val, idx_a, idx_k) 
 		var current_offset_zener_val = G_on_model_val * Vz_zener_model_prop
-		# Current source for Zener voltage. Current flows K to A.
-		# For KCL at A: current enters A. For KCL at K: current leaves K.
-		# If current I flows A->K: b[idx_a] -= I_offset, b[idx_k] += I_offset
-		# Original: b[idx_k_z] += current_offset_zener; b[idx_a_z] -= current_offset_zener
-		# This means current_offset_zener is defined as flowing K->A.
-		if idx_k != -1: b[idx_k] += current_offset_zener_val # Current source into Kathode
-		if idx_a != -1: b[idx_a] -= current_offset_zener_val # Current source out of Anode
+		
+		
+		
+		
+		
+		if idx_k != -1: b[idx_k] += current_offset_zener_val 
+		if idx_a != -1: b[idx_a] -= current_offset_zener_val 

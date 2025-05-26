@@ -78,17 +78,17 @@ func hide_current():
 	if not current_label: return
 	current_label.visible = false
 
-# -------------------------------------------------------------------------
-# MNA‐stamping interface
+
+
 func stamp(
 	A: Array,
 	b: Array,
 	node_map: Dictionary,
-	vs_map: Dictionary, # This is active_vs_id_to_matrix_index
-	inductor_map: Dictionary, # Unused by PowerSource
+	vs_map: Dictionary, 
+	inductor_map: Dictionary, 
 	terminal_connections: Dictionary,
-	comp_data: Dictionary, # Used for op_mode, target_voltage, target_current, cc_current_direction_sign
-	delta_time: float # Unused by PowerSource
+	comp_data: Dictionary, 
+	delta_time: float 
 ):
 	var ps_op_mode = comp_data.properties.get("current_operating_mode", "CV")
 	
@@ -107,7 +107,7 @@ func stamp(
 			printerr("Critical Error: PowerSource {psid} in CV mode not found in vs_map.".format({"psid": ps_instance_id}))
 			return
 		var ps_current_matrix_idx = vs_map[ps_instance_id]
-		var V_target = comp_data.properties["target_voltage"] # From comp_data as per original
+		var V_target = comp_data.properties["target_voltage"] 
 		
 		b[ps_current_matrix_idx] = V_target
 		if pos_idx != -1:
@@ -118,11 +118,11 @@ func stamp(
 			A[neg_idx][ps_current_matrix_idx] = -1.0
 			
 	elif ps_op_mode == "CC":
-		var I_target = comp_data.properties["target_current"] # From comp_data
-		var direction_sign = comp_data.properties.get("cc_current_direction_sign", 1.0) # From comp_data
+		var I_target = comp_data.properties["target_current"] 
+		var direction_sign = comp_data.properties.get("cc_current_direction_sign", 1.0) 
 		var actual_current_to_stamp = direction_sign * I_target
 		
 		if pos_idx != -1:
-			b[pos_idx] += actual_current_to_stamp # Current source: current enters positive node
+			b[pos_idx] += actual_current_to_stamp 
 		if neg_idx != -1:
-			b[neg_idx] -= actual_current_to_stamp # Current source: current leaves negative node
+			b[neg_idx] -= actual_current_to_stamp 

@@ -103,22 +103,22 @@ func hide_info():
 func reset_visual_state():
 	hide_info()
 
-# -------------------------------------------------------------------------
-# MNA‐stamping interface
+
+
 func stamp(
 	A: Array,
 	b: Array,
 	node_map: Dictionary,
-	vs_map: Dictionary, # Unused by PNPBJT
-	inductor_map: Dictionary, # Unused by PNPBJT
+	vs_map: Dictionary, 
+	inductor_map: Dictionary, 
 	terminal_connections: Dictionary,
-	comp_data: Dictionary, # Used for operating_region, beta_dc, veb_on, vec_sat
-	delta_time: float # Unused by PNPBJT
+	comp_data: Dictionary, 
+	delta_time: float 
 ):
 	var region_pnp_val = comp_data.properties["operating_region"]
-	var beta_pnp_prop = beta_dc # Direct access to exported property
-	var veb_on_model_pnp_prop = veb_on # Direct access
-	var vec_sat_model_pnp_prop = vec_sat # Direct access
+	var beta_pnp_prop = beta_dc 
+	var veb_on_model_pnp_prop = veb_on 
+	var vec_sat_model_pnp_prop = vec_sat 
 
 	var e_term_id = terminal_e.get_instance_id()
 	var b_term_id = terminal_b.get_instance_id()
@@ -132,11 +132,11 @@ func stamp(
 	var idx_b = node_map.get(node_b_lookup_id, -1)
 	var idx_c = node_map.get(node_c_lookup_id, -1)
 
-	var R_eb_active_model_pnp_const = 50.0  # Model parameter
-	var R_ec_sat_model_pnp_const = 5.0    # Model parameter
-	var R_pnp_off_model_const = 1.0e9 # Model parameter
+	var R_eb_active_model_pnp_const = 50.0  
+	var R_ec_sat_model_pnp_const = 5.0    
+	var R_pnp_off_model_const = 1.0e9 
 
-	# Helper for inlining _stamp_conductance
+	
 	var _inline_stamp_conductance = func(matrix_A, g_val, idx1, idx2):
 		if idx1 != -1 and idx2 != -1:
 			matrix_A[idx1][idx1] += g_val
@@ -150,45 +150,45 @@ func stamp(
 
 	if region_pnp_val == "OFF":
 		var g_off_pnp_val = 1.0 / R_pnp_off_model_const
-		_inline_stamp_conductance.call(A, g_off_pnp_val, idx_e, idx_b) # Emitter-Base path
-		_inline_stamp_conductance.call(A, g_off_pnp_val, idx_e, idx_c) # Emitter-Collector path
-		_inline_stamp_conductance.call(A, g_off_pnp_val, idx_b, idx_c) # Base-Collector path
+		_inline_stamp_conductance.call(A, g_off_pnp_val, idx_e, idx_b) 
+		_inline_stamp_conductance.call(A, g_off_pnp_val, idx_e, idx_c) 
+		_inline_stamp_conductance.call(A, g_off_pnp_val, idx_b, idx_c) 
 		
 	elif region_pnp_val == "ACTIVE":
-		# Emitter-Base diode model (forward biased for PNP: Ve > Vb)
+		
 		var G_eb_active_pnp_val = 1.0 / R_eb_active_model_pnp_const
-		var Is_eb_active_pnp_val = veb_on_model_pnp_prop / R_eb_active_model_pnp_const # Current source for Veb_on
-		# Current Ib flows E -> B
-		if idx_e != -1: A[idx_e][idx_e] += G_eb_active_pnp_val; b[idx_e] += Is_eb_active_pnp_val # Current source into E
-		if idx_b != -1: A[idx_b][idx_b] += G_eb_active_pnp_val; b[idx_b] -= Is_eb_active_pnp_val # Current source out of B
+		var Is_eb_active_pnp_val = veb_on_model_pnp_prop / R_eb_active_model_pnp_const 
+		
+		if idx_e != -1: A[idx_e][idx_e] += G_eb_active_pnp_val; b[idx_e] += Is_eb_active_pnp_val 
+		if idx_b != -1: A[idx_b][idx_b] += G_eb_active_pnp_val; b[idx_b] -= Is_eb_active_pnp_val 
 		if idx_e != -1 and idx_b != -1:
 			A[idx_e][idx_b] -= G_eb_active_pnp_val
 			A[idx_b][idx_e] -= G_eb_active_pnp_val
 		
-		# Collector current Ic = beta * Ib. Current Ic flows E -> C.
-		# Ib approx (Ve - Vb - Veb_on) / R_eb_active
-		# Ic = (beta/R_eb_active) * Ve - (beta/R_eb_active) * Vb - (beta*Veb_on/R_eb_active)
+		
+		
+		
 		var Gm_pnp_active = beta_pnp_prop / R_eb_active_model_pnp_const
 		var Ic_const_offset_pnp_active = beta_pnp_prop * veb_on_model_pnp_prop / R_eb_active_model_pnp_const
 
-		# KCL at Emitter: Ie = Ib + Ic. Current flows out of Emitter.
-		# KCL at Collector: Ic flows into Collector.
-		# Stamp for Ic flowing from Emitter to Collector (controlled by Veb)
-		# Current Ic flows E -> C.
-		# At node E: A[idx_e][idx_e] += Gm; A[idx_e][idx_b] -= Gm; b[idx_e] += Ic_const_offset (part of Ie)
-		# At node C: A[idx_c][idx_e] -= Gm; A[idx_c][idx_b] += Gm; b[idx_c] -= Ic_const_offset (Ic into C)
-		if idx_e != -1: # Current source component of Ie due to Ic
-			if idx_e != -1: A[idx_e][idx_e] += Gm_pnp_active # dIe/dVe part from Ic
-			if idx_b != -1: A[idx_e][idx_b] -= Gm_pnp_active # dIe/dVb part from Ic
-			b[idx_e] += Ic_const_offset_pnp_active # Constant part of Ie from Ic
-		if idx_c != -1: # Current source Ic into C
-			if idx_e != -1: A[idx_c][idx_e] -= Gm_pnp_active # dIc/dVe
-			if idx_b != -1: A[idx_c][idx_b] += Gm_pnp_active # dIc/dVb
-			b[idx_c] -= Ic_const_offset_pnp_active # Constant part of Ic
+		
+		
+		
+		
+		
+		
+		if idx_e != -1: 
+			if idx_e != -1: A[idx_e][idx_e] += Gm_pnp_active 
+			if idx_b != -1: A[idx_e][idx_b] -= Gm_pnp_active 
+			b[idx_e] += Ic_const_offset_pnp_active 
+		if idx_c != -1: 
+			if idx_e != -1: A[idx_c][idx_e] -= Gm_pnp_active 
+			if idx_b != -1: A[idx_c][idx_b] += Gm_pnp_active 
+			b[idx_c] -= Ic_const_offset_pnp_active 
 
 	elif region_pnp_val == "SATURATION":
-		# Emitter-Base diode (still forward biased)
-		var G_eb_sat_pnp_val = 1.0 / R_eb_active_model_pnp_const # Using R_eb_active for saturation too
+		
+		var G_eb_sat_pnp_val = 1.0 / R_eb_active_model_pnp_const 
 		var Is_eb_sat_pnp_val = veb_on_model_pnp_prop / R_eb_active_model_pnp_const
 		if idx_e != -1: A[idx_e][idx_e] += G_eb_sat_pnp_val; b[idx_e] += Is_eb_sat_pnp_val
 		if idx_b != -1: A[idx_b][idx_b] += G_eb_sat_pnp_val; b[idx_b] -= Is_eb_sat_pnp_val
@@ -196,12 +196,12 @@ func stamp(
 			A[idx_e][idx_b] -= G_eb_sat_pnp_val
 			A[idx_b][idx_e] -= G_eb_sat_pnp_val
 			
-		# Emitter-Collector voltage source (Vec_sat) modeled with a small resistance
-		# Current flows E -> C
+		
+		
 		var G_ec_sat_pnp_val = 1.0 / R_ec_sat_model_pnp_const
-		var Is_ec_sat_pnp_val = vec_sat_model_pnp_prop / R_ec_sat_model_pnp_const # Current source for Vec_sat
-		if idx_e != -1: A[idx_e][idx_e] += G_ec_sat_pnp_val; b[idx_e] += Is_ec_sat_pnp_val # Current source into E
-		if idx_c != -1: A[idx_c][idx_c] += G_ec_sat_pnp_val; b[idx_c] -= Is_ec_sat_pnp_val # Current source out of C
+		var Is_ec_sat_pnp_val = vec_sat_model_pnp_prop / R_ec_sat_model_pnp_const 
+		if idx_e != -1: A[idx_e][idx_e] += G_ec_sat_pnp_val; b[idx_e] += Is_ec_sat_pnp_val 
+		if idx_c != -1: A[idx_c][idx_c] += G_ec_sat_pnp_val; b[idx_c] -= Is_ec_sat_pnp_val 
 		if idx_e != -1 and idx_c != -1:
 			A[idx_e][idx_c] -= G_ec_sat_pnp_val
 			A[idx_c][idx_e] -= G_ec_sat_pnp_val

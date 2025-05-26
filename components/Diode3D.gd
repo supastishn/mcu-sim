@@ -33,21 +33,21 @@ func hide_current():
 	if not current_label: return
 	current_label.visible = false
 
-# -------------------------------------------------------------------------
-# MNA‐stamping interface
+
+
 func stamp(
 	A: Array,
 	b: Array,
 	node_map: Dictionary,
-	vs_map: Dictionary, # Unused by Diode
-	inductor_map: Dictionary, # Unused by Diode
+	vs_map: Dictionary, 
+	inductor_map: Dictionary, 
 	terminal_connections: Dictionary,
-	comp_data: Dictionary, # Used for 'conducting' state
-	delta_time: float # Unused by Diode
+	comp_data: Dictionary, 
+	delta_time: float 
 ):
 	var on = comp_data.get("conducting", false)
-	var R_on = CircuitGraph.R_DIODE_ON # Accessing const from CircuitGraph
-	var R_off = CircuitGraph.R_DIODE_OFF # Accessing const from CircuitGraph
+	var R_on = CircuitGraph.R_DIODE_ON 
+	var R_off = CircuitGraph.R_DIODE_OFF 
 	var g = 1.0 / (R_on if on else R_off)
 
 	var anode_instance_id = terminal_anode.get_instance_id()
@@ -60,12 +60,12 @@ func stamp(
 	var ik = node_map.get(nk, -1)
 
 	if on:
-		var Vf = forward_voltage # Direct access to exported property
-		var offset_val = Vf / R_on # Renamed from 'off' to 'offset_val' to avoid confusion
+		var Vf = forward_voltage 
+		var offset_val = Vf / R_on 
 		if ia != -1: b[ia] += offset_val
 		if ik != -1: b[ik] -= offset_val
 	
-	# Inlined _stamp_conductance(A, g, ia, ik)
+	
 	if ia != -1 and ik != -1:
 		A[ia][ia] += g
 		A[ik][ik] += g

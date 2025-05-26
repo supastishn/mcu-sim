@@ -862,9 +862,9 @@ func _build_mna_system(delta_time: float) -> Dictionary:
 	b.fill(0.0)
 
 
-	# Prepare comp_data for components that need specific voltages from the previous non-linear iteration step for stamping
-	# This is particularly for NChannelMOSFET's Vgs_for_model calculation.
-	# The electrical_nodes here contain voltages from the *end* of the previous non-linear iteration.
+	
+	
+	
 	for cd_item_prep in components:
 		if cd_item_prep.type == "NChannelMOSFET":
 			var term_g_nmos_prep = cd_item_prep.terminals["G"]
@@ -882,10 +882,10 @@ func _build_mna_system(delta_time: float) -> Dictionary:
 				A,
 				b,
 				node_id_to_matrix_index,
-				active_vs_id_to_matrix_index, # This is the 'vs_map' for the stamp method
-				inductor_id_to_matrix_index,  # This is the 'inductor_map'
+				active_vs_id_to_matrix_index, 
+				inductor_id_to_matrix_index,  
 				terminal_connections,
-				comp_data_item,        # Pass the component's data dictionary
+				comp_data_item,        
 				delta_time
 			)
 			
@@ -893,447 +893,447 @@ func _build_mna_system(delta_time: float) -> Dictionary:
 	return { "A": A, "b": b, "node_map": node_id_to_matrix_index, "vs_map": active_vs_id_to_matrix_index, "inductor_map": inductor_id_to_matrix_index }
 
 
-# --- Per-type stamping helpers --- (These will be removed or commented out)
-
-# func _stamp_resistor(A:Array, b:Array, node_map:Dictionary, comp_data:Dictionary) -> void:
-# 	var R = comp_data.properties["resistance"]
-# 	if R == 0.0: R = 1e-9
-# 	var g = 1.0 / R
-# 	var t1 = comp_data.terminals["T1"]
-# 	var t2 = comp_data.terminals["T2"]
-# 	var n1 = terminal_connections[t1.get_instance_id()]
-# 	var n2 = terminal_connections[t2.get_instance_id()]
-# 	var i1 = node_map.get(n1, -1)
-# 	var i2 = node_map.get(n2, -1)
-# 	_stamp_conductance(A, g, i1, i2)
-
-# func _stamp_led(A:Array, b:Array, node_map:Dictionary, comp_data:Dictionary) -> void:
-# 	var burned = comp_data.get("is_burned", false)
-# 	var on    = comp_data.get("conducting", false) and not burned
-# 	var R_on  = R_LED_ON
-# 	var R_off = R_LED_OFF
-# 	var g     = 1.0 / (R_on if on else R_off)
-# 	var a = comp_data.terminals["A"]
-# 	var k = comp_data.terminals["K"]
-# 	var na = terminal_connections[a.get_instance_id()]
-# 	var nk = terminal_connections[k.get_instance_id()]
-# 	var ia = node_map.get(na, -1)
-# 	var ik = node_map.get(nk, -1)
-# 	if on:
-# 		var Vf = comp_data.properties["forward_voltage"]
-# 		var offset = Vf / R_on
-# 		if ia != -1: b[ia] += offset
-# 		if ik != -1: b[ik] -= offset
-# 	_stamp_conductance(A, g, ia, ik)
-
-# func _stamp_diode(A:Array, b:Array, node_map:Dictionary, comp_data:Dictionary) -> void:
-# 	var on  = comp_data.get("conducting", false)
-# 	var Ron = R_DIODE_ON
-# 	var Roff= R_DIODE_OFF
-# 	var g   = 1.0 / (Ron if on else Roff)
-# 	var a = comp_data.terminals["A"]
-# 	var k = comp_data.terminals["K"]
-# 	var na = terminal_connections[a.get_instance_id()]
-# 	var nk = terminal_connections[k.get_instance_id()]
-# 	var ia = node_map.get(na, -1)
-# 	var ik = node_map.get(nk, -1)
-# 	if on:
-# 		var Vf = comp_data.properties["forward_voltage"]
-# 		var off = Vf / Ron
-# 		if ia != -1: b[ia] += off
-# 		if ik != -1: b[ik] -= off
-# 	_stamp_conductance(A, g, ia, ik)
-
-# func _stamp_switch(A:Array, b:Array, node_map:Dictionary, comp_data:Dictionary) -> void:
-# 	var state: Switch3D.State = comp_data.state
-# 	var R_closed = R_SWITCH_CLOSED
-# 	var g_closed = 1.0 / R_closed
-# 	var R_open = R_SWITCH_OPEN
-# 	var g_open = 1.0 / R_open
-# 	var term_com = comp_data.terminals["COM"]
-# 	var term_nc = comp_data.terminals["NC"]
-# 	var term_no = comp_data.terminals["NO"]
-# 	var node_com_id = terminal_connections.get(term_com.get_instance_id(), -1)
-# 	var node_nc_id = terminal_connections.get(term_nc.get_instance_id(), -1)
-# 	var node_no_id = terminal_connections.get(term_no.get_instance_id(), -1)
-# 	var idx_com = node_map.get(node_com_id, -1)
-# 	var idx_nc = node_map.get(node_nc_id, -1)
-# 	var idx_no = node_map.get(node_no_id, -1)
-# 	if state == Switch3D.State.CONNECTED_NC:
-# 		_stamp_conductance(A, g_closed, idx_com, idx_nc)
-# 		_stamp_conductance(A, g_open, idx_com, idx_no)
-# 	elif state == Switch3D.State.CONNECTED_NO:
-# 		_stamp_conductance(A, g_open, idx_com, idx_nc)
-# 		_stamp_conductance(A, g_closed, idx_com, idx_no)
-
-# func _stamp_potentiometer(A:Array, b:Array, node_map:Dictionary, comp_data:Dictionary) -> void:
-# 	var total_R = comp_data.properties["total_resistance"]
-# 	var wiper_pos = comp_data.properties["wiper_position"]
-# 	var R1 = total_R * wiper_pos
-# 	if R1 < 1e-9: R1 = 1e-9
-# 	var g1 = 1.0 / R1
-# 	var R2 = total_R * (1.0 - wiper_pos)
-# 	if R2 < 1e-9: R2 = 1e-9
-# 	var g2 = 1.0 / R2
-# 	var term1 = comp_data.terminals["T1"]
-# 	var term2 = comp_data.terminals["T2"]
-# 	var termW = comp_data.terminals["W"]
-# 	var node1_id = terminal_connections.get(term1.get_instance_id() if is_instance_valid(term1) else -1, -1)
-# 	var node2_id = terminal_connections.get(term2.get_instance_id() if is_instance_valid(term2) else -1, -1)
-# 	var nodeW_id = terminal_connections.get(termW.get_instance_id() if is_instance_valid(termW) else -1, -1)
-# 	var idx1 = node_map.get(node1_id, -1)
-# 	var idx2 = node_map.get(node2_id, -1)
-# 	var idxW = node_map.get(nodeW_id, -1)
-# 	if idx1 != -1: A[idx1][idx1] += g1
-# 	if idxW != -1: A[idxW][idxW] += g1
-# 	if idx1 != -1 and idxW != -1:
-# 		A[idx1][idxW] -= g1
-# 		A[idxW][idx1] -= g1
-# 	if idxW != -1: A[idxW][idxW] += g2
-# 	if idx2 != -1: A[idx2][idx2] += g2
-# 	if idxW != -1 and idx2 != -1:
-# 		A[idxW][idx2] -= g2
-# 		A[idx2][idxW] -= g2
-
-# func _stamp_power_source(A:Array, b:Array, node_map:Dictionary, comp_data:Dictionary, active_vs_map:Dictionary) -> void:
-# 	var ps_op_mode = comp_data.properties.get("current_operating_mode", "CV")
-# 	var pos_term_ps = comp_data.terminals["POS"]
-# 	var neg_term_ps = comp_data.terminals["NEG"]
-# 	var pos_node_id_ps = terminal_connections.get(pos_term_ps.get_instance_id() if is_instance_valid(pos_term_ps) else -1, -1)
-# 	var neg_node_id_ps = terminal_connections.get(neg_term_ps.get_instance_id() if is_instance_valid(neg_term_ps) else -1, -1)
-# 	var pos_idx_ps = node_map.get(pos_node_id_ps, -1)
-# 	var neg_idx_ps = node_map.get(neg_node_id_ps, -1)
-# 	if ps_op_mode == "CV":
-# 		var ps_id_cv = comp_data.component_node.get_instance_id()
-# 		if not active_vs_map.has(ps_id_cv):
-# 			printerr("Critical Error: PowerSource {psid} in CV mode not found in active_vs_id_to_matrix_index.".format({"psid": ps_id_cv}))
-# 			return
-# 		var ps_current_idx_cv = active_vs_map[ps_id_cv]
-# 		var V_target_ps_cv = comp_data.properties["target_voltage"]
-# 		b[ps_current_idx_cv] = V_target_ps_cv
-# 		if pos_idx_ps != -1:
-# 			A[ps_current_idx_cv][pos_idx_ps] = 1.0
-# 			A[pos_idx_ps][ps_current_idx_cv] = 1.0
-# 		if neg_idx_ps != -1:
-# 			A[ps_current_idx_cv][neg_idx_ps] = -1.0
-# 			A[neg_idx_ps][ps_current_idx_cv] = -1.0
-# 	elif ps_op_mode == "CC":
-# 		var I_target_cc = comp_data.properties["target_current"]
-# 		var direction_sign_cc = comp_data.properties.get("cc_current_direction_sign", 1.0)
-# 		var actual_current_stamp_cc = direction_sign_cc * I_target_cc
-# 		if pos_idx_ps != -1:
-# 			b[pos_idx_ps] += actual_current_stamp_cc
-# 		if neg_idx_ps != -1:
-# 			b[neg_idx_ps] -= actual_current_stamp_cc
-
-# func _stamp_battery(A:Array, b:Array, node_map:Dictionary, comp_data:Dictionary, active_vs_map:Dictionary) -> void:
-# 	var pos_term_bat = comp_data.terminals["POS"]
-# 	var neg_term_bat = comp_data.terminals["NEG"]
-# 	var pos_node_id_bat = terminal_connections.get(pos_term_bat.get_instance_id() if is_instance_valid(pos_term_bat) else -1, -1)
-# 	var neg_node_id_bat = terminal_connections.get(neg_term_bat.get_instance_id() if is_instance_valid(neg_term_bat) else -1, -1)
-# 	var pos_idx_bat = node_map.get(pos_node_id_bat, -1)
-# 	var neg_idx_bat = node_map.get(neg_node_id_bat, -1)
-# 	var bat_id = comp_data.component_node.get_instance_id()
-# 	if not active_vs_map.has(bat_id):
-# 		printerr("Critical Error: Battery {batid} not found in active_vs_id_to_matrix_index.".format({"batid": bat_id}))
-# 		return
-# 	var bat_current_idx = active_vs_map[bat_id]
-# 	var V_target_bat = comp_data.properties["target_voltage"]
-# 	b[bat_current_idx] = V_target_bat
-# 	if pos_idx_bat != -1:
-# 		A[bat_current_idx][pos_idx_bat] = 1.0
-# 		A[pos_idx_bat][bat_current_idx] = 1.0
-# 	if neg_idx_bat != -1:
-# 		A[bat_current_idx][neg_idx_bat] = -1.0
-# 		A[neg_idx_bat][bat_current_idx] = -1.0
-
-# func _stamp_polarized_cap(A:Array, b:Array, node_map:Dictionary, comp_data:Dictionary, delta_time:float) -> void:
-# 	var G_eq: float
-# 	var I_eq_source: float = 0.0
-# 	if comp_data.get("is_exploded", false):
-# 		G_eq = 1e-9
-# 	else:
-# 		var C = comp_data.properties["capacitance"]
-# 		if C <= 1e-12: C = 1e-12
-# 		var Vc_prev_dt = comp_data.properties.get("voltage_across_cap_prev_dt", 0.0)
-# 		G_eq = C / delta_time
-# 		I_eq_source = G_eq * Vc_prev_dt
-# 	var term1_cap = comp_data.terminals["T1"]
-# 	var term2_cap = comp_data.terminals["T2"]
-# 	var node1_id_cap = terminal_connections.get(term1_cap.get_instance_id() if is_instance_valid(term1_cap) else -1, -1)
-# 	var node2_id_cap = terminal_connections.get(term2_cap.get_instance_id() if is_instance_valid(term2_cap) else -1, -1)
-# 	var idx1_cap = node_map.get(node1_id_cap, -1)
-# 	var idx2_cap = node_map.get(node2_id_cap, -1)
-# 	_stamp_conductance(A, G_eq, idx1_cap, idx2_cap)
-# 	if idx1_cap != -1: b[idx1_cap] += I_eq_source
-# 	if idx2_cap != -1: b[idx2_cap] -= I_eq_source
-
-# func _stamp_np_cap(A:Array, b:Array, node_map:Dictionary, comp_data:Dictionary, delta_time:float) -> void:
-# 	var C_np = comp_data.properties["capacitance"]
-# 	if C_np <= 1e-12: C_np = 1e-12
-# 	var Vc_prev_dt_np = comp_data.properties.get("voltage_across_cap_prev_dt", 0.0)
-# 	var G_eq_np = C_np / delta_time
-# 	var I_eq_source_np = G_eq_np * Vc_prev_dt_np
-# 	var term1_np_cap = comp_data.terminals["T1"]
-# 	var term2_np_cap = comp_data.terminals["T2"]
-# 	var node1_id_np_cap = terminal_connections.get(term1_np_cap.get_instance_id() if is_instance_valid(term1_np_cap) else -1, -1)
-# 	var node2_id_np_cap = terminal_connections.get(term2_np_cap.get_instance_id() if is_instance_valid(term2_np_cap) else -1, -1)
-# 	var idx1_np_cap = node_map.get(node1_id_np_cap, -1)
-# 	var idx2_np_cap = node_map.get(node2_id_np_cap, -1)
-# 	if idx1_np_cap != -1: A[idx1_np_cap][idx1_np_cap] += G_eq_np
-# 	if idx2_np_cap != -1: A[idx2_np_cap][idx2_np_cap] += G_eq_np
-# 	if idx1_np_cap != -1 and idx2_np_cap != -1:
-# 		A[idx1_np_cap][idx2_np_cap] -= G_eq_np
-# 		A[idx2_np_cap][idx1_np_cap] -= G_eq_np
-# 	if idx1_np_cap != -1: b[idx1_np_cap] += I_eq_source_np
-# 	if idx2_np_cap != -1: b[idx2_np_cap] -= I_eq_source_np
-
-# func _stamp_inductor(A:Array, b:Array, node_map:Dictionary, comp_data:Dictionary, inductor_map:Dictionary, delta_time:float) -> void:
-# 	var L_val = comp_data.properties["inductance"]
-# 	if L_val <= 1e-12: L_val = 1e-12
-# 	var I_L_prev_dt_val = comp_data.properties.get("current_through_L_prev_dt", 0.0)
-# 	var term1_L = comp_data.terminals["T1"]
-# 	var term2_L = comp_data.terminals["T2"]
-# 	var node1_id_L = terminal_connections.get(term1_L.get_instance_id() if is_instance_valid(term1_L) else -1, -1)
-# 	var node2_id_L = terminal_connections.get(term2_L.get_instance_id() if is_instance_valid(term2_L) else -1, -1)
-# 	var idx1_L = node_map.get(node1_id_L, -1)
-# 	var idx2_L = node_map.get(node2_id_L, -1)
-# 	var inductor_id = comp_data.component_node.get_instance_id()
-# 	if not inductor_map.has(inductor_id):
-# 		printerr("Critical Error: Inductor {ind_id_str} not found in inductor_id_to_matrix_index.".format({"ind_id_str": inductor_id}))
-# 		return
-# 	var idx_I_L = inductor_map[inductor_id]
-# 	if idx1_L != -1: A[idx_I_L][idx1_L] = 1.0
-# 	if idx2_L != -1: A[idx_I_L][idx2_L] = -1.0
-# 	A[idx_I_L][idx_I_L] = -L_val / delta_time
-# 	b[idx_I_L] = -(L_val / delta_time) * I_L_prev_dt_val
-# 	if idx1_L != -1: A[idx1_L][idx_I_L] = 1.0
-# 	if idx2_L != -1: A[idx2_L][idx_I_L] = -1.0
-
-# func _stamp_npnbjt(A:Array, b:Array, node_map:Dictionary, comp_data:Dictionary) -> void:
-# 	var region = comp_data.properties["operating_region"]
-# 	var beta = comp_data.properties["beta_dc"]
-# 	var vbe_on_model = comp_data.properties["vbe_on"]
-# 	var vce_sat_model = comp_data.properties["vce_sat"]
-# 	var term_c_bjt = comp_data.terminals["C"]
-# 	var term_b_bjt = comp_data.terminals["B"]
-# 	var term_e_bjt = comp_data.terminals["E"]
-# 	var node_c_id_bjt = terminal_connections.get(term_c_bjt.get_instance_id(), -1)
-# 	var node_b_id_bjt = terminal_connections.get(term_b_bjt.get_instance_id(), -1)
-# 	var node_e_id_bjt = terminal_connections.get(term_e_bjt.get_instance_id(), -1)
-# 	var idx_c = node_map.get(node_c_id_bjt, -1)
-# 	var idx_b = node_map.get(node_b_id_bjt, -1)
-# 	var idx_e = node_map.get(node_e_id_bjt, -1)
-# 	var R_be_active_model = 50.0
-# 	var R_ce_sat_model = 5.0
-# 	var R_bjt_off_model = 1.0e9
-# 	if region == "OFF":
-# 		var g_off = 1.0 / R_bjt_off_model
-# 		_stamp_conductance(A, g_off, idx_b, idx_e)
-# 		_stamp_conductance(A, g_off, idx_c, idx_e)
-# 		_stamp_conductance(A, g_off, idx_c, idx_b)
-# 	elif region == "ACTIVE":
-# 		var G_be_active = 1.0 / R_be_active_model
-# 		var Is_be_active = vbe_on_model / R_be_active_model
-# 		if idx_b != -1: A[idx_b][idx_b] += G_be_active; b[idx_b] += Is_be_active
-# 		if idx_e != -1: A[idx_e][idx_e] += G_be_active; b[idx_e] -= Is_be_active
-# 		if idx_b != -1 and idx_e != -1:
-# 			A[idx_b][idx_e] -= G_be_active; A[idx_e][idx_b] -= G_be_active
-# 		var Gm_bjt = beta / R_be_active_model
-# 		var Ic_offset_bjt = beta * vbe_on_model / R_be_active_model
-# 		if idx_c != -1:
-# 			if idx_b != -1: A[idx_c][idx_b] += Gm_bjt
-# 			if idx_e != -1: A[idx_c][idx_e] -= Gm_bjt
-# 			b[idx_c] += Ic_offset_bjt
-# 		if idx_e != -1:
-# 			if idx_b != -1: A[idx_e][idx_b] -= Gm_bjt
-# 			if idx_e != -1: A[idx_e][idx_e] += Gm_bjt
-# 			b[idx_e] -= Ic_offset_bjt
-# 	elif region == "SATURATION":
-# 		var G_be_sat = 1.0 / R_be_active_model
-# 		var Is_be_sat = vbe_on_model / R_be_active_model
-# 		if idx_b != -1: A[idx_b][idx_b] += G_be_sat; b[idx_b] += Is_be_sat
-# 		if idx_e != -1: A[idx_e][idx_e] += G_be_sat; b[idx_e] -= Is_be_sat
-# 		if idx_b != -1 and idx_e != -1:
-# 			A[idx_b][idx_e] -= G_be_sat; A[idx_e][idx_b] -= G_be_sat
-# 		var G_ce_sat = 1.0 / R_ce_sat_model
-# 		var Is_ce_sat = vce_sat_model / R_ce_sat_model
-# 		if idx_c != -1: A[idx_c][idx_c] += G_ce_sat; b[idx_c] += Is_ce_sat
-# 		if idx_e != -1: A[idx_e][idx_e] += G_ce_sat; b[idx_e] -= Is_ce_sat
-# 		if idx_c != -1 and idx_e != -1:
-# 			A[idx_c][idx_e] -= G_ce_sat; A[idx_e][idx_c] -= G_ce_sat
-
-# func _stamp_pnpbjt(A:Array, b:Array, node_map:Dictionary, comp_data:Dictionary) -> void:
-# 	var region_pnp = comp_data.properties["operating_region"]
-# 	var beta_pnp = comp_data.properties["beta_dc"]
-# 	var veb_on_model_pnp = comp_data.properties["veb_on"]
-# 	var vec_sat_model_pnp = comp_data.properties["vec_sat"]
-# 	var term_e_pnp_mna = comp_data.terminals["E"]
-# 	var term_b_pnp_mna = comp_data.terminals["B"]
-# 	var term_c_pnp_mna = comp_data.terminals["C"]
-# 	var node_e_id_pnp_mna = terminal_connections.get(term_e_pnp_mna.get_instance_id(), -1)
-# 	var node_b_id_pnp_mna = terminal_connections.get(term_b_pnp_mna.get_instance_id(), -1)
-# 	var node_c_id_pnp_mna = terminal_connections.get(term_c_pnp_mna.get_instance_id(), -1)
-# 	var idx_e_pnp = node_map.get(node_e_id_pnp_mna, -1)
-# 	var idx_b_pnp = node_map.get(node_b_id_pnp_mna, -1)
-# 	var idx_c_pnp = node_map.get(node_c_id_pnp_mna, -1)
-# 	var R_eb_active_model_pnp = 50.0
-# 	var R_ec_sat_model_pnp = 5.0
-# 	var R_pnp_off_model = 1.0e9
-# 	if region_pnp == "OFF":
-# 		var g_off_pnp = 1.0 / R_pnp_off_model
-# 		_stamp_conductance(A, g_off_pnp, idx_e_pnp, idx_b_pnp)
-# 		_stamp_conductance(A, g_off_pnp, idx_e_pnp, idx_c_pnp)
-# 		_stamp_conductance(A, g_off_pnp, idx_b_pnp, idx_c_pnp)
-# 	elif region_pnp == "ACTIVE":
-# 		var G_eb_active_pnp = 1.0 / R_eb_active_model_pnp
-# 		var Is_eb_active_pnp = veb_on_model_pnp / R_eb_active_model_pnp
-# 		if idx_e_pnp != -1: A[idx_e_pnp][idx_e_pnp] += G_eb_active_pnp; b[idx_e_pnp] += Is_eb_active_pnp
-# 		if idx_b_pnp != -1: A[idx_b_pnp][idx_b_pnp] += G_eb_active_pnp; b[idx_b_pnp] -= Is_eb_active_pnp
-# 		if idx_e_pnp != -1 and idx_b_pnp != -1:
-# 			A[idx_e_pnp][idx_b_pnp] -= G_eb_active_pnp; A[idx_b_pnp][idx_e_pnp] -= G_eb_active_pnp
-# 		var Gm_pnp_mna = beta_pnp * G_eb_active_pnp
-# 		var Ic_const_offset_pnp_mna = beta_pnp * Is_eb_active_pnp
-# 		if idx_e_pnp != -1: A[idx_e_pnp][idx_e_pnp] += Gm_pnp_mna
-# 		if idx_e_pnp != -1 and idx_b_pnp != -1: A[idx_e_pnp][idx_b_pnp] -= Gm_pnp_mna
-# 		if idx_c_pnp != -1 and idx_e_pnp != -1: A[idx_c_pnp][idx_e_pnp] -= Gm_pnp_mna
-# 		if idx_c_pnp != -1 and idx_b_pnp != -1: A[idx_c_pnp][idx_b_pnp] += Gm_pnp_mna
-# 		if idx_e_pnp != -1: b[idx_e_pnp] += Ic_const_offset_pnp_mna
-# 		if idx_c_pnp != -1: b[idx_c_pnp] -= Ic_const_offset_pnp_mna
-# 	elif region_pnp == "SATURATION":
-# 		var G_eb_sat_pnp = 1.0 / R_eb_active_model_pnp
-# 		var Is_eb_sat_pnp = veb_on_model_pnp / R_eb_active_model_pnp
-# 		if idx_e_pnp != -1: A[idx_e_pnp][idx_e_pnp] += G_eb_sat_pnp; b[idx_e_pnp] += Is_eb_sat_pnp
-# 		if idx_b_pnp != -1: A[idx_b_pnp][idx_b_pnp] += G_eb_sat_pnp; b[idx_b_pnp] -= Is_eb_sat_pnp
-# 		if idx_e_pnp != -1 and idx_b_pnp != -1:
-# 			A[idx_e_pnp][idx_b_pnp] -= G_eb_sat_pnp; A[idx_b_pnp][idx_e_pnp] -= G_eb_sat_pnp
-# 		var G_ec_sat_pnp = 1.0 / R_ec_sat_model_pnp
-# 		var Is_ec_sat_pnp = vec_sat_model_pnp / R_ec_sat_model_pnp
-# 		if idx_e_pnp != -1: A[idx_e_pnp][idx_e_pnp] += G_ec_sat_pnp; b[idx_e_pnp] += Is_ec_sat_pnp
-# 		if idx_c_pnp != -1: A[idx_c_pnp][idx_c_pnp] += G_ec_sat_pnp; b[idx_c_pnp] -= Is_ec_sat_pnp
-# 		if idx_e_pnp != -1 and idx_c_pnp != -1:
-# 			A[idx_e_pnp][idx_c_pnp] -= G_ec_sat_pnp; A[idx_c_pnp][idx_e_pnp] -= G_ec_sat_pnp
-
-# func _stamp_nmos(A:Array, b:Array, node_map:Dictionary, comp_data:Dictionary, electrical_nodes:Dictionary) -> void:
-# 	var region_nmos_mna = comp_data.properties["operating_region"]
-# 	var vt_nmos_mna = comp_data.properties["threshold_voltage"]
-# 	var kn_nmos_mna = comp_data.properties["transconductance_parameter"]
-# 	var term_d_nmos_mna = comp_data.terminals["D"]
-# 	var term_g_nmos_mna = comp_data.terminals["G"]
-# 	var term_s_nmos_mna = comp_data.terminals["S"]
-# 	var node_d_id_nmos_mna = terminal_connections.get(term_d_nmos_mna.get_instance_id(), -1)
-# 	var node_g_id_nmos_mna = terminal_connections.get(term_g_nmos_mna.get_instance_id(), -1)
-# 	var node_s_id_nmos_mna = terminal_connections.get(term_s_nmos_mna.get_instance_id(), -1)
-# 	var idx_d_nmos = node_map.get(node_d_id_nmos_mna, -1)
-# 	var idx_g_nmos = node_map.get(node_g_id_nmos_mna, -1)
-# 	var idx_s_nmos = node_map.get(node_s_id_nmos_mna, -1)
-# 	var G_gate_leakage = 1e-12
-# 	_stamp_conductance(A, G_gate_leakage, idx_g_nmos, idx_d_nmos)
-# 	_stamp_conductance(A, G_gate_leakage, idx_g_nmos, idx_s_nmos)
-# 	if region_nmos_mna == "OFF":
-# 		var G_ds_off = 1e-9
-# 		_stamp_conductance(A, G_ds_off, idx_d_nmos, idx_s_nmos)
-# 	else:
-# 		var Vg_prev_iter = electrical_nodes.get(node_g_id_nmos_mna, {}).get("voltage", 0.0)
-# 		var Vs_prev_iter = electrical_nodes.get(node_s_id_nmos_mna, {}).get("voltage", 0.0)
-# 		var Vgs_for_model = Vg_prev_iter - Vs_prev_iter
-# 		if region_nmos_mna == "TRIODE":
-# 			var R_ds_triode_approx = 1.0 / (kn_nmos_mna * max(0.01, Vgs_for_model - vt_nmos_mna))
-# 			if R_ds_triode_approx > 1e9: R_ds_triode_approx = 1e9
-# 			if R_ds_triode_approx < 1e-3: R_ds_triode_approx = 1e-3
-# 			var G_ds_triode = 1.0 / R_ds_triode_approx
-# 			_stamp_conductance(A, G_ds_triode, idx_d_nmos, idx_s_nmos)
-# 		elif region_nmos_mna == "SATURATION":
-# 			var Id_sat_val = 0.0
-# 			if Vgs_for_model > vt_nmos_mna:
-# 				Id_sat_val = 0.5 * kn_nmos_mna * pow(Vgs_for_model - vt_nmos_mna, 2.0)
-# 			if idx_d_nmos != -1: b[idx_d_nmos] -= Id_sat_val
-# 			if idx_s_nmos != -1: b[idx_s_nmos] += Id_sat_val
-
-# func _stamp_zener(A:Array, b:Array, node_map:Dictionary, comp_data:Dictionary) -> void:
-# 	var state_zener = comp_data.properties["operating_state"]
-# 	var Vf_zener_model = comp_data.properties["forward_voltage"]
-# 	var Vz_zener_model = comp_data.properties["zener_voltage"]
-# 	var term_a_z = comp_data.terminals["A"]
-# 	var term_k_z = comp_data.terminals["K"]
-# 	var node_a_id_z = terminal_connections.get(term_a_z.get_instance_id() if is_instance_valid(term_a_z) else -1, -1)
-# 	var node_k_id_z = terminal_connections.get(term_k_z.get_instance_id() if is_instance_valid(term_k_z) else -1, -1)
-# 	var idx_a_z = node_map.get(node_a_id_z, -1)
-# 	var idx_k_z = node_map.get(node_k_id_z, -1)
-# 	var R_on_model = 0.1
-# 	var G_on_model = 1.0 / R_on_model
-# 	var R_off_model = 1.0e9
-# 	var G_off_model = 1.0 / R_off_model
-# 	if state_zener == "OFF":
-# 		_stamp_conductance(A, G_off_model, idx_a_z, idx_k_z)
-# 	elif state_zener == "FORWARD":
-# 		_stamp_conductance(A, G_on_model, idx_a_z, idx_k_z)
-# 		var current_offset_fwd = G_on_model * Vf_zener_model
-# 		if idx_a_z != -1: b[idx_a_z] += current_offset_fwd
-# 		if idx_k_z != -1: b[idx_k_z] -= current_offset_fwd
-# 	elif state_zener == "ZENER":
-# 		_stamp_conductance(A, G_on_model, idx_a_z, idx_k_z)
-# 		var current_offset_zener = G_on_model * Vz_zener_model
-# 		if idx_k_z != -1: b[idx_k_z] += current_offset_zener
-# 		if idx_a_z != -1: b[idx_a_z] -= current_offset_zener
-
-# func _stamp_relay(A:Array, b:Array, node_map:Dictionary, comp_data:Dictionary) -> void:
-# 	var R_coil_path: float
-# 	var g_coil_path: float
-# 	var R_coil_actual = comp_data.properties["coil_resistance"]
-# 	if R_coil_actual <= 1e-9: R_coil_actual = 1e-9
-# 	var term_vcc = comp_data.terminals["VCC"]
-# 	var term_gnd = comp_data.terminals["GND"]
-# 	var node_vcc_id = terminal_connections.get(term_vcc.get_instance_id() if is_instance_valid(term_vcc) else -1, -1)
-# 	var node_gnd_id = terminal_connections.get(term_gnd.get_instance_id() if is_instance_valid(term_gnd) else -1, -1)
-# 	var idx_vcc = node_map.get(node_vcc_id, -1)
-# 	var idx_gnd = node_map.get(node_gnd_id, -1)
-# 	if comp_data.properties["is_energized"]:
-# 		R_coil_path = R_coil_actual
-# 		g_coil_path = 1.0 / R_coil_path
-# 	else:
-# 		R_coil_path = R_SWITCH_OPEN
-# 		g_coil_path = 1.0 / R_coil_path
-# 	_stamp_conductance(A, g_coil_path, idx_vcc, idx_gnd)
-# 	var R_signal_in = comp_data.properties["input_signal_resistance"]
-# 	if R_signal_in <= 1e-9: R_signal_in = 1e-9
-# 	var g_signal_in = 1.0 / R_signal_in
-# 	var term_sig = comp_data.terminals["Signal"]
-# 	var node_sig_id = terminal_connections.get(term_sig.get_instance_id() if is_instance_valid(term_sig) else -1, -1)
-# 	var idx_sig = node_map.get(node_sig_id, -1)
-# 	_stamp_conductance(A, g_signal_in, idx_sig, idx_gnd)
-# 	var R_sw_closed = R_SWITCH_CLOSED
-# 	var g_sw_closed = 1.0 / R_sw_closed
-# 	var R_sw_open = R_SWITCH_OPEN
-# 	var g_sw_open = 1.0 / R_sw_open
-# 	var term_com_relay = comp_data.terminals["COM"]
-# 	var term_no_relay = comp_data.terminals["NO"]
-# 	var term_nc_relay = comp_data.terminals["NC"]
-# 	var node_com_id_relay = terminal_connections.get(term_com_relay.get_instance_id(), -1)
-# 	var node_no_id_relay = terminal_connections.get(term_no_relay.get_instance_id(), -1)
-# 	var node_nc_id_relay = terminal_connections.get(term_nc_relay.get_instance_id(), -1)
-# 	var idx_com_relay = node_map.get(node_com_id_relay, -1)
-# 	var idx_no_relay = node_map.get(node_no_id_relay, -1)
-# 	var idx_nc_relay = node_map.get(node_nc_id_relay, -1)
-# 	if comp_data.properties["is_energized"]:
-# 		_stamp_conductance(A, g_sw_closed, idx_com_relay, idx_no_relay)
-# 		_stamp_conductance(A, g_sw_open, idx_com_relay, idx_nc_relay)
-# 	else:
-# 		_stamp_conductance(A, g_sw_open, idx_com_relay, idx_no_relay)
-# 		_stamp_conductance(A, g_sw_closed, idx_com_relay, idx_nc_relay)
 
 
 
-# func _stamp_conductance(A_matrix: Array, g_value: float, idx1: int, idx2: int):
-# 	if idx1 != -1 and idx2 != -1: 
-# 		A_matrix[idx1][idx1] += g_value
-# 		A_matrix[idx2][idx2] += g_value
-# 		A_matrix[idx1][idx2] -= g_value
-# 		A_matrix[idx2][idx1] -= g_value
-# 	elif idx1 != -1: 
-# 		A_matrix[idx1][idx1] += g_value
-# 	elif idx2 != -1: 
-# 		A_matrix[idx2][idx2] += g_value
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 func _calculate_passive_component_currents(delta_time: float):
 	if not _is_solved:
