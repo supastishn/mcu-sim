@@ -2,12 +2,12 @@ extends Node3D
 
 class_name ZenerDiode3D
 
-## Signal emitted when a configuration value (forward_voltage, zener_voltage) changes.
+
 signal configuration_changed(component_node: Node3D)
 
-## The approximate forward voltage drop.
+
 @export var forward_voltage: float = 0.7 : set = set_forward_voltage
-## The Zener breakdown voltage in Volts (V). Must be positive.
+
 @export var zener_voltage: float = 5.1 : set = set_zener_voltage
 
 @onready var terminal_anode: Area3D = $TerminalAnode 
@@ -44,8 +44,8 @@ func set_zener_voltage(value: float):
 	elif zener_voltage != new_vz: 
 		zener_voltage = new_vz
 
-## Shows current, voltage, and operating state.
-## results: Dictionary { "current": float, "voltage_ak": float, "state": String ("OFF", "FORWARD", "ZENER") }
+
+
 func show_info(results: Dictionary):
 	if not info_label: return
 	info_label.modulate = Color.WHITE 

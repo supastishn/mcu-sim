@@ -29,12 +29,12 @@ var _needs_rebuild: bool = true
 
 var _next_node_id: int = 0
 
-## Generates a new unique ID for an electrical node.
+
 func _get_new_node_id() -> int:
 	_next_node_id += 1
 	return _next_node_id
 
-## Registers a component and its terminals.
+
 func add_component(component: Node3D):
 	_is_solved = false 
 	_needs_rebuild = true
@@ -203,8 +203,8 @@ func add_component(component: Node3D):
 			
 	components.push_back(component_data)
 
-## Removes a component and its terminals from the graph.
-## Also implicitly disconnects terminals from electrical nodes.
+
+
 func remove_component(component_node: Node3D):
 	_is_solved = false
 	_needs_rebuild = true
@@ -234,7 +234,7 @@ func remove_component(component_node: Node3D):
 	components.remove_at(component_index)
 
 
-## Connects two component terminals, updating the electrical node graph.
+
 func connect_terminals(terminal_a: Area3D, terminal_b: Area3D):
 	_is_solved = false 
 	_needs_rebuild = true 
@@ -269,7 +269,7 @@ func connect_terminals(terminal_a: Area3D, terminal_b: Area3D):
 				electrical_nodes[node_a]["terminals"].push_back(terminal)
 			electrical_nodes.erase(node_b)
 
-## Designates the electrical node connected to the given terminal as ground (0V).
+
 func set_ground_node(terminal: Area3D):
 	_is_solved = false 
 	_needs_rebuild = true 
@@ -287,7 +287,7 @@ func set_ground_node(terminal: Area3D):
 		ground_node_id = node_id
 		electrical_nodes[ground_node_id].voltage = 0.0
 
-## Reloads configuration for a component from its Node3D instance.
+
 func component_config_changed(component_node: Node3D):
 	_is_solved = false
 	_needs_rebuild = true
@@ -366,15 +366,15 @@ func component_config_changed(component_node: Node3D):
 		return
 
 
-## Resets calculated voltages (except ground) to NaN.
+
 func _reset_voltages():
 	component_results.clear() 
 	_is_solved = false
 
 
-## Attempts to solve the circuit for a single time step using Modified Nodal Analysis (MNA).
-## delta_time: The time step for this simulation increment (currently unused by DC components).
-## Returns true if successful, false otherwise.
+
+
+
 func solve_single_time_step(delta_time: float) -> bool:
 	for node_id in electrical_nodes:
 		if node_id != ground_node_id:
@@ -805,9 +805,9 @@ func solve_single_time_step(delta_time: float) -> bool:
 	return _is_solved
 
 
-## Constructs the MNA matrices A and b for the current time step.
-## delta_time: The simulation time step, crucial for capacitor model.
-## Returns a dictionary: { A: Array[Array], b: Array, node_map: Dict, vs_map: Dict } or empty dict on error.
+
+
+
 func _build_mna_system(delta_time: float) -> Dictionary:
 	var non_ground_nodes: Array[int] = []
 	for node_id in electrical_nodes:
@@ -1390,8 +1390,8 @@ func _build_mna_system(delta_time: float) -> Dictionary:
 	_needs_rebuild = false
 	return { "A": A, "b": b, "node_map": node_id_to_matrix_index, "vs_map": active_vs_id_to_matrix_index, "inductor_map": inductor_id_to_matrix_index }
 
-## Helper function to stamp a conductance G between node idx1 and node idx2 into matrix A.
-## Handles cases where idx1 or idx2 might be -1 (ground).
+
+
 func _stamp_conductance(A_matrix: Array, g_value: float, idx1: int, idx2: int):
 	if idx1 != -1 and idx2 != -1: 
 		A_matrix[idx1][idx1] += g_value
@@ -1845,7 +1845,7 @@ func _calculate_passive_component_currents(delta_time: float):
 
 
 
-## Resets the burn state of a specified LED.
+
 func reset_led_burn_state(component_node: Node3D): 
 	for comp_data_item in components: 
 		if comp_data_item.component_node == component_node and comp_data_item.type == "LED":

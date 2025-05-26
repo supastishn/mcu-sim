@@ -2,12 +2,12 @@ extends Node3D
 
 class_name Relay3D
 
-## Signal emitted when a configuration value (signal_voltage_threshold, coil_resistance) changes.
+
 signal configuration_changed(component_node: Node3D)
 
-## Voltage at Signal pin (relative to GND) required to energize the relay (Volts).
+
 @export var signal_voltage_threshold: float = 2.5 : set = set_signal_voltage_threshold
-## Resistance of the internal relay coil in Ohms (current drawn from VCC).
+
 @export var coil_resistance: float = 100.0 : set = set_coil_resistance
 
 var is_energized: bool = false
@@ -54,9 +54,9 @@ func set_coil_resistance(value: float):
 	elif coil_resistance != new_resistance: 
 		coil_resistance = new_resistance
 
-## Shows signal voltage, VCC voltage, coil current, energized state, and signal threshold.
-## results: Dictionary { "signal_voltage": float, "vcc_voltage": float, "coil_current": float, 
-##                      "is_energized": bool, "signal_threshold": float }
+
+
+
 func show_info(results: Dictionary):
 	if not info_label: return
 

@@ -2,11 +2,11 @@ extends Node
 
 class_name LinearSolver
 
-## Solves a system of linear equations Ax = b using Gaussian elimination
-## with partial pivoting.
-## A: Array[Array[float]] - The coefficient matrix (NxN). Will be modified in place.
-## b: Array[float] - The constant vector (Nx1). Will be modified in place.
-## Returns: Array[float] - The solution vector x (Nx1), or an empty array if the matrix is singular.
+
+
+
+
+
 static func solve(A: Array, b: Array) -> Array:
 	var n = b.size()
 	if A.size() != n:
@@ -60,7 +60,7 @@ static func solve(A: Array, b: Array) -> Array:
 
 	return x
 
-## Helper function to print a matrix (for debugging)
+
 static func print_matrix(M: Array, name: String = "Matrix"):
 	print("--- {matrix_name} ---".format({"matrix_name": name}))
 	if M.is_empty() or not M[0] is Array:
@@ -77,7 +77,7 @@ static func print_matrix(M: Array, name: String = "Matrix"):
 		print(row_str)
 	print("--------------")
 
-## Helper function to print a vector (for debugging)
+
 static func print_vector(V: Array, name: String = "Vector"):
 	print("--- {vector_name} ---".format({"vector_name": name}))
 	var vec_str = "[ "

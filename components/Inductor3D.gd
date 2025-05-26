@@ -2,10 +2,10 @@ extends Node3D
 
 class_name Inductor3D
 
-## Signal emitted when the configuration value changes.
+
 signal configuration_changed(component_node: Node3D)
 
-## Inductance in Henries (H).
+
 @export var inductance: float = 1.0e-3 : set = set_inductance 
 
 @onready var terminal1: Area3D = $Terminal1
@@ -32,9 +32,9 @@ func set_inductance(value: float):
 		inductance = new_L
 
 
-## Shows current, voltage across the inductor.
-## current_value is I_L(t).
-## voltage_value is V_L(t) = V(T1) - V(T2).
+
+
+
 func show_info(current_value: float, voltage_value: float):
 	if not info_label: return
 	info_label.modulate = Color.WHITE

@@ -1,6 +1,6 @@
 [gd_scene load_steps=7 format=3 uid="uid://ccg8cvm43p62e"]
 
-[ext_resource type="Script" uid="uid://bwe0pqvubycbv" path="res://CircuitEditor3D.gd" id="1_fr742"]
+[ext_resource type="Script" uid="uid://dr5dcel860ud7" path="res://CircuitEditor3D.gd" id="1_24jde"]
 [ext_resource type="Environment" uid="uid://cwsyqgy4w2g51" path="res://default_env.tres" id="2_4l16h"]
 [ext_resource type="Script" uid="uid://duafmjvwrw5ry" path="res://CircuitGraph.gd" id="2_07q78"]
 [ext_resource type="PackedScene" uid="uid://b0v77n133ah4q" path="res://ui/VirtualJoystick.tscn" id="5_u030x"]
@@ -12,7 +12,7 @@ size = Vector2(100, 100)
 size = Vector3(100, 0.1, 100)
 
 [node name="Node3D2" type="Node3D"]
-script = ExtResource("1_fr742")
+script = ExtResource("1_24jde")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = ExtResource("2_4l16h")

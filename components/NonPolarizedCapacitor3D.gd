@@ -2,12 +2,12 @@ extends Node3D
 
 class_name NonPolarizedCapacitor3D
 
-## Signal emitted when the configuration value changes.
+
 signal configuration_changed(component_node: Node3D)
 
-## Capacitance in Farads (F).
+
 @export var capacitance: float = 1.0e-6 : set = set_capacitance 
-## Maximum voltage rating in Volts (V).
+
 @export var max_voltage: float = 400.0 : set = set_max_voltage 
 
 @onready var terminal1: Area3D = $Terminal1
@@ -46,8 +46,8 @@ func set_max_voltage(value: float):
 		max_voltage = new_max_v
 
 
-## Shows current and voltage across the capacitor.
-## voltage_value is V(T1) - V(T2).
+
+
 func show_info(current_value: float, voltage_value: float):
 	if not info_label: return
 	info_label.modulate = Color.WHITE 
@@ -71,13 +71,13 @@ func show_info(current_value: float, voltage_value: float):
 	info_label.text = "{v_str}\n{c_str}".format({"v_str": voltage_str, "c_str": current_str})
 	info_label.visible = true
 
-## Hides all info display (V, I).
+
 func hide_info():
 	if not info_label: return
 	info_label.visible = false
 	info_label.text = "" 
 	info_label.modulate = Color.WHITE 
 
-## Resets the visual state of the capacitor (info hidden).
+
 func reset_visual_state():
 	hide_info()

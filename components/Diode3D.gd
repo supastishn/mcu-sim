@@ -2,7 +2,7 @@ extends Node3D
 
 class_name Diode3D
 
-## The approximate forward voltage drop.
+
 @export var forward_voltage: float = 0.7
 
 @onready var terminal_anode: Area3D = $TerminalAnode 

@@ -2,7 +2,7 @@ extends Node3D
 
 class_name Resistor3D
 
-## The resistance value in Ohms.
+
 @export var resistance: float = 1000.0
 
 @onready var terminal1: Area3D = $Terminal1

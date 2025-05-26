@@ -2,16 +2,16 @@ extends Node3D
 
 class_name Switch3D
 
-## Signal emitted when the switch state changes.
+
 signal state_changed(switch_node: Node3D, new_state: int)
 
-## Represents the switch state.
+
 enum State {
 	CONNECTED_NC, 
 	CONNECTED_NO  
 }
 
-## The current state of the switch.
+
 @export var current_state: State = State.CONNECTED_NC : set = set_state
 
 @onready var terminal_com: Area3D = $TerminalCOM
@@ -37,14 +37,14 @@ func _ready():
 
 	_update_lever_visual()
 
-## Toggles the switch between NC and NO states.
+
 func toggle_state():
 	if current_state == State.CONNECTED_NC:
 		set_state(State.CONNECTED_NO)
 	else:
 		set_state(State.CONNECTED_NC)
 
-## Sets the switch state and updates visuals and emits signal.
+
 func set_state(new_state: State):
 	if new_state != current_state:
 		current_state = new_state

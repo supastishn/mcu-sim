@@ -2,9 +2,9 @@ extends Node3D
 
 class_name PowerSource3D
 
-## The target voltage value in Volts.
+
 @export var target_voltage: float = 5.0
-## The target current limit value in Amps.
+
 @export var target_current: float = 1.0
 
 
@@ -18,8 +18,8 @@ func _ready():
 	else:
 		current_label.visible = false
 
-## Shows current, voltage, and operating mode.
-## operating_mode is "CV" or "CC", determined by CircuitGraph.
+
+
 func show_current(actual_current: float, actual_voltage: float, operating_mode: String = "CV"):
 	if not current_label: return
 

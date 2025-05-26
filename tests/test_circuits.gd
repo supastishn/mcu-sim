@@ -138,7 +138,7 @@ func run_all_tests():
 		failed_test_names.push_back(test14_name)
 
 
-## Test a basic circuit: PowerSupply -> Resistor -> LED -> PowerSupply_Negative
+
 func test_simple_powersupply_resistor_led_circuit() -> bool:
 	var overall_test_passed = true
 	var editor_instance: Node3D = CircuitEditorScene.instantiate()
@@ -218,7 +218,7 @@ func test_simple_powersupply_resistor_led_circuit() -> bool:
 	editor_instance.queue_free()
 	return overall_test_passed
 
-## Test Switch NC and NO operation
+
 func test_switch_behavior() -> bool:
 	var overall_test_passed = true
 	var editor_instance: Node3D = CircuitEditorScene.instantiate()
@@ -312,7 +312,7 @@ func test_switch_behavior() -> bool:
 	editor_instance.queue_free()
 	return overall_test_passed
 
-## Test Diode forward and reverse bias
+
 func test_diode_behavior() -> bool:
 	var overall_test_passed = true
 	var editor_instance: Node3D = CircuitEditorScene.instantiate()
@@ -392,7 +392,7 @@ func test_diode_behavior() -> bool:
 	editor_instance.queue_free()
 	return overall_test_passed
 
-## Test Potentiometer voltage division
+
 func test_potentiometer_behavior() -> bool:
 	var overall_test_passed = true
 	var editor_instance: Node3D = CircuitEditorScene.instantiate()
@@ -452,7 +452,7 @@ func test_potentiometer_behavior() -> bool:
 	editor_instance.queue_free()
 	return overall_test_passed
 
-## Test Battery voltage with different cell counts
+
 func test_battery_behavior() -> bool:
 	var overall_test_passed = true
 	var editor_instance: Node3D = CircuitEditorScene.instantiate()
@@ -514,7 +514,7 @@ func test_battery_behavior() -> bool:
 	editor_instance.queue_free()
 	return overall_test_passed
 
-## Test Polarized Capacitor charging and explosion
+
 func test_polarized_capacitor_behavior() -> bool:
 	var overall_test_passed = true
 	var editor_instance: Node3D = CircuitEditorScene.instantiate()
@@ -623,7 +623,7 @@ func test_polarized_capacitor_behavior() -> bool:
 	editor_instance.queue_free()
 	return overall_test_passed
 
-## Test Non-Polarized Capacitor charging
+
 func test_non_polarized_capacitor_behavior() -> bool:
 	var overall_test_passed = true
 	var editor_instance: Node3D = CircuitEditorScene.instantiate()
@@ -679,7 +679,7 @@ func test_non_polarized_capacitor_behavior() -> bool:
 	editor_instance.queue_free()
 	return overall_test_passed
 
-## Test Inductor current buildup
+
 func test_inductor_behavior() -> bool:
 	var overall_test_passed = true
 	var editor_instance: Node3D = CircuitEditorScene.instantiate()
@@ -734,7 +734,7 @@ func test_inductor_behavior() -> bool:
 	editor_instance.queue_free()
 	return overall_test_passed
 
-## Test NPN BJT operating regions
+
 func test_npn_bjt_regions() -> bool:
 	var overall_test_passed = true
 	var editor_instance: Node3D = CircuitEditorScene.instantiate()
@@ -873,7 +873,7 @@ func test_npn_bjt_regions() -> bool:
 	editor_instance.queue_free()
 	return overall_test_passed
 
-## Test PNP BJT operating regions
+
 func test_pnp_bjt_regions() -> bool:
 	var overall_test_passed = true
 	var editor_instance: Node3D = CircuitEditorScene.instantiate()
@@ -1003,7 +1003,7 @@ func test_pnp_bjt_regions() -> bool:
 	editor_instance.queue_free()
 	return overall_test_passed
 
-## Test Zener Diode forward bias, reverse bias (off), and Zener breakdown
+
 func test_zener_diode_behavior() -> bool:
 	var overall_test_passed = true
 	var editor_instance: Node3D = CircuitEditorScene.instantiate()
@@ -1116,7 +1116,7 @@ func test_zener_diode_behavior() -> bool:
 	editor_instance.queue_free()
 	return overall_test_passed
 
-## Test Relay energized and de-energized states
+
 func test_relay_behavior() -> bool:
 	var overall_test_passed = true
 	var editor_instance: Node3D = CircuitEditorScene.instantiate()

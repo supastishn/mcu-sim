@@ -2,15 +2,15 @@ extends Node3D
 
 class_name Battery3D
 
-## Signal emitted when the number of cells (and thus voltage) changes.
+
 signal configuration_changed(component_node: Node3D)
 
 const VOLTAGE_PER_CELL: float = 1.5
 
-## Number of 1.5V cells in series.
+
 @export_range(1, 4, 1) var num_cells: int = 1 : set = set_num_cells
 
-## The calculated target voltage of the battery pack.
+
 var target_voltage: float = VOLTAGE_PER_CELL 
 
 @onready var terminal_pos: Area3D = $TerminalPositive

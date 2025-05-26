@@ -2,12 +2,12 @@ extends Node3D
 
 class_name PolarizedCapacitor3D
 
-## Signal emitted when the configuration value changes.
+
 signal configuration_changed(component_node: Node3D)
 
-## Capacitance in Farads (F).
+
 @export var capacitance: float = 1.0e-6 : set = set_capacitance 
-## Maximum voltage rating in Volts (V).
+
 @export var max_voltage: float = 16.0 : set = set_max_voltage 
 
 @onready var terminal1: Area3D = $Terminal1 
@@ -45,8 +45,8 @@ func set_max_voltage(value: float):
 	elif max_voltage != new_max_v: 
 		max_voltage = new_max_v
 
-## Shows current, voltage, or exploded state.
-## voltage_value is V(T1) - V(T2).
+
+
 func show_info(current_value: float, voltage_value: float, p_is_logically_exploded: bool):
 	if not info_label: return
 
@@ -76,14 +76,14 @@ func show_info(current_value: float, voltage_value: float, p_is_logically_explod
 	info_label.text = "{v_str}\n{c_str}".format({"v_str": voltage_str, "c_str": current_str})
 	info_label.visible = true
 
-## Hides all info display (V, I, EXPLODED).
+
 func hide_info():
 	if not info_label: return
 	info_label.visible = false
 	info_label.text = "" 
 	info_label.modulate = Color.WHITE 
 
-## Resets the visual state of the capacitor (not exploded, info hidden).
+
 func reset_visual_state():
 	is_visually_exploded = false
 	hide_info()

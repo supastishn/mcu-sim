@@ -2,12 +2,12 @@ extends Node3D
 
 class_name NChannelMOSFET3D
 
-## Signal emitted when a configuration value (threshold_voltage, transconductance_parameter) changes.
+
 signal configuration_changed(component_node: Node3D)
 
-## Threshold Voltage (Vt) in Volts (V).
+
 @export var threshold_voltage: float = 2.0 : set = set_threshold_voltage
-## Transconductance Parameter (Kn) in Amperes per Volt squared (A/V^2).
+
 @export var transconductance_parameter: float = 0.1 : set = set_transconductance_parameter
 
 @onready var terminal_d: Area3D = $TerminalD 
@@ -49,8 +49,8 @@ func set_transconductance_parameter(value: float):
 	elif transconductance_parameter != new_kn: 
 		transconductance_parameter = new_kn
 
-## Shows Id, Vgs, Vds, and operating region.
-## results: Dictionary { "Id": float, "Vgs": float, "Vds": float, "region": String }
+
+
 func show_info(results: Dictionary):
 	if not info_label: return
 	info_label.modulate = Color.WHITE 
@@ -91,13 +91,13 @@ func _format_current(current_value: float) -> String:
 	else: 
 		return "{val_str} A".format({"val_str": String.num(current_value, 2)})
 
-## Hides all info display.
+
 func hide_info():
 	if not info_label: return
 	info_label.visible = false
 	info_label.text = "" 
 
-## Resets the visual state of the MOSFET (info hidden).
+
 func reset_visual_state():
 	hide_info()
 	if is_instance_valid(mesh_instance):

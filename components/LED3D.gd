@@ -2,17 +2,17 @@ extends Node3D
 
 class_name LED3D
 
-## The approximate forward voltage drop required to light the LED.
+
 @export var forward_voltage: float = 2.0
-## The color the LED should emit when lit.
+
 @export var led_color: Color = Color.RED
-## Minimum current (Amps) required for the LED to light up.
+
 @export var min_current_to_light: float = 0.015 
-## Maximum current (Amps) the LED can handle before burning out.
+
 @export var max_current_before_burn: float = 0.040 
-## Minimum emission energy multiplier when LED is barely lit.
+
 @export var min_emission_multiplier: float = 0.5
-## Maximum emission energy multiplier when LED is at max safe current.
+
 @export var max_emission_multiplier: float = 2.0
 
 
@@ -49,9 +49,9 @@ func _ready():
 	
 	reset_visual_state() 
 
-## Updates the visual state of the LED based on current and burned status.
-## current: The calculated current flowing through the LED.
-## is_logically_burned: Whether the circuit graph considers this LED burned.
+
+
+
 func update_visual_state(current: float, p_is_logically_burned: bool):
 	is_actually_burned = p_is_logically_burned
 
@@ -87,7 +87,7 @@ func update_visual_state(current: float, p_is_logically_burned: bool):
 			led_mesh_instance.material_override = _original_material
 
 
-## Resets the LED to its default visual state (off, not burned label).
+
 func reset_visual_state():
 	is_actually_burned = false
 	if burn_label:

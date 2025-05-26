@@ -2,13 +2,13 @@ extends Node3D
 
 class_name Potentiometer3D
 
-## Signal emitted when the wiper position changes.
+
 signal wiper_position_changed(pot_node: Node3D, new_position: float)
 
-## The total resistance of the potentiometer in Ohms.
+
 @export var total_resistance: float = 10000.0
 
-## The wiper position, ranging from 0.0 (fully towards Terminal1) to 1.0 (fully towards Terminal2).
+
 @export var wiper_position: float = 0.5 : set = set_wiper_position
 
 @onready var terminal1: Area3D = $Terminal1 
@@ -29,7 +29,7 @@ func _ready():
 		current_label.visible = false
 	set_wiper_position(wiper_position)
 
-## Sets the wiper position and emits a signal.
+
 func set_wiper_position(new_pos: float):
 	var clamped_pos = clampf(new_pos, 0.0, 1.0)
 	if not is_equal_approx(wiper_position, clamped_pos): 
@@ -42,9 +42,9 @@ func set_wiper_position(new_pos: float):
 
 
 
-## Shows currents for the two resistive segments.
-## current_t1_w: Current from Terminal1 to Wiper.
-## current_w_t2: Current from Wiper to Terminal2.
+
+
+
 func show_current(current_t1_w: float, current_w_t2: float):
 	if not current_label: return
 	

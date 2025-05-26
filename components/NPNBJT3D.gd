@@ -2,14 +2,14 @@ extends Node3D
 
 class_name NPNBJT3D
 
-## Signal emitted when a configuration value (beta, Vbe_on, Vce_sat) changes.
+
 signal configuration_changed(component_node: Node3D)
 
-## DC current gain (Hfe).
+
 @export var beta_dc: float = 100.0 : set = set_beta_dc
-## Base-Emitter turn-on voltage in Volts (V).
+
 @export var vbe_on: float = 0.7 : set = set_vbe_on
-## Collector-Emitter saturation voltage in Volts (V).
+
 @export var vce_sat: float = 0.2 : set = set_vce_sat
 
 @onready var terminal_c: Area3D = $TerminalC 
@@ -58,8 +58,8 @@ func set_vce_sat(value: float):
 	elif vce_sat != new_vce_sat: 
 		vce_sat = new_vce_sat
 
-## Shows currents (Ic, Ib, Ie) and operating region.
-## results: Dictionary { "Ic": float, "Ib": float, "Ie": float, "region": String }
+
+
 func show_info(results: Dictionary):
 	if not info_label: return
 	info_label.modulate = Color.WHITE 
@@ -93,12 +93,12 @@ func _format_current(current_value: float) -> String:
 	else: 
 		return "{val_str} A".format({"val_str": String.num(current_value, 2)})
 
-## Hides all info display.
+
 func hide_info():
 	if not info_label: return
 	info_label.visible = false
 	info_label.text = "" 
 
-## Resets the visual state of the BJT (info hidden).
+
 func reset_visual_state():
 	hide_info()
