@@ -1507,7 +1507,7 @@ func test_nmosfet_regions() -> bool:
 	return ok
 
 func test_pmosfet_regions() -> bool:
-	print('kk')
+	print("  P-MOSFET Test: starting")
 	var ok := true
 	var rig := TestRig.new()
 	add_child(rig)
@@ -1553,6 +1553,8 @@ func test_pmosfet_regions() -> bool:
 
 	if not rig.solve(): ok = false
 	res = rig.results(pmos_tr)
+	print_debug("    TRIODE solve → region=%s , Id=%s"
+	            % [res.get("region","N/A"), str(res.get("Id", NAN))])
 	if res.get("region","") != "TRIODE": ok = false
 	if res.get("Id", NAN) <= 0: ok = false    # current should flow S→D (negative Id not expected)
 
@@ -1574,6 +1576,8 @@ func test_pmosfet_regions() -> bool:
 	print('test')
 	if not rig.solve(): ok = false
 	res = rig.results(pmos_sat)
+	print_debug("    SAT solve → region=%s , Id=%s"
+	            % [res.get("region","N/A"), str(res.get("Id", NAN))])
 	if res.get("region","") != "SATURATION": ok = false
 	if res.get("Id", NAN) <= 0: ok = false
 
