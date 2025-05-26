@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://bk5uci0uiqvjc"]
+
+[ext_resource type="Script" uid="uid://ygo3tiy48ub0" path="res://tests/test_circuits.gd" id="1_testlogic"]
+
+[node name="TestMain" type="Node"]
+script = ExtResource("1_testlogic")

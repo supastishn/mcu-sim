@@ -1,0 +1,12 @@
+[gd_scene load_steps=3 format=3 uid="uid://di78y62l0c0gv"]
+
+[ext_resource type="Script" uid="uid://dkymjimihlbwt" path="res://components/Wire3D.gd" id="1_h3smy"]
+
+[sub_resource type="Curve3D" id="Curve3D_5v8ia"]
+
+[node name="Wire3D" type="Path3D"]
+curve = SubResource("Curve3D_5v8ia")
+script = ExtResource("1_h3smy")
+
+[node name="CSGPolygon3D" type="CSGPolygon3D" parent="."]
+use_collision = true

@@ -1,0 +1,93 @@
+[gd_scene load_steps=10 format=3 uid="uid://dplg7r2r86vve"]
+
+[ext_resource type="Script" uid="uid://bd13fdu4y2jxs" path="res://components/LED3D.gd" id="1_4y7m1"]
+[ext_resource type="Script" uid="uid://bhe7bl46uj0jq" path="res://components/TerminalFeedback.gd" id="2_x4g7d"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_led_body"]
+albedo_color = Color(0.9, 0.9, 0.9, 1)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_led"]
+top_radius = 0.04
+bottom_radius = 0.04
+height = 0.1
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_anode"]
+radius = 0.075
+height = 1.0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_terminal_vis"]
+shading_mode = 0
+albedo_color = Color(0, 1, 0, 0.5)
+
+[sub_resource type="SphereMesh" id="SphereMesh_terminal_vis"]
+radius = 0.05
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_kathode"]
+radius = 0.075
+height = 1.0
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_body"]
+size = Vector3(0.15, 0.15, 0.15)
+
+[node name="LED3D" type="Node3D"]
+script = ExtResource("1_4y7m1")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0, 0)
+material_override = SubResource("StandardMaterial3D_led_body")
+mesh = SubResource("CylinderMesh_led")
+
+[node name="TerminalAnode" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.15)
+collision_layer = 2
+script = ExtResource("2_x4g7d")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TerminalAnode"]
+shape = SubResource("CapsuleShape3D_anode")
+
+[node name="Visualization" type="MeshInstance3D" parent="TerminalAnode"]
+material_override = SubResource("StandardMaterial3D_terminal_vis")
+mesh = SubResource("SphereMesh_terminal_vis")
+
+[node name="Label3D" type="Label3D" parent="TerminalAnode"]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0.6, 0)
+visible = false
+billboard = 1
+text = "Anode"
+font_size = 20
+
+[node name="TerminalKathode" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.15)
+collision_layer = 2
+script = ExtResource("2_x4g7d")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TerminalKathode"]
+shape = SubResource("CapsuleShape3D_kathode")
+
+[node name="Visualization" type="MeshInstance3D" parent="TerminalKathode"]
+material_override = SubResource("StandardMaterial3D_terminal_vis")
+mesh = SubResource("SphereMesh_terminal_vis")
+
+[node name="Label3D" type="Label3D" parent="TerminalKathode"]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0.6, 0)
+visible = false
+billboard = 1
+text = "Kathode"
+font_size = 20
+
+[node name="ComponentBody" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0, 0)
+collision_layer = 4
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="ComponentBody"]
+shape = SubResource("BoxShape3D_body")
+
+[node name="BurnLabel" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0.121651, 0)
+text = "burning"
+font_size = 20
+
+[node name="CurrentLabel" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 0.06, 0)
+text = "I: 0.00A"
+font_size = 20

@@ -1,0 +1,45 @@
+; Godot Engine scene format instance
+
+[gd_scene load_steps=3 format=3 uid="uid://b0v77n133ah4q"]
+
+[ext_resource type="Script" path="res://ui/VirtualJoystick.gd" id="1_1dqgl"]
+[ext_resource type="Texture2D" uid="uid://hh72d5kgjyiy" path="res://icon.svg" id="2_0aokm"] ; Placeholder texture
+
+[node name="VirtualJoystick" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 150.0 ; Adjust size as needed
+offset_bottom = 150.0 ; Adjust size as needed
+script = ExtResource("1_1dqgl")
+boundary_radius = 75.0 ; Match half the control size
+
+[node name="Background" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("2_0aokm") ; Placeholder background
+expand_mode = 1
+stretch_mode = 5 ; Keep Aspect Centered
+modulate = Color(1, 1, 1, 0.5) ; Make it semi-transparent
+
+[node name="Knob" type="TextureRect" parent="."]
+layout_mode = 1 ; Center the knob initially
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -25.0 ; Half knob size
+offset_top = -25.0  ; Half knob size
+offset_right = 25.0 ; Half knob size
+offset_bottom = 25.0 ; Half knob size
+grow_horizontal = 2
+grow_vertical = 2
+pivot_offset = Vector2(25, 25) ; Center of the knob
+texture = ExtResource("2_0aokm") ; Placeholder knob
+expand_mode = 1
+stretch_mode = 5 ; Keep Aspect Centered
+

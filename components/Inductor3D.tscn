@@ -1,0 +1,85 @@
+[gd_scene load_steps=9 format=3 uid="uid://dixede0ffn0kx"]
+
+[ext_resource type="Script" uid="uid://byc6f2okvfwdk" path="res://components/Inductor3D.gd" id="1_indgd"]
+[ext_resource type="Script" uid="uid://bhe7bl46uj0jq" path="res://components/TerminalFeedback.gd" id="2_termfb"]
+[ext_resource type="Material" uid="uid://cv6f3hveepm7a" path="res://components/Resistor3D.tres" id="3_termmat"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ind_body"]
+albedo_color = Color(0.3, 0.6, 0.3, 1)
+roughness = 0.4
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_ind_body"]
+top_radius = 0.1
+bottom_radius = 0.1
+height = 0.4
+radial_segments = 12
+rings = 1
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_terminal"]
+radius = 0.075
+height = 0.7
+
+[sub_resource type="SphereMesh" id="SphereMesh_terminal_vis"]
+radius = 0.05
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_component_body"]
+size = Vector3(0.25, 0.45, 0.25)
+
+[node name="Inductor3D" type="Node3D"]
+script = ExtResource("1_indgd")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0, 0)
+material_override = SubResource("StandardMaterial3D_ind_body")
+mesh = SubResource("CylinderMesh_ind_body")
+
+[node name="Terminal1" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.3)
+collision_layer = 2
+script = ExtResource("2_termfb")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Terminal1"]
+shape = SubResource("CapsuleShape3D_terminal")
+
+[node name="Visualization" type="MeshInstance3D" parent="Terminal1"]
+material_override = ExtResource("3_termmat")
+mesh = SubResource("SphereMesh_terminal_vis")
+
+[node name="Label3D" type="Label3D" parent="Terminal1"]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0.6, 0)
+visible = false
+billboard = 1
+text = "T1"
+font_size = 20
+
+[node name="Terminal2" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.3)
+collision_layer = 2
+script = ExtResource("2_termfb")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Terminal2"]
+shape = SubResource("CapsuleShape3D_terminal")
+
+[node name="Visualization" type="MeshInstance3D" parent="Terminal2"]
+material_override = ExtResource("3_termmat")
+mesh = SubResource("SphereMesh_terminal_vis")
+
+[node name="Label3D" type="Label3D" parent="Terminal2"]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0.6, 0)
+visible = false
+billboard = 1
+text = "T2"
+font_size = 20
+
+[node name="ComponentBody" type="Area3D" parent="."]
+collision_layer = 4
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="ComponentBody"]
+shape = SubResource("BoxShape3D_component_body")
+
+[node name="InfoLabel" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0.3, 0)
+text = "V: 0.00 V
+I: 0.00 A"
+font_size = 20
+outline_size = 2
