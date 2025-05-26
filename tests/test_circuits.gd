@@ -1,11 +1,31 @@
 extends Node
 
 const TestUtils = preload("res://tests/test_utils.gd")
-const Helpers = preload("res://tests/test_helpers.gd")
+const TestRig = preload("res://tests/test_helpers.gd")   # gives us class TestRig
+const CircuitEditorScene = preload("res://CircuitEditor3D.tscn")  # legacy tests need it
 
 var total_tests = 0
 var passed_tests = 0
 var failed_test_names: Array[String] = []
+
+func _cleanup_components_and_graph(editor_script: CircuitEditor3D, graph_script: CircuitGraph) -> void:
+	var nodes := []
+	for cd in graph_script.components:
+		nodes.append(cd.component_node)
+	for n in nodes:
+		graph_script.remove_component(n)
+	for child in editor_script.components_node.get_children():
+		child.queue_free()
+	for child in editor_script.wires_node.get_children():
+		child.queue_free()
+
+	graph_script.electrical_nodes.clear()
+	graph_script.terminal_connections.clear()
+	graph_script.component_results.clear()
+	graph_script.ground_node_id = -1
+	graph_script._next_node_id  = 0
+	graph_script._is_solved     = false
+	graph_script._needs_rebuild = true
 
 func _ready():
 	print_rich("[b]Starting Circuit Simulation Tests...[/b]")
@@ -141,7 +161,7 @@ func run_all_tests():
 
 func test_simple_powersupply_resistor_led_circuit() -> bool:
 	var overall_test_passed = true
-	var rig := Helpers.TestRig.new()
+	var rig := TestRig.new()
 	add_child(rig)
 	await rig.init()
 	var g = rig.graph
