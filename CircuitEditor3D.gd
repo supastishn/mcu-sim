@@ -23,6 +23,7 @@ var NPNBJTScene = preload("res://components/NPNBJT3D.tscn")
 var PNPBJTScene = preload("res://components/PNPBJT3D.tscn") 
 var ZenerDiodeScene = preload("res://components/ZenerDiode3D.tscn") 
 var NChannelMOSFETScene = preload("res://components/NChannelMOSFET3D.tscn") 
+var PChannelMOSFETScene = preload("res://components/PChannelMOSFET3D.tscn")
 var RelayScene = preload("res://components/Relay3D.tscn") 
 
 

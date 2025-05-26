@@ -3,6 +3,7 @@ extends Node
 const TestUtils = preload("res://tests/test_utils.gd")
 const TestRig = preload("res://tests/test_helpers.gd")   # gives us class TestRig
 const CircuitEditorScene = preload("res://CircuitEditor3D.tscn")  # legacy tests need it
+const PChannelMOSFETScene = preload("res://components/PChannelMOSFET3D.tscn")   # optional
 
 var total_tests = 0
 var passed_tests = 0
@@ -156,6 +157,14 @@ func run_all_tests():
 		passed_tests += 1
 	else:
 		failed_test_names.push_back(test_mos_name)
+
+	var test_pmos_name = "Test: P-Channel MOSFET Operating Regions"
+	print_rich("\n[b]{name}[/b]".format({"name": test_pmos_name}))
+	total_tests += 1
+	if await test_pmosfet_regions():
+		passed_tests += 1
+	else:
+		failed_test_names.push_back(test_pmos_name)
 
 	var test14_name = "Test: Relay Energized and De-energized States"
 	print_rich("\n[b]{name}[/b]".format({"name": test14_name}))
@@ -1493,4 +1502,77 @@ func test_nmosfet_regions() -> bool:
 
 	_cleanup_components_and_graph(ed, g)
 	ed_inst.queue_free()
+	return ok
+
+func test_pmosfet_regions() -> bool:
+	var ok := true
+	var rig := TestRig.new()
+	add_child(rig)
+	await rig.init()
+	var g = rig.graph
+	var ed = rig.editor
+
+	# ---- OFF ----
+	var ps_s_off : PowerSource3D    = rig.add(ed.PowerSourceScene)
+	var ps_g_off : PowerSource3D    = rig.add(ed.PowerSourceScene, Vector3(0,0,1))
+	var pmos_off : PChannelMOSFET3D = rig.add(ed.PChannelMOSFETScene, Vector3(2,0,0))
+
+	ps_s_off.target_voltage = 10.0          # Source @ +10 V
+	ps_g_off.target_voltage = 10.0          # Gate same ⇒ Vsg = 0 ⇒ OFF
+	rig.cfg(ps_s_off); rig.cfg(ps_g_off)
+
+	g.connect_terminals(pmos_off.terminal_s, ps_s_off.terminal_pos)
+	g.connect_terminals(pmos_off.terminal_d, ps_s_off.terminal_neg) # Drain to GND
+	g.connect_terminals(pmos_off.terminal_g, ps_g_off.terminal_pos)
+	g.connect_terminals(ps_g_off.terminal_neg, ps_s_off.terminal_neg)
+	rig.ground(ps_s_off.terminal_neg)
+
+	if not rig.solve(): ok = false
+	var res = rig.results(pmos_off)
+	if res.get("region","") != "OFF": ok = false
+	if abs(res.get("Id",0.0)) > 1e-6: ok = false
+
+	# ---- TRIODE ----
+	rig.reset_graph()
+	var ps_s_tr : PowerSource3D     = rig.add(ed.PowerSourceScene)
+	var ps_g_tr : PowerSource3D     = rig.add(ed.PowerSourceScene, Vector3(0,0,1))
+	var pmos_tr : PChannelMOSFET3D  = rig.add(ed.PChannelMOSFETScene, Vector3(2,0,0))
+
+	ps_s_tr.target_voltage = 5.0
+	ps_g_tr.target_voltage = 2.0     # Vsg = 3 V  (>|Vt|)  -> ON
+	rig.cfg(ps_s_tr); rig.cfg(ps_g_tr)
+
+	g.connect_terminals(pmos_tr.terminal_s, ps_s_tr.terminal_pos)
+	g.connect_terminals(pmos_tr.terminal_d, ps_s_tr.terminal_neg)
+	g.connect_terminals(pmos_tr.terminal_g, ps_g_tr.terminal_pos)
+	g.connect_terminals(ps_g_tr.terminal_neg, ps_s_tr.terminal_neg)
+	rig.ground(ps_s_tr.terminal_neg)
+
+	if not rig.solve(): ok = false
+	res = rig.results(pmos_tr)
+	if res.get("region","") != "TRIODE": ok = false
+	if res.get("Id", NAN) <= 0: ok = false    # current should flow S→D (negative Id not expected)
+
+	# ---- SATURATION ----
+	rig.reset_graph()
+	var ps_s_sat : PowerSource3D     = rig.add(ed.PowerSourceScene)
+	var ps_g_sat : PowerSource3D     = rig.add(ed.PowerSourceScene, Vector3(0,0,1))
+	var pmos_sat : PChannelMOSFET3D  = rig.add(ed.PChannelMOSFETScene, Vector3(2,0,0))
+
+	ps_s_sat.target_voltage = 10.0
+	ps_g_sat.target_voltage = 5.0     # Vsg = 5  (>|Vt|)
+	rig.cfg(ps_s_sat); rig.cfg(ps_g_sat)
+
+	g.connect_terminals(pmos_sat.terminal_s, ps_s_sat.terminal_pos)
+	g.connect_terminals(pmos_sat.terminal_d, ps_s_sat.terminal_neg)
+	g.connect_terminals(pmos_sat.terminal_g, ps_g_sat.terminal_pos)
+	g.connect_terminals(ps_g_sat.terminal_neg, ps_s_sat.terminal_neg)
+	rig.ground(ps_s_sat.terminal_neg)
+
+	if not rig.solve(): ok = false
+	res = rig.results(pmos_sat)
+	if res.get("region","") != "SATURATION": ok = false
+	if res.get("Id", NAN) <= 0: ok = false
+
+	rig.cleanup()
 	return ok

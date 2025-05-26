@@ -160,6 +160,14 @@ func add_component(component: Node3D):
 		component_data.terminals["D"] = component.terminal_d
 		component_data.terminals["G"] = component.terminal_g
 		component_data.terminals["S"] = component.terminal_s
+	elif component is PChannelMOSFET3D:
+		component_data.type = "PChannelMOSFET"
+		component_data.properties["threshold_voltage"]           = component.threshold_voltage
+		component_data.properties["transconductance_parameter"]  = component.transconductance_parameter
+		component_data.properties["operating_region"]            = "OFF"
+		component_data.terminals["D"] = component.terminal_d
+		component_data.terminals["G"] = component.terminal_g
+		component_data.terminals["S"] = component.terminal_s
 	elif component is Relay3D:
 		component_data.type = "Relay"
 		component_data.properties["signal_voltage_threshold"] = component.signal_voltage_threshold
@@ -358,6 +366,10 @@ func component_config_changed(component_node: Node3D):
 		found_component_data.properties["threshold_voltage"] = component_node.threshold_voltage
 		found_component_data.properties["transconductance_parameter"] = component_node.transconductance_parameter
 		found_component_data.properties["operating_region"] = "OFF" 
+	elif comp_type == "PChannelMOSFET" and component_node is PChannelMOSFET3D:
+		found_component_data.properties["threshold_voltage"]          = component_node.threshold_voltage
+		found_component_data.properties["transconductance_parameter"] = component_node.transconductance_parameter
+		found_component_data.properties["operating_region"]           = "OFF"
 	elif comp_type == "Relay" and component_node is Relay3D:
 		found_component_data.properties["signal_voltage_threshold"] = component_node.signal_voltage_threshold
 		found_component_data.properties["coil_resistance"] = component_node.coil_resistance
