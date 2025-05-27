@@ -1531,12 +1531,14 @@ func test_pmosfet_regions() -> bool:
 	rig.ground(ps_s_off.terminal_neg)
 
 	if not rig.solve(): ok = false
+	print("Solve: ", ok)
 	var res = rig.results(pmos_off)
 	print_debug("    OFF solve → region=%s , Id=%s"
 				% [res.get("region","N/A"), str(res.get("Id", NAN))])
 	if res.get("region","") != "OFF": ok = false
+	print('Region? ', ok)
 	if abs(res.get("Id",0.0)) > 1e-6: ok = false
-
+	print("Id ?", ok)
 	# ---- TRIODE ----
 	rig.reset_graph()
 	var ps_s_tr : PowerSource3D     = rig.add(ed.PowerSourceScene)
@@ -1554,12 +1556,14 @@ func test_pmosfet_regions() -> bool:
 	rig.ground(ps_s_tr.terminal_neg)
 
 	if not rig.solve(): ok = false
+	print('Triode: ', ok)
 	res = rig.results(pmos_tr)
 	print_debug("    TRIODE solve → region=%s , Id=%s"
 				% [res.get("region","N/A"), str(res.get("Id", NAN))])
 	if res.get("region","") != "TRIODE": ok = false
+	print('Region? ', ok)
 	if res.get("Id", NAN) <= 0: ok = false    # current should flow S→D (negative Id not expected)
-
+	print("Id?", ok)
 	# ---- SATURATION ----
 	rig.reset_graph()
 	var ps_s_sat : PowerSource3D     = rig.add(ed.PowerSourceScene)
@@ -1577,11 +1581,13 @@ func test_pmosfet_regions() -> bool:
 	rig.ground(ps_s_sat.terminal_neg)
 	print('test')
 	if not rig.solve(): ok = false
+	print('Saturation solve: ', ok)
 	res = rig.results(pmos_sat)
 	print_debug("    SAT solve → region=%s , Id=%s"
 				% [res.get("region","N/A"), str(res.get("Id", NAN))])
 	if res.get("region","") != "SATURATION": ok = false
+	print('Region? ', ok)
 	if res.get("Id", NAN) <= 0: ok = false
-
+	print("Id?", ok)
 	rig.cleanup()
 	return ok
