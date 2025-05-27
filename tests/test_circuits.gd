@@ -1543,16 +1543,19 @@ func test_pmosfet_regions() -> bool:
 	rig.reset_graph()
 	var ps_s_tr : PowerSource3D     = rig.add(ed.PowerSourceScene)
 	var ps_g_tr : PowerSource3D     = rig.add(ed.PowerSourceScene, Vector3(0,0,1))
+	var ps_d_tr : PowerSource3D     = rig.add(ed.PowerSourceScene, Vector3(0,0,2))   # NEW
 	var pmos_tr : PChannelMOSFET3D  = rig.add(ed.PChannelMOSFETScene, Vector3(2,0,0))
 
 	ps_s_tr.target_voltage = 5.0
-	ps_g_tr.target_voltage = 2.0     # Vsg = 3 V  (>|Vt|)  -> ON
-	rig.cfg(ps_s_tr); rig.cfg(ps_g_tr)
+	ps_g_tr.target_voltage = 2.0          # Vsg = 3 V  (> |Vtp|)
+	ps_d_tr.target_voltage = 4.0          # Drain at +4 V  ⇒  Vsd = 1 V   (≤ Vsg–Vtp) → TRIODE
+	rig.cfg(ps_s_tr); rig.cfg(ps_g_tr); rig.cfg(ps_d_tr)
 
 	g.connect_terminals(pmos_tr.terminal_s, ps_s_tr.terminal_pos)
-	g.connect_terminals(pmos_tr.terminal_d, ps_s_tr.terminal_neg)
+	g.connect_terminals(pmos_tr.terminal_d, ps_d_tr.terminal_pos)        # CHANGED
 	g.connect_terminals(pmos_tr.terminal_g, ps_g_tr.terminal_pos)
 	g.connect_terminals(ps_g_tr.terminal_neg, ps_s_tr.terminal_neg)
+	g.connect_terminals(ps_d_tr.terminal_neg, ps_s_tr.terminal_neg)      # NEW
 	rig.ground(ps_s_tr.terminal_neg)
 
 	if not rig.solve(): ok = false
@@ -1560,7 +1563,7 @@ func test_pmosfet_regions() -> bool:
 	res = rig.results(pmos_tr)
 	print_debug("    TRIODE solve → region=%s , Id=%s"
 				% [res.get("region","N/A"), str(res.get("Id", NAN))])
-	if res.get("region","") != "SATURATION": ok = false
+	if res.get("region","") != "TRIODE": ok = false     # CHANGED
 	print('Region? ', ok)
 	if res.get("Id", NAN) <= 0: ok = false    # current should flow S→D (negative Id not expected)
 	print("Id?", ok)
