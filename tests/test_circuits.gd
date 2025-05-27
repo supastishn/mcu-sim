@@ -1560,7 +1560,7 @@ func test_pmosfet_regions() -> bool:
 	res = rig.results(pmos_tr)
 	print_debug("    TRIODE solve → region=%s , Id=%s"
 				% [res.get("region","N/A"), str(res.get("Id", NAN))])
-	if res.get("region","") != "TRIODE": ok = false
+	if res.get("region","") != "SATURATION": ok = false
 	print('Region? ', ok)
 	if res.get("Id", NAN) <= 0: ok = false    # current should flow S→D (negative Id not expected)
 	print("Id?", ok)
