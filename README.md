@@ -32,6 +32,7 @@ MCU-Sim is a 3D circuit editor and simulator built with the Godot Engine. It all
 *   LED (Light Emitting Diode)
 *   Switch (SPDT)
 *   Diode
+*   Zener Diode
 *   Potentiometer
 *   Battery (configurable number of cells)
 *   Polarized Capacitor
@@ -39,6 +40,9 @@ MCU-Sim is a 3D circuit editor and simulator built with the Godot Engine. It all
 *   Inductor
 *   NPN Bipolar Junction Transistor (BJT)
 *   PNP Bipolar Junction Transistor (BJT)
+*   N-Channel MOSFET
+*   P-Channel MOSFET
+*   Relay
 *   Wire
 
 ## How to Use
