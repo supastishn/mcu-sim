@@ -61,6 +61,7 @@ var _drag_start_position: Vector2 = Vector2.ZERO
 @onready var add_pnp_bjt_button: Button = $UI/ComponentBar/ButtonList/AddPNPBJTButton 
 @onready var add_zener_diode_button: Button = $UI/ComponentBar/ButtonList/AddZenerDiodeButton 
 @onready var add_nchannelmosfet_button: Button = $UI/ComponentBar/ButtonList/AddNChannelMOSFETButton
+@onready var add_pchannelmosfet_button: Button = $UI/ComponentBar/ButtonList/AddPChannelMOSFETButton
 @onready var add_relay_button: Button = $UI/ComponentBar/ButtonList/AddRelayButton 
 @onready var simulate_button: Button = $UI/ComponentBar/ButtonList/SimulateButton
 @onready var selection_bar: VBoxContainer = $UI/SelectionBar
@@ -171,6 +172,7 @@ func _ready():
 	add_pnp_bjt_button.pressed.connect(_on_add_component_button_pressed.bind(PNPBJTScene)) 
 	add_zener_diode_button.pressed.connect(_on_add_component_button_pressed.bind(ZenerDiodeScene)) 
 	add_nchannelmosfet_button.pressed.connect(_on_add_component_button_pressed.bind(NChannelMOSFETScene))
+	add_pchannelmosfet_button.pressed.connect(_on_add_component_button_pressed.bind(PChannelMOSFETScene))
 	add_relay_button.pressed.connect(_on_add_component_button_pressed.bind(RelayScene)) 
 	simulate_button.pressed.connect(_on_simulate_button_pressed)
 	

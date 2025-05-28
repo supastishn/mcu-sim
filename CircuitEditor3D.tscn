@@ -111,6 +111,10 @@ text = "Add Zener Diode"
 layout_mode = 2
 text = "Add N-Ch MOSFET"
 
+[node name="AddPChannelMOSFETButton" type="Button" parent="UI/ComponentBar/ButtonList"]
+layout_mode = 2
+text = "Add P-Ch MOSFET"
+
 [node name="AddRelayButton" type="Button" parent="UI/ComponentBar/ButtonList"]
 layout_mode = 2
 text = "Add Relay"
