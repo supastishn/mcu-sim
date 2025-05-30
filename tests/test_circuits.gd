@@ -1673,10 +1673,10 @@ func test_linear_regulator_normal() -> bool:
 	rig.cfg(load_res_node)
 
 	# Wiring
-	rig.wire(ps_node.terminal_pos, reg_node.terminalVin)
-	rig.wire(reg_node.terminalVout, load_res_node.terminal1)
-	rig.wire(load_res_node.terminal2, reg_node.terminalGnd)
-	rig.wire(reg_node.terminalGnd, ps_node.terminal_neg)
+	rig.wire(ps_node.terminal_pos, reg_node.terminal_vin)
+	rig.wire(reg_node.terminal_vout, load_res_node.terminal1)
+	rig.wire(load_res_node.terminal2, reg_node.terminal_gnd)
+	rig.wire(reg_node.terminal_gnd, ps_node.terminal_neg)
 	rig.ground(ps_node.terminal_neg)
 
 	# Solve
@@ -1686,7 +1686,7 @@ func test_linear_regulator_normal() -> bool:
 		return false
 
 	# Verify results
-	var vout = g.electrical_nodes.get(g.terminal_connections.get(reg_node.terminalVout.get_instance_id()), {}).get("voltage", NAN)
+	var vout = g.electrical_nodes.get(g.terminal_connections.get(reg_node.terminal_vout.get_instance_id()), {}).get("voltage", NAN)
 	var load_voltage = vout  # Vin is 12V, regulated should be 5V
 	var expected_vout = 5.0
 	if not TestUtils.assert_approx_equals(vout, expected_vout, 0.01, "Output voltage is regulated"):
@@ -1726,10 +1726,10 @@ func test_linear_regulator_dropout() -> bool:
 	rig.cfg(load_res_node)
 
 	# Wiring
-	rig.wire(ps_node.terminal_pos, reg_node.terminalVin)
-	rig.wire(reg_node.terminalVout, load_res_node.terminal1)
-	rig.wire(load_res_node.terminal2, reg_node.terminalGnd)
-	rig.wire(reg_node.terminalGnd, ps_node.terminal_neg)
+	rig.wire(ps_node.terminal_pos, reg_node.terminal_vin)
+	rig.wire(reg_node.terminal_vout, load_res_node.terminal1)
+	rig.wire(load_res_node.terminal2, reg_node.terminal_gnd)
+	rig.wire(reg_node.terminal_gnd, ps_node.terminal_neg)
 	rig.ground(ps_node.terminal_neg)
 
 	# Solve
@@ -1739,8 +1739,8 @@ func test_linear_regulator_dropout() -> bool:
 		return false
 
 	# Verify results
-	var vout = g.electrical_nodes.get(g.terminal_connections.get(reg_node.terminalVout.get_instance_id()), {}).get("voltage", NAN)
-	var vin = g.electrical_nodes.get(g.terminal_connections.get(reg_node.terminalVin.get_instance_id()), {}).get("voltage", NAN)
+	var vout = g.electrical_nodes.get(g.terminal_connections.get(reg_node.terminal_vout.get_instance_id()), {}).get("voltage", NAN)
+	var vin = g.electrical_nodes.get(g.terminal_connections.get(reg_node.terminal_vin.get_instance_id()), {}).get("voltage", NAN)
 	
 	# Expected Vout = Vin - dropout_voltage (property behavior)
 	var delta_expected = reg_node.dropout_voltage
