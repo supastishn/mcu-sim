@@ -308,7 +308,11 @@ func test_switch_behavior() -> bool:
 		var led_results_nc = graph_script.component_results.get(led_node.get_instance_id(), {})
 		var led_current_nc = led_results_nc.get("current", NAN)
 		if not TestUtils.assert_approx_equals(led_current_nc, expected_current_on, 0.001, "Switch Test (NC): LED current indicates circuit is ON"): overall_test_passed = false
-		var led_data_nc: Dictionary; for d in graph_script.components: if d.component_node == led_node: led_data_nc = d; break
+		var led_data_nc = null
+		for d in graph_script.components:
+			if d.component_node == led_node:
+				led_data_nc = d
+				break
 		if not TestUtils.assert_false(led_data_nc.get("is_burned", true), "Switch Test (NC): LED is not burned"): overall_test_passed = false
 
 
@@ -348,7 +352,11 @@ func test_switch_behavior() -> bool:
 		var led_results_no = graph_script.component_results.get(led_node.get_instance_id(), {})
 		var led_current_no = led_results_no.get("current", NAN)
 		if not TestUtils.assert_approx_equals(led_current_no, expected_current_on, 0.001, "Switch Test (NO): LED current indicates circuit is ON"): overall_test_passed = false
-		var led_data_no; for d in graph_script.components: if d.component_node == led_node: led_data_no = d; break
+		var led_data_no = null
+		for d in graph_script.components:
+			if d.component_node == led_node:
+				led_data_no = d
+				break
 		if not TestUtils.assert_false(led_data_no.get("is_burned", true), "Switch Test (NO): LED is not burned"): overall_test_passed = false
 
 
@@ -398,7 +406,11 @@ func test_diode_behavior() -> bool:
 		var diode_current_fwd = diode_results_fwd.get("current", NAN)
 		var expected_current_fwd = (5.0 - 0.7) / 220.0
 		if not TestUtils.assert_approx_equals(diode_current_fwd, expected_current_fwd, 0.001, "Diode Test (Fwd): Current matches expected"): overall_test_passed = false
-		var diode_data_fwd; for d in graph_script.components: if d.component_node == diode_node: diode_data_fwd = d; break
+		var diode_data_fwd = null
+		for d in graph_script.components:
+			if d.component_node == diode_node:
+				diode_data_fwd = d
+				break
 		if not TestUtils.assert_true(diode_data_fwd.get("conducting", false), "Diode Test (Fwd): Diode is conducting"): overall_test_passed = false
 
 	var all_component_nodes_fwd = []
@@ -429,7 +441,11 @@ func test_diode_behavior() -> bool:
 		var diode_results_rev = graph_script.component_results.get(diode_node.get_instance_id(), {})
 		var diode_current_rev = diode_results_rev.get("current", NAN)
 		if not TestUtils.assert_approx_equals(diode_current_rev, 0.0, 1e-6, "Diode Test (Rev): Current is near zero"): overall_test_passed = false
-		var diode_data_rev; for d in graph_script.components: if d.component_node == diode_node: diode_data_rev = d; break
+		var diode_data_rev = null
+		for d in graph_script.components:
+			if d.component_node == diode_node:
+				diode_data_rev = d
+				break
 		if not TestUtils.assert_false(diode_data_rev.get("conducting", true), "Diode Test (Rev): Diode is NOT conducting"): overall_test_passed = false
 
 	editor_instance.queue_free()
@@ -607,7 +623,11 @@ func test_polarized_capacitor_behavior() -> bool:
 		var cap_results = graph_script.component_results.get(cap_node.get_instance_id(), {})
 		cap_voltage_t0 = cap_results.get("voltage_across", NAN) 
 		print_debug("    Step {s_idx}: Vcap = {v_cap_val}".format({"s_idx": i + 1, "v_cap_val": cap_voltage_t0}))
-		var cap_graph_data_charge; for d in graph_script.components: if d.component_node == cap_node: cap_graph_data_charge = d; break
+		var cap_graph_data_charge = null
+		for d in graph_script.components:
+			if d.component_node == cap_node:
+				cap_graph_data_charge = d
+				break
 		if cap_graph_data_charge and cap_graph_data_charge.get("is_exploded", false):
 			exploded_during_charge = true
 
@@ -619,7 +639,11 @@ func test_polarized_capacitor_behavior() -> bool:
 	if solve_charge_success:
 		var expected_voltage_after_1tc = 10.0 * (1.0 - exp(-1.0)) 
 		if not TestUtils.assert_approx_equals(cap_voltage_t0, expected_voltage_after_1tc, 0.5, "Polarized Capacitor Test (Charging): Voltage after ~1 TC is ~6.32V"): overall_test_passed = false
-		var cap_graph_data_charge; for d in graph_script.components: if d.component_node == cap_node: cap_graph_data_charge = d; break
+		var cap_graph_data_charge = null
+		for d in graph_script.components:
+			if d.component_node == cap_node:
+				cap_graph_data_charge = d
+				break
 		if not TestUtils.assert_false(cap_graph_data_charge.get("is_exploded", true), "Polarized Capacitor Test (Charging): Capacitor is NOT exploded"): overall_test_passed = false
 	else:
 		if exploded_during_charge:
@@ -628,7 +652,11 @@ func test_polarized_capacitor_behavior() -> bool:
 	if solve_charge_success:
 		var expected_voltage_after_1tc = 10.0 * (1.0 - exp(-1.0)) 
 		if not TestUtils.assert_approx_equals(cap_voltage_t0, expected_voltage_after_1tc, 0.5, "Polarized Capacitor Test (Charging): Voltage after ~1 TC is ~6.32V"): overall_test_passed = false
-		var cap_graph_data_charge; for d in graph_script.components: if d.component_node == cap_node: cap_graph_data_charge = d; break
+		var cap_graph_data_charge = null
+		for d in graph_script.components:
+			if d.component_node == cap_node:
+				cap_graph_data_charge = d
+				break
 		if not TestUtils.assert_false(cap_graph_data_charge.get("is_exploded", true), "Polarized Capacitor Test (Charging): Capacitor is NOT exploded"): overall_test_passed = false
 
 
@@ -640,7 +668,11 @@ func test_polarized_capacitor_behavior() -> bool:
 	for i in range(15): 
 		if not graph_script.solve_single_time_step(dt):
 			break 
-		var cap_graph_data_explode_check; for d in graph_script.components: if d.component_node == cap_node: cap_graph_data_explode_check = d; break
+		var cap_graph_data_explode_check = null
+		for d in graph_script.components:
+			if d.component_node == cap_node:
+				cap_graph_data_explode_check = d
+				break
 		if cap_graph_data_explode_check and cap_graph_data_explode_check.get("is_exploded", false):
 			exploded_in_sim = true
 			break
@@ -649,7 +681,11 @@ func test_polarized_capacitor_behavior() -> bool:
 		print_debug("    Explosion Test Step {s_idx}: Vcap = {v_cap_val}".format({"s_idx": i + 1, "v_cap_val": v_cap_explode_step}))
 
 
-	var cap_graph_data_explode; for d in graph_script.components: if d.component_node == cap_node: cap_graph_data_explode = d; break
+	var cap_graph_data_explode = null
+	for d in graph_script.components:
+		if d.component_node == cap_node:
+			cap_graph_data_explode = d
+			break
 	if not TestUtils.assert_true(cap_graph_data_explode.get("is_exploded", false), "Polarized Capacitor Test (Overvoltage): Capacitor IS exploded"): overall_test_passed = false
 	
 	var all_component_nodes = []
