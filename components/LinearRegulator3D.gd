@@ -133,3 +133,10 @@ func gather_sim_results(circuit, comp_data, x, node_map, vs_map, inductor_map, d
 		show_info(v_vout, comp_data.properties.get("status", "N/A"))
 	else:
 		hide_info()
+	
+	# Store results in circuit graph for test access
+	var comp_id = self.get_instance_id()
+	circuit.component_results[comp_id] = {
+		"status": comp_data.properties.get("status", "UNKNOWN"),
+		"voltage": v_vout
+	}
