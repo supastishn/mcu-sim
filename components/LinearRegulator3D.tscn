@@ -1,0 +1,82 @@
+[gd_scene load_steps=7 format=3 uid="uid://linearregulator3d"]
+
+[ext_resource type="Script" path="res://components/LinearRegulator3D.gd" id="1_reg_script"]
+[ext_resource type="Script" path="res://components/TerminalFeedback.gd" id="2_terminal_feedback"]
+[ext_resource type="Material" path="res://components/Resistor3D.tres" id="3_terminal_material"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_regulator_body"]
+size = Vector3(0.25, 0.15, 0.2)
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_terminal"]
+radius = 0.075
+height = 0.25
+
+[sub_resource type="SphereMesh" id="SphereMesh_terminal_vis"]
+radius = 0.05
+
+[node name="LinearRegulator3D" type="Node3D"]
+script = ExtResource("1_reg_script")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_regulator_body")
+
+[node name="TerminalVin" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.1, 0, -0.15)
+collision_layer = 2
+script = ExtResource("2_terminal_feedback")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TerminalVin"]
+shape = SubResource("CapsuleShape3D_terminal")
+
+[node name="Visualization" type="MeshInstance3D" parent="TerminalVin"]
+material_override = ExtResource("3_terminal_material")
+mesh = SubResource("SphereMesh_terminal_vis")
+
+[node name="Label3D" type="Label3D" parent="TerminalVin"]
+text = "Vin"
+visible = false
+billboard = 1
+font_size = 20
+
+[node name="TerminalVout" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.15)
+collision_layer = 2
+script = ExtResource("2_terminal_feedback")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TerminalVout"]
+shape = SubResource("CapsuleShape3D_terminal")
+
+[node name="Visualization" type="MeshInstance3D" parent="TerminalVout"]
+material_override = ExtResource("3_terminal_material")
+mesh = SubResource("SphereMesh_terminal_vis")
+
+[node name="Label3D" type="Label3D" parent="TerminalVout"]
+text = "Vout"
+visible = false
+billboard = 1
+font_size = 20
+
+[node name="TerminalGnd" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.1, 0, -0.15)
+collision_layer = 2
+script = ExtResource("2_terminal_feedback")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TerminalGnd"]
+shape = SubResource("CapsuleShape3D_terminal")
+
+[node name="Visualization" type="MeshInstance3D" parent="TerminalGnd"]
+material_override = ExtResource("3_terminal_material")
+mesh = SubResource("SphereMesh_terminal_vis")
+
+[node name="Label3D" type="Label3D" parent="TerminalGnd"]
+text = "GND"
+visible = false
+billboard = 1
+font_size = 20
+
+[node name="InfoLabel" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0)
+visible = false
+text = "Regulated: N/A V\nDropout: N/A V"
+font_size = 18
+outline_size = 2

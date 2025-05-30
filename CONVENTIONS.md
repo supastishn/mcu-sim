@@ -90,6 +90,13 @@ Electronic components are implemented as Godot scenes (`.tscn`) with an accompan
         *   "Common", "Normally Open", "Normally Closed" for switches.
     *   For LEDs and diodes, use “Kathode” (German K) instead of “Cathode” to avoid the “C” clash with Collector/Capacitor nodes used elsewhere in the project.
 
+### LinearRegulator3D
+* **Terminals:** Vin (input), Vout (output), GND (ground reference)
+* **Properties:** 
+  - `regulated_voltage` - Target output voltage
+  - `dropout_voltage` - Minimum Vin-Vout difference
+  - `max_current` - Maximum output current
+
 ## 3. GDScript Coding Style
 
 *   Constants are UPPER_SNAKE_CASE (e.g. `TERMINAL_COLLISION_LAYER`, `R_LED_ON`).

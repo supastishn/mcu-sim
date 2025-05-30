@@ -168,6 +168,15 @@ func add_component(component: Node3D):
 		component_data.terminals["D"] = component.terminal_d
 		component_data.terminals["G"] = component.terminal_g
 		component_data.terminals["S"] = component.terminal_s
+	elif component is LinearRegulator3D:
+		component_data.type = "LinearRegulator"
+		component_data.properties["regulated_voltage"] = component.regulated_voltage
+		component_data.properties["dropout_voltage"] = component.dropout_voltage
+		component_data.properties["max_current"] = component.max_current
+		component_data.properties["status"] = "UNKNOWN"
+		component_data.terminals["Vin"] = component.terminal_vin
+		component_data.terminals["Vout"] = component.terminal_vout
+		component_data.terminals["GND"] = component.terminal_gnd
 	elif component is Relay3D:
 		component_data.type = "Relay"
 		component_data.properties["signal_voltage_threshold"] = component.signal_voltage_threshold
@@ -374,6 +383,10 @@ func component_config_changed(component_node: Node3D):
 		found_component_data.properties["signal_voltage_threshold"] = component_node.signal_voltage_threshold
 		found_component_data.properties["coil_resistance"] = component_node.coil_resistance
 		found_component_data.properties["is_energized"] = false 
+	elif comp_type == "LinearRegulator" and component_node is LinearRegulator3D:
+		found_component_data.properties["regulated_voltage"] = component_node.regulated_voltage
+		found_component_data.properties["dropout_voltage"] = component_node.dropout_voltage
+		found_component_data.properties["max_current"] = component_node.max_current
 	else:
 		return
 

@@ -25,6 +25,7 @@ var ZenerDiodeScene = preload("res://components/ZenerDiode3D.tscn")
 var NChannelMOSFETScene = preload("res://components/NChannelMOSFET3D.tscn") 
 var PChannelMOSFETScene = preload("res://components/PChannelMOSFET3D.tscn")
 var RelayScene = preload("res://components/Relay3D.tscn") 
+var LinearRegulatorScene = preload("res://components/LinearRegulator3D.tscn")
 
 
 @onready var camera: Camera3D = $Camera3D
@@ -175,6 +176,12 @@ func _ready():
 	add_pchannelmosfet_button.pressed.connect(_on_add_component_button_pressed.bind(PChannelMOSFETScene))
 	add_relay_button.pressed.connect(_on_add_component_button_pressed.bind(RelayScene)) 
 	simulate_button.pressed.connect(_on_simulate_button_pressed)
+	
+	# Add Linear Regulator button
+	var add_linear_reg_button = Button.new()
+	add_linear_reg_button.text = "Add Linear Regulator"
+	add_linear_reg_button.pressed.connect(_on_add_component_button_pressed.bind(LinearRegulatorScene))
+	ui_layer.get_node("ComponentBar/ButtonList").add_child(add_linear_reg_button)
 	
 	toggle_switch_button.pressed.connect(_on_toggle_switch_button_pressed)
 	potentiometer_wiper_slider.value_changed.connect(_on_potentiometer_wiper_slider_value_changed)
@@ -740,6 +747,12 @@ func _select_component(component: Node3D):
 		coil_resistance_label.text = "Coil Resist. (Ω):"
 		coil_resistance_edit.text = str(selected_component.coil_resistance)
 		
+	elif selected_component is LinearRegulator3D:
+		value_box.visible = true
+		value_label.text = "Regulated (V):"
+		value_edit.text = str(selected_component.regulated_voltage)
+		# Optionally, add more UI for dropout_voltage and max_current if desired
+		
 	else:
 		value_box.visible = false 
 		printerr("Selected node {comp_name} is not a recognized component type for editing.".format({"comp_name": component.name}))
@@ -1024,6 +1037,8 @@ func _on_selected_value_changed(new_text: String):
 		selected_component.beta_dc = new_value 
 	elif selected_component is Relay3D: 
 		selected_component.signal_voltage_threshold = new_value 
+	elif selected_component is LinearRegulator3D:
+		selected_component.regulated_voltage = new_value
 	
 	
 	
