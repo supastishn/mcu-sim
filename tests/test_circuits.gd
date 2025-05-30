@@ -175,6 +175,23 @@ func run_all_tests():
 	else:
 		failed_test_names.push_back(test14_name)
 
+	# --- Linear Regulator tests ---
+	var test15_name = "Test: Linear Regulator Normal Operation"
+	print_rich("\n[b]{name}[/b]".format({"name": test15_name}))
+	total_tests += 1
+	if await test_linear_regulator_normal():
+		passed_tests += 1
+	else:
+		failed_test_names.push_back(test15_name)
+
+	var test16_name = "Test: Linear Regulator Dropout Scenario"
+	print_rich("\n[b]{name}[/b]".format({"name": test16_name}))
+	total_tests += 1
+	if await test_linear_regulator_dropout():
+		passed_tests += 1
+	else:
+		failed_test_names.push_back(test16_name)
+
 
 
 func test_simple_powersupply_resistor_led_circuit() -> bool:
@@ -1594,3 +1611,112 @@ func test_pmosfet_regions() -> bool:
 	print("Id?", ok)
 	rig.cleanup()
 	return ok
+func test_linear_regulator_normal() -> bool:
+	var overall_test_passed = true
+	var rig := TestRig.new()
+	add_child(rig)
+	await rig.init()
+	var g = rig.graph
+	var ed = rig.editor
+
+	# Setup components
+	var ps_node: PowerSource3D = rig.add(ed.PowerSourceScene, Vector3(0,0,0))
+	var reg_node: LinearRegulator3D = rig.add(ed.LinearRegulatorScene, Vector3(1,0,0))
+	var load_res_node: Resistor3D = rig.add(ed.ResistorScene, Vector3(2,0,0))
+
+	# Configure components
+	ps_node.target_voltage = 12.0
+	rig.cfg(ps_node)
+
+	reg_node.regulated_voltage = 5.0
+	reg_node.dropout_voltage = 2.0
+	reg_node.max_current = 1.0
+	rig.cfg(reg_node)
+
+	load_res_node.resistance = 100.0
+	rig.cfg(load_res_node)
+
+	# Wiring
+	rig.wire(ps_node.terminal_pos, reg_node.terminalVin)
+	rig.wire(reg_node.terminalVout, load_res_node.terminal1)
+	rig.wire(load_res_node.terminal2, reg_node.terminalGnd)
+	rig.wire(reg_node.terminalGnd, ps_node.terminal_neg)
+	rig.ground(ps_node.terminal_neg)
+
+	# Solve
+	var solve_success: bool = rig.solve()
+	if not TestUtils.assert_true(solve_success, "Simulation solve_single_time_step successful"):
+		rig.cleanup()
+		return false
+
+	# Verify results
+	var vout = g.electrical_nodes.get(g.terminal_connections.get(reg_node.terminalVout.get_instance_id()), {}).get("voltage", NAN)
+	var load_voltage = vout  # Vin is 12V, regulated should be 5V
+	var expected_vout = 5.0
+	if not TestUtils.assert_approx_equals(vout, expected_vout, 0.01, "Output voltage is regulated"):
+		overall_test_passed = false
+
+	var reg_results = rig.results(reg_node)
+	var status = reg_results.get("status", "UNKNOWN")
+	if not TestUtils.assert_equals(status, "REGULATED", "Regulator status is REGULATED"):
+		overall_test_passed = false
+
+	rig.cleanup()
+	return overall_test_passed
+
+func test_linear_regulator_dropout() -> bool:
+	var overall_test_passed = true
+	var rig := TestRig.new()
+	add_child(rig)
+	await rig.init()
+	var g = rig.graph
+	var ed = rig.editor
+
+	# Setup components
+	var ps_node: PowerSource3D = rig.add(ed.PowerSourceScene, Vector3(0,0,0))
+	var reg_node: LinearRegulator3D = rig.add(ed.LinearRegulatorScene, Vector3(1,0,0))
+	var load_res_node: Resistor3D = rig.add(ed.ResistorScene, Vector3(2,0,0))
+
+	# Configure components - Vin only 1V above required
+	ps_node.target_voltage = 6.0  # 5V regulated + 1V (less than 2V dropout)
+	rig.cfg(ps_node)
+
+	reg_node.regulated_voltage = 5.0
+	reg_node.dropout_voltage = 2.0
+	reg_node.max_current = 1.0
+	rig.cfg(reg_node)
+
+	load_res_node.resistance = 100.0
+	rig.cfg(load_res_node)
+
+	# Wiring
+	rig.wire(ps_node.terminal_pos, reg_node.terminalVin)
+	rig.wire(reg_node.terminalVout, load_res_node.terminal1)
+	rig.wire(load_res_node.terminal2, reg_node.terminalGnd)
+	rig.wire(reg_node.terminalGnd, ps_node.terminal_neg)
+	rig.ground(ps_node.terminal_neg)
+
+	# Solve
+	var solve_success: bool = rig.solve()
+	if not TestUtils.assert_true(solve_success, "Simulation solve_single_time_step successful"):
+		rig.cleanup()
+		return false
+
+	# Verify results
+	var vout = g.electrical_nodes.get(g.terminal_connections.get(reg_node.terminalVout.get_instance_id()), {}).get("voltage", NAN)
+	var vin = g.electrical_nodes.get(g.terminal_connections.get(reg_node.terminalVin.get_instance_id()), {}).get("voltage", NAN)
+	
+	# Expected Vout = Vin - dropout_voltage (property behavior)
+	var delta_expected = reg_node.dropout_voltage
+	var expected_vout = vin - delta_expected
+	if not TestUtils.assert_approx_equals(vout, expected_vout, 0.01, "Output voltage in dropout matches expected"):
+		overall_test_passed = false
+
+	# Check status
+	var reg_results = rig.results(reg_node)
+	var status = reg_results.get("status", "UNKNOWN")
+	if not TestUtils.assert_equals(status, "DROPOUT", "Regulator status is DROPOUT"):
+		overall_test_passed = false
+
+	rig.cleanup()
+	return overall_test_passed
