@@ -23,6 +23,8 @@ var electrical_nodes: Dictionary = {}
 var components: Array[Dictionary] = []
 var component_results: Dictionary = {}
 
+var component_node_map: Dictionary = {}
+
 var ground_node_id: int = -1 
 var _is_solved: bool = false 
 var _needs_rebuild: bool = true 
@@ -220,6 +222,8 @@ func add_component(component: Node3D):
 			
 	components.push_back(component_data)
 
+	component_node_map[component] = component_data
+
 
 
 func remove_component(component_node: Node3D):
@@ -249,6 +253,7 @@ func remove_component(component_node: Node3D):
 			terminal_connections.erase(term_id) 
 
 	components.remove_at(component_index)
+	component_node_map.erase(component_node)
 
 
 
@@ -308,11 +313,7 @@ func set_ground_node(terminal: Area3D):
 func component_config_changed(component_node: Node3D):
 	_is_solved = false
 	_needs_rebuild = true
-	var found_component_data: Dictionary = {}
-	for comp_data_item in components:
-		if comp_data_item.component_node == component_node:
-			found_component_data = comp_data_item
-			break
+	var found_component_data: Dictionary = component_node_map.get(component_node, {})
 	
 	if found_component_data.is_empty():
 		return

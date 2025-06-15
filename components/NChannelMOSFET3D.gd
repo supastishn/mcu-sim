@@ -139,10 +139,8 @@ func gather_sim_results(
 			Id_nmos = 0.0
 		elif region_nmos_calc == "TRIODE": 
 			Id_nmos = kn_nmos_model_calc * (vgs_vt_diff_calc * Vds_nmos_actual - 0.5 * pow(Vds_nmos_actual, 2.0))
-			if Id_nmos < 0 : Id_nmos = 0 
 		elif region_nmos_calc == "SATURATION": 
 			Id_nmos = 0.5 * kn_nmos_model_calc * pow(vgs_vt_diff_calc, 2.0)
-			if Id_nmos < 0 : Id_nmos = 0 
 	
 	circuit.component_results[comp_id]["Id"] = Id_nmos
 	circuit.component_results[comp_id]["Vgs"] = Vgs_nmos_actual
@@ -244,15 +242,13 @@ func stamp(
 		var Vgs_for_model_val = Vg_prev_iter_val - Vs_prev_iter_val
 
 		if region_nmos_mna_val == "TRIODE":
-			
-			
-			
-			
-			var effective_conductance_triode = kn_nmos_mna_prop * max(0.01, Vgs_for_model_val - vt_nmos_mna_prop)
-			
-			
-			
-			
+			# Smooth step transition for numerical stability
+			var diff = Vgs_for_model_val - vt_nmos_mna_prop
+			const DIFF_THRESHOLD = 0.01
+			const SCALE = 50.0
+			var lerp_weight = 1.0 / (1.0 + exp(-SCALE * (diff - DIFF_THRESHOLD)))
+			var safe_diff = lerp(DIFF_THRESHOLD, diff, lerp_weight)
+			var effective_conductance_triode = kn_nmos_mna_prop * safe_diff
 			var R_ds_triode_approx_val = 1.0 / effective_conductance_triode
 			if R_ds_triode_approx_val > 1e9: R_ds_triode_approx_val = 1e9
 			if R_ds_triode_approx_val < 1e-3: R_ds_triode_approx_val = 1e-3 
