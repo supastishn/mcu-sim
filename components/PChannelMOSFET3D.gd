@@ -142,9 +142,9 @@ func stamp(A,b,node_map,vs_map,inductor_map,term_conn,comp_data,dt):
 		var Vsg = comp_data.properties.get("_int_Vs",0.0) - comp_data.properties.get("_int_Vg",0.0)
 		var Id_sat = 0.0
 		if Vsg > vt:
-			Id_sat = -0.5 * kp * pow(Vsg - vt,2.0)   # negative current (S->D)
-		if idx_s!=-1: b[idx_s] += Id_sat
+			Id_sat = 0.5 * kp * pow(Vsg - vt,2.0)   # positive current (D->S, matches NMOS convention)
 		if idx_d!=-1: b[idx_d] -= Id_sat
+		if idx_s!=-1: b[idx_s] += Id_sat
 		# add a tiny output-resistance so the matrix is well-conditioned
 		var Gds_sat := 1e-6      #  ≈ 1 MΩ
 		_stamp_conductance(A, Gds_sat, idx_s, idx_d)

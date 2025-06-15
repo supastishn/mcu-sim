@@ -1588,9 +1588,9 @@ func test_pmosfet_regions() -> bool:
 	var res = rig.results(pmos_off)
 	print_debug("    OFF solve → region=%s , Id=%s"
 				% [res.get("region","N/A"), str(res.get("Id", NAN))])
-	if res.get("region","") != "OFF": ok = false
+	if not TestUtils.assert_equals(res.get("region",""), "OFF", "PMOS Test (OFF): Region is OFF"): ok = false
 	print('Region? ', ok)
-	if abs(res.get("Id",0.0)) > 1e-6: ok = false
+	if not TestUtils.assert_approx_equals(res.get("Id",0.0), 0.0, 1e-6, "PMOS Test (OFF): Id ~ 0"): ok = false
 	print("Id ?", ok)
 	# ---- TRIODE ----
 	rig.reset_graph()
@@ -1616,9 +1616,9 @@ func test_pmosfet_regions() -> bool:
 	res = rig.results(pmos_tr)
 	print_debug("    TRIODE solve → region=%s , Id=%s"
 				% [res.get("region","N/A"), str(res.get("Id", NAN))])
-	if res.get("region","") != "TRIODE": ok = false     # CHANGED
+	if not TestUtils.assert_equals(res.get("region",""), "TRIODE", "PMOS Test (TRI): Region is TRIODE"): ok = false
 	print('Region? ', ok)
-	if res.get("Id", NAN) <= 0: ok = false    # current should flow S→D (negative Id not expected)
+	if not TestUtils.assert_true(res.get("Id", NAN) > 0, "PMOS Test (TRI): Id > 0 (D->S current)"): ok = false
 	print("Id?", ok)
 	# ---- SATURATION ----
 	rig.reset_graph()
@@ -1641,9 +1641,9 @@ func test_pmosfet_regions() -> bool:
 	res = rig.results(pmos_sat)
 	print_debug("    SAT solve → region=%s , Id=%s"
 				% [res.get("region","N/A"), str(res.get("Id", NAN))])
-	if res.get("region","") != "SATURATION": ok = false
+	if not TestUtils.assert_equals(res.get("region",""), "SATURATION", "PMOS Test (SAT): Region is SATURATION"): ok = false
 	print('Region? ', ok)
-	if res.get("Id", NAN) <= 0: ok = false
+	if not TestUtils.assert_true(res.get("Id", NAN) > 0, "PMOS Test (SAT): Id > 0 (D->S current)"): ok = false
 	print("Id?", ok)
 	rig.cleanup()
 	return ok

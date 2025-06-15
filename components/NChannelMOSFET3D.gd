@@ -260,19 +260,12 @@ func stamp(
 			_inline_stamp_conductance.call(A, G_ds_triode_val, idx_d, idx_s)
 			
 		elif region_nmos_mna_val == "SATURATION":
-			
-			
-			
-			
+			# Add small output conductance for matrix stability (Gds_sat)
+			var Gds_sat := 1e-6  # ~1 MΩ
+			_inline_stamp_conductance.call(A, Gds_sat, idx_d, idx_s)
 			
 			var Id_sat_calc_val = 0.0
 			if Vgs_for_model_val > vt_nmos_mna_prop:
 				Id_sat_calc_val = 0.5 * kn_nmos_mna_prop * pow(Vgs_for_model_val - vt_nmos_mna_prop, 2.0)
-			
-			
 			if idx_d != -1: b[idx_d] -= Id_sat_calc_val 
 			if idx_s != -1: b[idx_s] += Id_sat_calc_val 
-			
-			
-			
-			

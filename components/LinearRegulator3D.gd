@@ -89,8 +89,8 @@ func update_nonlinear_state(circuit, comp_data, x_iter, vs_map_iter)->bool:
 func stamp(
 	A, b, node_map, vs_map, inductor_map, terminal_connections, comp_data, delta_time
 ):
-	# Linear voltage regulator: Vout = regulated_voltage (if not in dropout)
-	# If in dropout, Vout = Vin - dropout_voltage
+	# Use a large conductance to enforce Vout = regulated_voltage or Vout = Vin - dropout_voltage
+	# This preserves KCL and circuit topology, similar to a SPICE voltage source with large G
 	var idx_vin = node_map.get(terminal_connections.get(terminal_vin.get_instance_id(), -1), -1)
 	var idx_vout = node_map.get(terminal_connections.get(terminal_vout.get_instance_id(), -1), -1)
 	var idx_gnd = node_map.get(terminal_connections.get(terminal_gnd.get_instance_id(), -1), -1)
@@ -99,23 +99,25 @@ func stamp(
 		return
 	
 	var status = comp_data.properties.get("status", "DISCONNECTED")
+	var Gbig = 1e9  # Large conductance for voltage stamping
+	
 	if status == "REGULATED":
-		# Vout = regulated_voltage above GND
+		# Enforce Vout - GND = regulated_voltage using large conductance
 		if idx_gnd != -1:
-			# Vout - GND = regulated_voltage
-			A[idx_vout][idx_vout] += 1.0
-			A[idx_vout][idx_gnd] -= 1.0
-			b[idx_vout] += regulated_voltage
+			A[idx_vout][idx_vout] += Gbig
+			A[idx_vout][idx_gnd] -= Gbig
+			b[idx_vout] += Gbig * regulated_voltage
 		else:
-			# Vout = regulated_voltage (absolute)
-			A[idx_vout][idx_vout] += 1.0
-			b[idx_vout] += regulated_voltage
+			A[idx_vout][idx_vout] += Gbig
+			b[idx_vout] += Gbig * regulated_voltage
 	elif status == "DROPOUT":
-		# Vout = Vin - dropout_voltage
+		# Enforce Vout = Vin - dropout_voltage using large conductance
 		if idx_vin != -1:
-			A[idx_vout][idx_vout] += 1.0
-			A[idx_vout][idx_vin] -= 1.0
-			b[idx_vout] -= dropout_voltage
+			A[idx_vout][idx_vout] += Gbig
+			A[idx_vout][idx_vin] -= Gbig
+			b[idx_vout] -= Gbig * dropout_voltage
+		else:
+			A[idx_vout][idx_vout] += 1e-9
 	elif status == "DISCONNECTED":
 		# No constraint, but add a tiny conductance to ground to avoid singular matrix
 		if idx_gnd != -1:
