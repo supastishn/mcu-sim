@@ -97,6 +97,13 @@ Electronic components are implemented as Godot scenes (`.tscn`) with an accompan
   - `dropout_voltage` - Minimum Vin-Vout difference
   - `max_current` - Maximum output current
 
+### OpAmp3D
+*   **Terminals:** Vp (Non-inverting Input), Vn (Inverting Input), Vout (Output), Vcc (Positive Supply), Vee (Negative Supply).
+*   **Properties:**
+    -   `open_loop_gain`: The amplification factor of the op-amp in its linear region.
+    -   `rail_saturation_voltage`: The voltage difference from the supply rails where the output clips.
+*   **Behavior:** Models an ideal op-amp with high gain, high input impedance, and output voltage saturation at the supply rails. It is treated as a non-linear component with three states: `LINEAR`, `SAT_HIGH`, `SAT_LOW`.
+
 ## 3. GDScript Coding Style
 
 *   Constants are UPPER_SNAKE_CASE (e.g. `TERMINAL_COLLISION_LAYER`, `R_LED_ON`).

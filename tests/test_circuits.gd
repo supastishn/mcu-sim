@@ -4,6 +4,7 @@ const TestUtils = preload("res://tests/test_utils.gd")
 const TestRig = preload("res://tests/test_helpers.gd")   # gives us class TestRig
 const CircuitEditorScene = preload("res://CircuitEditor3D.tscn")  # legacy tests need it
 const PChannelMOSFETScene = preload("res://components/PChannelMOSFET3D.tscn")   # optional
+const OpAmpScene = preload("res://components/OpAmp3D.tscn")
 
 var total_tests = 0
 var passed_tests = 0
@@ -192,6 +193,14 @@ func run_all_tests():
 	else:
 		failed_test_names.push_back(test16_name)
 
+	var test17_name = "Test: Op-Amp Inverting Amplifier"
+	print_rich("\n[b]{name}[/b]".format({"name": test17_name}))
+	total_tests += 1
+	if await test_op_amp_inverting_amplifier():
+		passed_tests += 1
+	else:
+		failed_test_names.push_back(test17_name)
+
 
 
 func test_simple_powersupply_resistor_led_circuit() -> bool:
@@ -260,6 +269,66 @@ func test_simple_powersupply_resistor_led_circuit() -> bool:
 
 	rig.cleanup()
 	return overall_test_passed
+
+func test_op_amp_inverting_amplifier() -> bool:
+	var ok := true
+	var rig := TestRig.new()
+	add_child(rig)
+	await rig.init()
+	var g = rig.graph
+	var ed = rig.editor
+
+	print("  Op-Amp Test: Inverting Amplifier (Linear Region)")
+	var ps_vcc: PowerSource3D = rig.add(ed.PowerSourceScene, Vector3(0,0,2))
+	var ps_vee: PowerSource3D = rig.add(ed.PowerSourceScene, Vector3(0,0,3))
+	var ps_vin: PowerSource3D = rig.add(ed.PowerSourceScene, Vector3(0,0,4))
+	var opamp: OpAmp3D = rig.add(OpAmpScene, Vector3(1,0,0))
+	var r_in: Resistor3D = rig.add(ed.ResistorScene, Vector3(0,0,-1))
+	var r_f: Resistor3D = rig.add(ed.ResistorScene, Vector3(1,0,-1))
+
+	ps_vcc.target_voltage = 15.0; rig.cfg(ps_vcc)
+	ps_vee.target_voltage = -15.0; rig.cfg(ps_vee)
+	ps_vin.target_voltage = 1.0; rig.cfg(ps_vin)
+	r_in.resistance = 1000.0; rig.cfg(r_in)
+	r_f.resistance = 10000.0; rig.cfg(r_f)
+	
+	# Powering the Op-Amp
+	rig.wire(opamp.terminal_vcc, ps_vcc.terminal_pos)
+	rig.wire(opamp.terminal_vee, ps_vee.terminal_pos) # Positive terminal of VEE source to get negative voltage
+
+	# Feedback loop and input signal
+	rig.wire(ps_vin.terminal_pos, r_in.terminal1)
+	rig.wire(r_in.terminal2, opamp.terminal_vn)
+	rig.wire(opamp.terminal_vn, r_f.terminal1)
+	rig.wire(r_f.terminal2, opamp.terminal_vout)
+	
+	# Ground connections
+	rig.ground(ps_vcc.terminal_neg)
+	rig.wire(ps_vee.terminal_neg, ps_vcc.terminal_neg)
+	rig.wire(ps_vin.terminal_neg, ps_vcc.terminal_neg)
+	rig.wire(opamp.terminal_vp, ps_vcc.terminal_neg)
+
+	if not rig.solve(): ok = false
+	if ok:
+		var results = rig.results(opamp)
+		if not TestUtils.assert_equals(results.get("region"), "LINEAR", "Op-Amp is in LINEAR region"): ok = false
+		var expected_vout = - (r_f.resistance / r_in.resistance) * ps_vin.target_voltage
+		if not TestUtils.assert_approx_equals(results.get("Vout", NAN), expected_vout, 0.1, "Op-Amp Vout matches expected gain"): ok = false
+
+	print("  Op-Amp Test: Inverting Amplifier (Saturation)")
+	ps_vin.target_voltage = 2.0 # This should drive output to -20V, which will saturate
+	rig.cfg(ps_vin)
+	
+	if not rig.solve(): ok = false
+	if ok:
+		var results_sat = rig.results(opamp)
+		if not TestUtils.assert_equals(results_sat.get("region"), "SAT_LOW", "Op-Amp is in SAT_LOW region"): ok = false
+		
+		var expected_sat_volt = ps_vee.target_voltage + opamp.rail_saturation_voltage
+		if not TestUtils.assert_approx_equals(results_sat.get("Vout", NAN), expected_sat_volt, 0.1, "Op-Amp Vout is saturated low"): ok = false
+
+	rig.cleanup()
+	return ok
 
 
 func test_switch_behavior() -> bool:

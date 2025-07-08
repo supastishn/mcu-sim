@@ -26,6 +26,7 @@ var NChannelMOSFETScene = preload("res://components/NChannelMOSFET3D.tscn")
 var PChannelMOSFETScene = preload("res://components/PChannelMOSFET3D.tscn")
 var RelayScene = preload("res://components/Relay3D.tscn") 
 var LinearRegulatorScene = preload("res://components/LinearRegulator3D.tscn")
+var OpAmpScene = preload("res://components/OpAmp3D.tscn")
 
 
 @onready var camera: Camera3D = $Camera3D
@@ -64,6 +65,7 @@ var _drag_start_position: Vector2 = Vector2.ZERO
 @onready var add_nchannelmosfet_button: Button = $UI/ComponentBar/ButtonList/AddNChannelMOSFETButton
 @onready var add_pchannelmosfet_button: Button = $UI/ComponentBar/ButtonList/AddPChannelMOSFETButton
 @onready var add_relay_button: Button = $UI/ComponentBar/ButtonList/AddRelayButton 
+@onready var add_op_amp_button: Button = $UI/ComponentBar/ButtonList/AddOpAmpButton
 @onready var simulate_button: Button = $UI/ComponentBar/ButtonList/SimulateButton
 @onready var selection_bar: VBoxContainer = $UI/SelectionBar
 @onready var value_box: HBoxContainer = $UI/SelectionBar/ValueBox 
@@ -175,6 +177,7 @@ func _ready():
 	add_nchannelmosfet_button.pressed.connect(_on_add_component_button_pressed.bind(NChannelMOSFETScene))
 	add_pchannelmosfet_button.pressed.connect(_on_add_component_button_pressed.bind(PChannelMOSFETScene))
 	add_relay_button.pressed.connect(_on_add_component_button_pressed.bind(RelayScene)) 
+	add_op_amp_button.pressed.connect(_on_add_component_button_pressed.bind(OpAmpScene))
 	simulate_button.pressed.connect(_on_simulate_button_pressed)
 	
 	# Add Linear Regulator button
@@ -568,6 +571,8 @@ func _add_component(scene: PackedScene, pos: Vector3):
 		component_instance.configuration_changed.connect(_on_zener_diode_config_changed)
 	elif component_instance is Relay3D: 
 		component_instance.configuration_changed.connect(_on_relay_config_changed)
+	elif component_instance is OpAmp3D:
+		component_instance.configuration_changed.connect(_on_op_amp_config_changed)
 		
 		
 	return component_instance 
@@ -752,6 +757,9 @@ func _select_component(component: Node3D):
 		value_label.text = "Regulated (V):"
 		value_edit.text = str(selected_component.regulated_voltage)
 		# Optionally, add more UI for dropout_voltage and max_current if desired
+	elif selected_component is OpAmp3D:
+		# For now, no editable properties in the UI for op-amp
+		value_box.visible = false
 		
 	else:
 		value_box.visible = false 
@@ -796,6 +804,8 @@ func _deselect_component():
 			pass 
 		elif selected_component is Relay3D:
 			pass 
+		elif selected_component is OpAmp3D:
+			pass
 
 	selected_component = null
 	print("!!! _deselect_component: selected_component set to null !!!") 
@@ -1101,6 +1111,7 @@ func _on_delete_button_pressed():
 		 selected_component is PNPBJT3D or \
 		 selected_component is ZenerDiode3D or \
 		 selected_component is NChannelMOSFET3D or \
+		 selected_component is OpAmp3D or \
 		 selected_component is Relay3D:
 		var component_to_delete = selected_component 
 		var terminals_to_check = []
@@ -1135,6 +1146,10 @@ func _on_delete_button_pressed():
 				component_to_delete.terminal_d,
 				component_to_delete.terminal_g,
 				component_to_delete.terminal_s
+			]
+		elif component_to_delete is OpAmp3D:
+			terminals_to_check = [
+				component_to_delete.terminal_vp, component_to_delete.terminal_vn, component_to_delete.terminal_vout, component_to_delete.terminal_vcc, component_to_delete.terminal_vee
 			]
 		elif component_to_delete is Relay3D:
 			terminals_to_check = [
@@ -1226,7 +1241,7 @@ func _update_voltage_displays():
 			var ind_current = results.get("current", NAN)
 			var ind_voltage = results.get("voltage_across", NAN)
 			component_node.show_info(ind_current, ind_voltage)
-		elif component_node.has_method("show_info") and \
+		elif component_node.has_method("show_info") and comp_data.type != "OpAmp" and \
 			(comp_data.type == "NPNBJT" or comp_data.type == "PNPBJT" or comp_data.type == "ZenerDiode" or comp_data.type == "Relay"):
 			
 			var info_results_dict = {}
@@ -1251,6 +1266,8 @@ func _update_voltage_displays():
 					"coil_current": results.get("coil_current", NAN) 
 				}
 			component_node.show_info(info_results_dict)
+		elif comp_data.type == "OpAmp" and component_node.has_method("show_info"):
+			component_node.show_info(results)
 		elif component_node.has_method("show_current"): 
 			if comp_data.type == "Potentiometer":
 				var current1_w = results.get("current_T1_W", NAN)
@@ -1319,6 +1336,8 @@ func _hide_voltage_displays(leds: bool = true):
 			component_node.reset_visual_state()
 		if component_node is Relay3D and leds: 
 			component_node.reset_visual_state()
+		if component_node is OpAmp3D and leds:
+			component_node.reset_visual_state()
 			
 		
 		if component_node is LED3D and leds: 
@@ -1348,6 +1367,8 @@ func _hide_voltage_displays(leds: bool = true):
 			if leds and c_node is ZenerDiode3D: 
 				c_node.reset_visual_state()
 			if leds and c_node is Relay3D: 
+				c_node.reset_visual_state()
+			if leds and c_node is OpAmp3D:
 				c_node.reset_visual_state()
 			
 			if leds and c_node is LED3D:
@@ -1579,6 +1600,11 @@ func _on_relay_config_changed(relay_node: Relay3D):
 		"coilr_str": String.num(relay_node.coil_resistance, 1)
 		}))
 	circuit_graph.component_config_changed(relay_node)
+	_hide_voltage_displays(true)
+
+func _on_op_amp_config_changed(opamp_node: OpAmp3D):
+	print("CircuitEditor notified of OpAmp {name} config change.".format({"name": opamp_node.name}))
+	circuit_graph.component_config_changed(opamp_node)
 	_hide_voltage_displays(true)
 
 

@@ -119,6 +119,10 @@ text = "Add P-Ch MOSFET"
 layout_mode = 2
 text = "Add Relay"
 
+[node name="AddOpAmpButton" type="Button" parent="UI/ComponentBar/ButtonList"]
+layout_mode = 2
+text = "Add Op-Amp"
+
 [node name="SimulateButton" type="Button" parent="UI/ComponentBar/ButtonList"]
 layout_mode = 2
 text = "Simulate"

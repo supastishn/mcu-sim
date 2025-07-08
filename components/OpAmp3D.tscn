@@ -1,0 +1,134 @@
+[gd_scene load_steps=8 format=3 uid="uid://dpw6y11e3b5g3"]
+
+[ext_resource type="Script" path="res://components/OpAmp3D.gd" id="1_opampgd"]
+[ext_resource type="Script" path="res://components/TerminalFeedback.gd" id="2_termfb"]
+[ext_resource type="Material" path="res://components/Resistor3D.tres" id="3_termmat"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_body"]
+size = Vector3(0.4, 0.15, 0.5)
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_terminal"]
+radius = 0.075
+height = 0.5
+
+[sub_resource type="SphereMesh" id="SphereMesh_terminal_vis"]
+radius = 0.05
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_component_body"]
+size = Vector3(0.4, 0.15, 0.5)
+
+[node name="OpAmp3D" type="Node3D"]
+script = ExtResource("1_opampgd")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_body")
+
+[node name="TerminalVn" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.25, 0, 0.1)
+collision_layer = 2
+script = ExtResource("2_termfb")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TerminalVn"]
+shape = SubResource("CapsuleShape3D_terminal")
+
+[node name="Visualization" type="MeshInstance3D" parent="TerminalVn"]
+material_override = ExtResource("3_termmat")
+mesh = SubResource("SphereMesh_terminal_vis")
+
+[node name="Label3D" type="Label3D" parent="TerminalVn"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
+visible = false
+billboard = 1
+text = "Inverting Input"
+font_size = 20
+
+[node name="TerminalVp" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.25, 0, -0.1)
+collision_layer = 2
+script = ExtResource("2_termfb")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TerminalVp"]
+shape = SubResource("CapsuleShape3D_terminal")
+
+[node name="Visualization" type="MeshInstance3D" parent="TerminalVp"]
+material_override = ExtResource("3_termmat")
+mesh = SubResource("SphereMesh_terminal_vis")
+
+[node name="Label3D" type="Label3D" parent="TerminalVp"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
+visible = false
+billboard = 1
+text = "Non-inverting Input"
+font_size = 20
+
+[node name="TerminalVout" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.25, 0, 0)
+collision_layer = 2
+script = ExtResource("2_termfb")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TerminalVout"]
+shape = SubResource("CapsuleShape3D_terminal")
+
+[node name="Visualization" type="MeshInstance3D" parent="TerminalVout"]
+material_override = ExtResource("3_termmat")
+mesh = SubResource("SphereMesh_terminal_vis")
+
+[node name="Label3D" type="Label3D" parent="TerminalVout"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
+visible = false
+billboard = 1
+text = "Output"
+font_size = 20
+
+[node name="TerminalVcc" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.3)
+collision_layer = 2
+script = ExtResource("2_termfb")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TerminalVcc"]
+shape = SubResource("CapsuleShape3D_terminal")
+
+[node name="Visualization" type="MeshInstance3D" parent="TerminalVcc"]
+material_override = ExtResource("3_termmat")
+mesh = SubResource("SphereMesh_terminal_vis")
+
+[node name="Label3D" type="Label3D" parent="TerminalVcc"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
+visible = false
+billboard = 1
+text = "Positive Supply"
+font_size = 20
+
+[node name="TerminalVee" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.3)
+collision_layer = 2
+script = ExtResource("2_termfb")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TerminalVee"]
+shape = SubResource("CapsuleShape3D_terminal")
+
+[node name="Visualization" type="MeshInstance3D" parent="TerminalVee"]
+material_override = ExtResource("3_termmat")
+mesh = SubResource("SphereMesh_terminal_vis")
+
+[node name="Label3D" type="Label3D" parent="TerminalVee"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
+visible = false
+billboard = 1
+text = "Negative Supply"
+font_size = 20
+
+[node name="ComponentBody" type="Area3D" parent="."]
+collision_layer = 4
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="ComponentBody"]
+shape = SubResource("BoxShape3D_component_body")
+
+[node name="InfoLabel" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0)
+visible = false
+text = "Region: N/A
+Vout: N/A
+Vp-Vn: N/A"
+font_size = 20
+outline_size = 2

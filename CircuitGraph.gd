@@ -191,6 +191,17 @@ func add_component(component: Node3D):
 		component_data.terminals["COM"] = component.terminal_com
 		component_data.terminals["NO"] = component.terminal_no
 		component_data.terminals["NC"] = component.terminal_nc
+	elif component is OpAmp3D:
+		component_data.type = "OpAmp"
+		component_data.properties["open_loop_gain"] = component.open_loop_gain
+		component_data.properties["rail_saturation_voltage"] = component.rail_saturation_voltage
+		component_data.properties["operating_region"] = "OFF"
+		component_data.terminals["Vp"] = component.terminal_vp
+		component_data.terminals["Vn"] = component.terminal_vn
+		component_data.terminals["Vout"] = component.terminal_vout
+		component_data.terminals["Vcc"] = component.terminal_vcc
+		component_data.terminals["Vee"] = component.terminal_vee
+		component_data["circuit_ref"] = self # Pass a reference for state updates
 
 	for term_name in component_data.terminals:
 		var terminal = component_data.terminals[term_name]
@@ -388,6 +399,10 @@ func component_config_changed(component_node: Node3D):
 		found_component_data.properties["regulated_voltage"] = component_node.regulated_voltage
 		found_component_data.properties["dropout_voltage"] = component_node.dropout_voltage
 		found_component_data.properties["max_current"] = component_node.max_current
+	elif comp_type == "OpAmp" and component_node is OpAmp3D:
+		found_component_data.properties["open_loop_gain"] = component_node.open_loop_gain
+		found_component_data.properties["rail_saturation_voltage"] = component_node.rail_saturation_voltage
+		found_component_data.properties["operating_region"] = "OFF"
 	else:
 		return
 
@@ -424,7 +439,7 @@ func solve_single_time_step(delta_time: float) -> bool:
 			comp_data_item.properties["operating_state"] = "OFF" 
 		elif comp_data_item.type == "Relay":
 			comp_data_item.properties["is_energized"] = false 
-		elif comp_data_item.type == "NPNBJT" or comp_data_item.type == "PNPBJT" or comp_data_item.type == "NChannelMOSFET":
+		elif comp_data_item.type == "NPNBJT" or comp_data_item.type == "PNPBJT" or comp_data_item.type == "NChannelMOSFET" or comp_data_item.type == "OpAmp":
 			comp_data_item.properties["operating_region"] = "OFF" 
 
 	var max_iter = 30 
@@ -565,6 +580,8 @@ func _build_mna_system(delta_time: float) -> Dictionary:
 		if comp_data_item_vs.type == "Battery":
 			active_voltage_sources.push_back(comp_data_item_vs)
 		elif comp_data_item_vs.type == "PowerSource" and comp_data_item_vs.properties.get("current_operating_mode") == "CV":
+			active_voltage_sources.push_back(comp_data_item_vs)
+		elif comp_data_item_vs.type == "OpAmp":
 			active_voltage_sources.push_back(comp_data_item_vs)
 
 	var active_inductors: Array[Dictionary] = []
