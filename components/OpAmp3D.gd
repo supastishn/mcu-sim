@@ -59,20 +59,28 @@ func hide_info():
 func reset_visual_state():
 	hide_info()
 
-func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, _x_iter, _vs_map_iter) -> bool:
+func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter: Array, node_map_iter: Dictionary, _vs_map_iter: Dictionary) -> bool:
+	if x_iter.is_empty(): # Cannot determine state if previous solve failed
+		return false
+
 	var vcc_node_id = circuit.terminal_connections.get(terminal_vcc.get_instance_id(), -1)
 	var vee_node_id = circuit.terminal_connections.get(terminal_vee.get_instance_id(), -1)
 	var vp_node_id = circuit.terminal_connections.get(terminal_vp.get_instance_id(), -1)
 	var vn_node_id = circuit.terminal_connections.get(terminal_vn.get_instance_id(), -1)
 
-	var vcc = circuit.electrical_nodes.get(vcc_node_id, {}).get("voltage", NAN)
-	var vee = circuit.electrical_nodes.get(vee_node_id, {}).get("voltage", NAN)
-	var vp = circuit.electrical_nodes.get(vp_node_id, {}).get("voltage", NAN)
-	var vn = circuit.electrical_nodes.get(vn_node_id, {}).get("voltage", NAN)
-	
+	var idx_vcc = node_map_iter.get(vcc_node_id, -1)
+	var idx_vee = node_map_iter.get(vee_node_id, -1)
+	var idx_vp = node_map_iter.get(vp_node_id, -1)
+	var idx_vn = node_map_iter.get(vn_node_id, -1)
+
+	var vcc = x_iter[idx_vcc] if idx_vcc != -1 else (0.0 if vcc_node_id == circuit.ground_node_id else NAN)
+	var vee = x_iter[idx_vee] if idx_vee != -1 else (0.0 if vee_node_id == circuit.ground_node_id else NAN)
+	var vp = x_iter[idx_vp] if idx_vp != -1 else (0.0 if vp_node_id == circuit.ground_node_id else NAN)
+	var vn = x_iter[idx_vn] if idx_vn != -1 else (0.0 if vn_node_id == circuit.ground_node_id else NAN)
+
 	var gain = comp_data.properties.open_loop_gain
 	var sat_drop = comp_data.properties.rail_saturation_voltage
-	
+
 	var previous_region = comp_data.properties.operating_region
 	var new_region = previous_region
 
@@ -81,7 +89,7 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, _x_ite
 	else:
 		var v_diff = vp - vn
 		var ideal_out = v_diff * gain
-		
+
 		if ideal_out > vcc - sat_drop:
 			new_region = "SAT_HIGH"
 		elif ideal_out < vee + sat_drop:

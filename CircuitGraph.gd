@@ -499,12 +499,8 @@ func solve_single_time_step(delta_time: float) -> bool:
 		for comp_data_item in components:
 			var component_node = comp_data_item.component_node # Renamed 'node' to 'component_node' for clarity
 			if is_instance_valid(component_node) and component_node.has_method("update_nonlinear_state"):
-				# Assuming CircuitGraph might store these if needed by components like PowerSource
-				# self._current_iteration_solution = x 
-				# self._current_iteration_vs_map = active_vs_map_iter
-				# self._current_iteration_node_map = node_map_iter
-				# self._current_iteration_inductor_map = inductor_map_iter
-				if component_node.update_nonlinear_state(self, comp_data_item, x, active_vs_map_iter): # Pass x and active_vs_map_iter
+				# Pass the full set of maps for this iteration's solution vector.
+				if component_node.update_nonlinear_state(self, comp_data_item, x, node_map_iter, active_vs_map_iter):
 					state_changed_this_iteration = true
 
 		if not state_changed_this_iteration and not x.is_empty():
