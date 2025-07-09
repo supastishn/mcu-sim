@@ -133,11 +133,17 @@ func stamp(A, b, node_map, vs_map, inductor_map, terminal_connections, comp_data
 		if idx_vn != -1: A[idx_opamp][idx_vn] = gain
 		b[idx_opamp] = 0.0
 	elif region == "SAT_HIGH":
-		# Vout = Vcc - sat_drop  => Vout - Vcc = -sat_drop
+		# Vout = Vcc - sat_drop. Model with a very small series resistance for numerical stability.
+		# Vout - Vcc + R_sat * I_out = -sat_drop
+		var R_sat = 1e-6
+		A[idx_opamp][idx_opamp] += R_sat
 		if idx_vcc != -1: A[idx_opamp][idx_vcc] = -1.0
 		b[idx_opamp] = -sat_drop
 	elif region == "SAT_LOW":
-		# Vout = Vee + sat_drop => Vout - Vee = sat_drop
+		# Vout = Vee + sat_drop. Model with a very small series resistance for numerical stability.
+		# Vout - Vee + R_sat * I_out = sat_drop
+		var R_sat = 1e-6
+		A[idx_opamp][idx_opamp] += R_sat
 		if idx_vee != -1: A[idx_opamp][idx_vee] = -1.0
 		b[idx_opamp] = sat_drop
 	else: # OFF
