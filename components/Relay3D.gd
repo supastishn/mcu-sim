@@ -89,22 +89,25 @@ func show_info(results: Dictionary):
 			mat.albedo_color = Color(0.4, 0.4, 0.5, 1)
 			mesh_instance.material_override = mat
 
-func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, _x_iter = null, _vs_map_iter = null) -> bool:
+func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter: Array, node_map_iter: Dictionary, _vs_map_iter: Dictionary) -> bool:
+	if x_iter.is_empty():
+		return false
+
 	var term_vcc_relay = comp_data.terminals["VCC"]
 	var term_gnd_relay = comp_data.terminals["GND"]
 	var term_sig_relay = comp_data.terminals["Signal"]
-	
+
 	var node_vcc_id = circuit.terminal_connections.get(term_vcc_relay.get_instance_id(), -1)
 	var node_gnd_id = circuit.terminal_connections.get(term_gnd_relay.get_instance_id(), -1)
 	var node_sig_id = circuit.terminal_connections.get(term_sig_relay.get_instance_id(), -1)
 
-	var V_vcc = NAN
-	if circuit.electrical_nodes.has(node_vcc_id): V_vcc = circuit.electrical_nodes[node_vcc_id].voltage
-	var V_gnd = NAN
-	if circuit.electrical_nodes.has(node_gnd_id): V_gnd = circuit.electrical_nodes[node_gnd_id].voltage
-	var V_sig = NAN
-	if circuit.electrical_nodes.has(node_sig_id): V_sig = circuit.electrical_nodes[node_sig_id].voltage
-	
+	var idx_vcc = node_map_iter.get(node_vcc_id, -1)
+	var idx_gnd = node_map_iter.get(node_gnd_id, -1)
+	var idx_sig = node_map_iter.get(node_sig_id, -1)
+	var V_vcc = x_iter[idx_vcc] if idx_vcc != -1 else (0.0 if node_vcc_id == circuit.ground_node_id else NAN)
+	var V_gnd = x_iter[idx_gnd] if idx_gnd != -1 else (0.0 if node_gnd_id == circuit.ground_node_id else NAN)
+	var V_sig = x_iter[idx_sig] if idx_sig != -1 else (0.0 if node_sig_id == circuit.ground_node_id else NAN)
+
 	var sig_threshold_relay = comp_data.properties["signal_voltage_threshold"]
 	var previous_energized_state = comp_data.properties["is_energized"]
 	var new_energized_state = previous_energized_state
@@ -118,9 +121,9 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, _x_ite
 
 		var signal_is_high_enough = actual_signal_voltage >= (sig_threshold_relay - 1e-5)
 		var vcc_is_sufficient = actual_vcc_supply_voltage >= vcc_min_voltage_for_operation
-		
+
 		new_energized_state = signal_is_high_enough and vcc_is_sufficient
-	
+
 	if new_energized_state != previous_energized_state:
 		comp_data.properties["is_energized"] = new_energized_state
 		return true

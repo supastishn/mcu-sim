@@ -62,15 +62,20 @@ func reset_visual_state():
 	hide_info()
 
 # MNA Functions
-func update_nonlinear_state(circuit, comp_data, x_iter, vs_map_iter)->bool:
+func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter: Array, node_map_iter: Dictionary, _vs_map_iter: Dictionary) -> bool:
+	if x_iter.is_empty():
+		return false
+
 	var term_vin_id = terminal_vin.get_instance_id()
 	var term_vout_id = terminal_vout.get_instance_id()
-	var vin_node = circuit.terminal_connections.get(term_vin_id, -1)
-	var vout_node = circuit.terminal_connections.get(term_vout_id, -1)
-	
-	var v_vin = circuit.electrical_nodes.get(vin_node, {}).get("voltage", NAN)
-	var v_vout = circuit.electrical_nodes.get(vout_node, {}).get("voltage", NAN)
-	
+	var vin_node_id = circuit.terminal_connections.get(term_vin_id, -1)
+	var vout_node_id = circuit.terminal_connections.get(term_vout_id, -1)
+
+	var idx_vin = node_map_iter.get(vin_node_id, -1)
+	var idx_vout = node_map_iter.get(vout_node_id, -1)
+	var v_vin = x_iter[idx_vin] if idx_vin != -1 else (0.0 if vin_node_id == circuit.ground_node_id else NAN)
+	var v_vout = x_iter[idx_vout] if idx_vout != -1 else (0.0 if vout_node_id == circuit.ground_node_id else NAN)
+
 	var new_status: String
 	if is_nan(v_vin) or is_nan(v_vout):
 		new_status = "DISCONNECTED"
@@ -80,7 +85,7 @@ func update_nonlinear_state(circuit, comp_data, x_iter, vs_map_iter)->bool:
 			new_status = "DROPOUT"
 		else:
 			new_status = "REGULATED"
-	
+
 	if comp_data.properties.get("status") != new_status:
 		comp_data.properties["status"] = new_status
 		return true

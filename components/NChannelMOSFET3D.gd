@@ -148,7 +148,10 @@ func gather_sim_results(
 	circuit.component_results[comp_id]["region"] = region_nmos_calc
 	#endregion
 
-func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, _x_iter = null, _vs_map_iter = null) -> bool:
+func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter: Array, node_map_iter: Dictionary, _vs_map_iter: Dictionary) -> bool:
+	if x_iter.is_empty():
+		return false
+
 	var term_d_nmos = comp_data.terminals["D"]
 	var term_g_nmos = comp_data.terminals["G"]
 	var term_s_nmos = comp_data.terminals["S"]
@@ -156,13 +159,13 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, _x_ite
 	var node_g_id_nmos = circuit.terminal_connections.get(term_g_nmos.get_instance_id(), -1)
 	var node_s_id_nmos = circuit.terminal_connections.get(term_s_nmos.get_instance_id(), -1)
 
-	var Vd_nmos = NAN
-	if circuit.electrical_nodes.has(node_d_id_nmos): Vd_nmos = circuit.electrical_nodes[node_d_id_nmos].voltage
-	var Vg_nmos = NAN
-	if circuit.electrical_nodes.has(node_g_id_nmos): Vg_nmos = circuit.electrical_nodes[node_g_id_nmos].voltage
-	var Vs_nmos = NAN
-	if circuit.electrical_nodes.has(node_s_id_nmos): Vs_nmos = circuit.electrical_nodes[node_s_id_nmos].voltage
-	
+	var idx_d = node_map_iter.get(node_d_id_nmos, -1)
+	var idx_g = node_map_iter.get(node_g_id_nmos, -1)
+	var idx_s = node_map_iter.get(node_s_id_nmos, -1)
+	var Vd_nmos = x_iter[idx_d] if idx_d != -1 else (0.0 if node_d_id_nmos == circuit.ground_node_id else NAN)
+	var Vg_nmos = x_iter[idx_g] if idx_g != -1 else (0.0 if node_g_id_nmos == circuit.ground_node_id else NAN)
+	var Vs_nmos = x_iter[idx_s] if idx_s != -1 else (0.0 if node_s_id_nmos == circuit.ground_node_id else NAN)
+
 	var vt_nmos_model = comp_data.properties["threshold_voltage"]
 	var previous_region_nmos = comp_data.properties["operating_region"]
 	var new_region_nmos = previous_region_nmos
@@ -173,7 +176,7 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, _x_ite
 		var Vgs_nmos = Vg_nmos - Vs_nmos
 		var Vds_nmos = Vd_nmos - Vs_nmos
 		var vgs_vt_diff = Vgs_nmos - vt_nmos_model
-		
+
 		if Vgs_nmos <= vt_nmos_model: 
 			new_region_nmos = "OFF"
 		else: 
@@ -181,7 +184,7 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, _x_ite
 				new_region_nmos = "TRIODE"
 			else: 
 				new_region_nmos = "SATURATION"
-	
+
 	if new_region_nmos != previous_region_nmos:
 		comp_data.properties["operating_region"] = new_region_nmos
 		return true

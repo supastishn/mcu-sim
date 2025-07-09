@@ -132,17 +132,20 @@ func gather_sim_results(
 	circuit.component_results[comp_id]["state"] = state_z
 	#endregion
 
-func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, _x_iter = null, _vs_map_iter = null) -> bool:
+func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter: Array, node_map_iter: Dictionary, _vs_map_iter: Dictionary) -> bool:
+	if x_iter.is_empty():
+		return false
+
 	var term_a_z = comp_data.terminals["A"]
 	var term_k_z = comp_data.terminals["K"]
 	var node_a_id_z = circuit.terminal_connections.get(term_a_z.get_instance_id(), -1)
 	var node_k_id_z = circuit.terminal_connections.get(term_k_z.get_instance_id(), -1)
-	
-	var Va_z = NAN
-	if circuit.electrical_nodes.has(node_a_id_z): Va_z = circuit.electrical_nodes[node_a_id_z].voltage
-	var Vk_z = NAN
-	if circuit.electrical_nodes.has(node_k_id_z): Vk_z = circuit.electrical_nodes[node_k_id_z].voltage
-	
+
+	var idx_a = node_map_iter.get(node_a_id_z, -1)
+	var idx_k = node_map_iter.get(node_k_id_z, -1)
+	var Va_z = x_iter[idx_a] if idx_a != -1 else (0.0 if node_a_id_z == circuit.ground_node_id else NAN)
+	var Vk_z = x_iter[idx_k] if idx_k != -1 else (0.0 if node_k_id_z == circuit.ground_node_id else NAN)
+
 	var Vf_z_model = comp_data.properties["forward_voltage"]
 	var Vz_model = comp_data.properties["zener_voltage"] 
 	var previous_state_z = comp_data.properties["operating_state"]
@@ -161,7 +164,7 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, _x_ite
 			new_state_z = "ZENER"
 		else: 
 			new_state_z = "OFF"
-	
+
 	if new_state_z != previous_state_z:
 		comp_data.properties["operating_state"] = new_state_z
 		return true

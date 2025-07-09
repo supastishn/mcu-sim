@@ -169,7 +169,10 @@ func gather_sim_results(
 	circuit.component_results[comp_id]["region"] = region_pnp_calc
 	#endregion
 
-func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, _x_iter = null, _vs_map_iter = null) -> bool:
+func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter: Array, node_map_iter: Dictionary, _vs_map_iter: Dictionary) -> bool:
+	if x_iter.is_empty():
+		return false
+
 	var term_e_pnp = comp_data.terminals["E"]
 	var term_b_pnp = comp_data.terminals["B"]
 	var term_c_pnp = comp_data.terminals["C"]
@@ -177,13 +180,13 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, _x_ite
 	var node_b_id_pnp = circuit.terminal_connections.get(term_b_pnp.get_instance_id(), -1)
 	var node_c_id_pnp = circuit.terminal_connections.get(term_c_pnp.get_instance_id(), -1)
 
-	var Ve_pnp = NAN
-	if circuit.electrical_nodes.has(node_e_id_pnp): Ve_pnp = circuit.electrical_nodes[node_e_id_pnp].voltage
-	var Vb_pnp = NAN
-	if circuit.electrical_nodes.has(node_b_id_pnp): Vb_pnp = circuit.electrical_nodes[node_b_id_pnp].voltage
-	var Vc_pnp = NAN
-	if circuit.electrical_nodes.has(node_c_id_pnp): Vc_pnp = circuit.electrical_nodes[node_c_id_pnp].voltage
-	
+	var idx_e = node_map_iter.get(node_e_id_pnp, -1)
+	var idx_b = node_map_iter.get(node_b_id_pnp, -1)
+	var idx_c = node_map_iter.get(node_c_id_pnp, -1)
+	var Ve_pnp = x_iter[idx_e] if idx_e != -1 else (0.0 if node_e_id_pnp == circuit.ground_node_id else NAN)
+	var Vb_pnp = x_iter[idx_b] if idx_b != -1 else (0.0 if node_b_id_pnp == circuit.ground_node_id else NAN)
+	var Vc_pnp = x_iter[idx_c] if idx_c != -1 else (0.0 if node_c_id_pnp == circuit.ground_node_id else NAN)
+
 	var veb_on_pnp_model = comp_data.properties["veb_on"]
 	var vec_sat_pnp_model = comp_data.properties["vec_sat"]
 	var previous_region_pnp = comp_data.properties["operating_region"]
@@ -195,7 +198,7 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, _x_ite
 		var Veb_pnp = Ve_pnp - Vb_pnp 
 		var Vec_pnp = Ve_pnp - Vc_pnp 
 		var veb_tolerance_pnp = 1e-5
-		
+
 		if Veb_pnp < (veb_on_pnp_model - veb_tolerance_pnp): 
 			new_region_pnp = "OFF"
 		else: 
@@ -204,7 +207,7 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, _x_ite
 				new_region_pnp = "SATURATION"
 			else: 
 				new_region_pnp = "ACTIVE"
-	
+
 	if new_region_pnp != previous_region_pnp:
 		comp_data.properties["operating_region"] = new_region_pnp
 		return true

@@ -73,16 +73,21 @@ func reset_visual_state():
 	hide_info()
 
 # ---------- NON-LINEAR REGION EVAL ----------
-func update_nonlinear_state(circuit, comp_data, _x_iter=null, _vs_map_iter=null)->bool:
-	var Vs = circuit.electrical_nodes.get(
-		circuit.terminal_connections.get(terminal_s.get_instance_id(),-1),{}
-		).get("voltage",NAN)
-	var Vg = circuit.electrical_nodes.get(
-		circuit.terminal_connections.get(terminal_g.get_instance_id(),-1),{}
-		).get("voltage",NAN)
-	var Vd = circuit.electrical_nodes.get(
-		circuit.terminal_connections.get(terminal_d.get_instance_id(),-1),{}
-		).get("voltage",NAN)
+func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter: Array, node_map_iter: Dictionary, _vs_map_iter: Dictionary) -> bool:
+	if x_iter.is_empty():
+		return false
+
+	var node_s_id = circuit.terminal_connections.get(terminal_s.get_instance_id(), -1)
+	var node_g_id = circuit.terminal_connections.get(terminal_g.get_instance_id(), -1)
+	var node_d_id = circuit.terminal_connections.get(terminal_d.get_instance_id(), -1)
+
+	var idx_s = node_map_iter.get(node_s_id, -1)
+	var idx_g = node_map_iter.get(node_g_id, -1)
+	var idx_d = node_map_iter.get(node_d_id, -1)
+
+	var Vs = x_iter[idx_s] if idx_s != -1 else (0.0 if node_s_id == circuit.ground_node_id else NAN)
+	var Vg = x_iter[idx_g] if idx_g != -1 else (0.0 if node_g_id == circuit.ground_node_id else NAN)
+	var Vd = x_iter[idx_d] if idx_d != -1 else (0.0 if node_d_id == circuit.ground_node_id else NAN)
 
 	var prev = comp_data.properties["operating_region"]
 	var reg  = prev
