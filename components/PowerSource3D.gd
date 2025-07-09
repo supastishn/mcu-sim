@@ -78,8 +78,9 @@ func hide_current():
 	if not current_label: return
 	current_label.visible = false
 
-func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter: Array, vs_map_iter: Dictionary) -> bool:
+func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter: Array, node_map_iter: Dictionary, vs_map_iter: Dictionary) -> bool:
 	# x_iter is the current iteration's solution vector (circuit._current_iteration_solution)
+	# node_map_iter is the current iteration's node map (circuit._current_iteration_node_map)
 	# vs_map_iter is the current iteration's voltage source map (circuit._current_iteration_vs_map)
 	# These would need to be set by CircuitGraph.solve_single_time_step before calling this.
 
@@ -102,15 +103,18 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 					comp_data.properties.cc_current_direction_sign = sign(current_supplied_by_ps) # Store direction for CC mode
 	
 	elif previous_op_mode == "CC":
+		if x_iter.is_empty():
+			return false
+
 		var term_p_ps = comp_data.terminals["POS"]
 		var term_n_ps = comp_data.terminals["NEG"]
 		var node_p_id_ps = circuit.terminal_connections.get(term_p_ps.get_instance_id(), -1)
 		var node_n_id_ps = circuit.terminal_connections.get(term_n_ps.get_instance_id(), -1)
 		
-		var Vp_ps = NAN
-		if circuit.electrical_nodes.has(node_p_id_ps): Vp_ps = circuit.electrical_nodes[node_p_id_ps].voltage
-		var Vn_ps = NAN
-		if circuit.electrical_nodes.has(node_n_id_ps): Vn_ps = circuit.electrical_nodes[node_n_id_ps].voltage
+		var idx_p = node_map_iter.get(node_p_id_ps, -1)
+		var idx_n = node_map_iter.get(node_n_id_ps, -1)
+		var Vp_ps = x_iter[idx_p] if idx_p != -1 else (0.0 if node_p_id_ps == circuit.ground_node_id else NAN)
+		var Vn_ps = x_iter[idx_n] if idx_n != -1 else (0.0 if node_n_id_ps == circuit.ground_node_id else NAN)
 		
 		if not is_nan(Vp_ps) and not is_nan(Vn_ps):
 			var V_across_cc = Vp_ps - Vn_ps
