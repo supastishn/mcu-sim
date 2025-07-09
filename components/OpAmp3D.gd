@@ -144,15 +144,19 @@ func stamp(A, b, node_map, vs_map, inductor_map, terminal_connections, comp_data
 		# Vout = Vcc - sat_drop. Model with a very small series resistance for numerical stability.
 		# Vout - Vcc + R_sat * I_out = -sat_drop
 		var R_sat = 1e-6
-		A[idx_opamp][idx_opamp] += R_sat
-		if idx_vcc != -1: A[idx_opamp][idx_vcc] = -1.0
+		A[idx_opamp][idx_opamp] += R_sat # I_out term
+		if idx_vcc != -1:
+			A[idx_opamp][idx_vcc] = -1.0 # Vcc term in constitutive eq
+			A[idx_vcc][idx_opamp] = -1.0 # KCL at Vcc node
 		b[idx_opamp] = -sat_drop
 	elif region == "SAT_LOW":
 		# Vout = Vee + sat_drop. Model with a very small series resistance for numerical stability.
 		# Vout - Vee + R_sat * I_out = sat_drop
 		var R_sat = 1e-6
-		A[idx_opamp][idx_opamp] += R_sat
-		if idx_vee != -1: A[idx_opamp][idx_vee] = -1.0
+		A[idx_opamp][idx_opamp] += R_sat # I_out term
+		if idx_vee != -1:
+			A[idx_opamp][idx_vee] = -1.0 # Vee term in constitutive eq
+			A[idx_vee][idx_opamp] = -1.0 # KCL at Vee node
 		b[idx_opamp] = sat_drop
 	else: # OFF
 		b[idx_opamp] = 0.0
