@@ -1,8 +1,8 @@
 [gd_scene load_steps=8 format=3 uid="uid://dpw6y11e3b5g3"]
 
-[ext_resource type="Script" path="res://components/OpAmp3D.gd" id="1_opampgd"]
-[ext_resource type="Script" path="res://components/TerminalFeedback.gd" id="2_termfb"]
-[ext_resource type="Material" path="res://components/Resistor3D.tres" id="3_termmat"]
+[ext_resource type="Script" uid="uid://c156c1n21fuu8" path="res://components/OpAmp3D.gd" id="1_opampgd"]
+[ext_resource type="Script" uid="uid://bhe7bl46uj0jq" path="res://components/TerminalFeedback.gd" id="2_termfb"]
+[ext_resource type="Material" uid="uid://cv6f3hveepm7a" path="res://components/Resistor3D.tres" id="3_termmat"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_body"]
 size = Vector3(0.4, 0.15, 0.5)
