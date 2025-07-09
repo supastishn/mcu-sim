@@ -327,6 +327,18 @@ func test_op_amp_inverting_amplifier() -> bool:
 		var expected_sat_volt = ps_vee.target_voltage + opamp.rail_saturation_voltage
 		if not TestUtils.assert_approx_equals(results_sat.get("Vout", NAN), expected_sat_volt, 0.1, "Op-Amp Vout is saturated low"): ok = false
 
+	print("  Op-Amp Test: Inverting Amplifier (High Saturation)")
+	ps_vin.target_voltage = -2.0 # This should drive output to +20V, which will saturate
+	rig.cfg(ps_vin)
+
+	if not rig.solve(): ok = false
+	if ok:
+		var results_sat_high = rig.results(opamp)
+		if not TestUtils.assert_equals(results_sat_high.get("region"), "SAT_HIGH", "Op-Amp is in SAT_HIGH region"): ok = false
+
+		var expected_sat_high_volt = ps_vcc.target_voltage - opamp.rail_saturation_voltage
+		if not TestUtils.assert_approx_equals(results_sat_high.get("Vout", NAN), expected_sat_high_volt, 0.1, "Op-Amp Vout is saturated high"): ok = false
+
 	rig.cleanup()
 	return ok
 

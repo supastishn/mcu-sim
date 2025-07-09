@@ -111,6 +111,8 @@ func stamp(A, b, node_map, vs_map, inductor_map, terminal_connections, comp_data
 	var idx_vp = node_map.get(vp_node_id, -1)
 	var idx_vn = node_map.get(vn_node_id, -1)
 	var idx_vout = node_map.get(vout_node_id, -1)
+	var idx_vcc = node_map.get(vcc_node_id, -1)
+	var idx_vee = node_map.get(vee_node_id, -1)
 	
 	# High input impedance (tiny conductance between inputs)
 	var G_in = 1e-12
@@ -131,13 +133,13 @@ func stamp(A, b, node_map, vs_map, inductor_map, terminal_connections, comp_data
 		if idx_vn != -1: A[idx_opamp][idx_vn] = gain
 		b[idx_opamp] = 0.0
 	elif region == "SAT_HIGH":
-		# Vout = Vcc - sat_drop
-		var vcc_voltage = comp_data.circuit_ref.electrical_nodes.get(vcc_node_id, {}).get("voltage", 0.0)
-		b[idx_opamp] = vcc_voltage - sat_drop
+		# Vout = Vcc - sat_drop  => Vout - Vcc = -sat_drop
+		if idx_vcc != -1: A[idx_opamp][idx_vcc] = -1.0
+		b[idx_opamp] = -sat_drop
 	elif region == "SAT_LOW":
-		# Vout = Vee + sat_drop
-		var vee_voltage = comp_data.circuit_ref.electrical_nodes.get(vee_node_id, {}).get("voltage", 0.0)
-		b[idx_opamp] = vee_voltage + sat_drop
+		# Vout = Vee + sat_drop => Vout - Vee = sat_drop
+		if idx_vee != -1: A[idx_opamp][idx_vee] = -1.0
+		b[idx_opamp] = sat_drop
 	else: # OFF
 		b[idx_opamp] = 0.0
 
