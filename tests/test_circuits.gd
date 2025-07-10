@@ -1665,14 +1665,12 @@ func test_pmosfet_regions() -> bool:
 	rig.ground(ps_s_off.terminal_neg)
 
 	if not rig.solve(): ok = false
-	print("Solve: ", ok)
 	var res = rig.results(pmos_off)
-	print_debug("    OFF solve → region=%s , Id=%s"
-				% [res.get("region","N/A"), str(res.get("Id", NAN))])
+	var region_str = res.get("region", "N/A")
+	var id_val = res.get("Id", NAN)
+	print_debug("    OFF solve → region=" + region_str + " , Id=" + str(id_val))
 	if not TestUtils.assert_equals(res.get("region",""), "OFF", "PMOS Test (OFF): Region is OFF"): ok = false
-	print('Region? ', ok)
 	if not TestUtils.assert_approx_equals(res.get("Id",0.0), 0.0, 1e-6, "PMOS Test (OFF): Id ~ 0"): ok = false
-	print("Id ?", ok)
 	# ---- TRIODE ----
 	rig.reset_graph()
 	var ps_s_tr : PowerSource3D     = rig.add(ed.PowerSourceScene)
@@ -1693,14 +1691,12 @@ func test_pmosfet_regions() -> bool:
 	rig.ground(ps_s_tr.terminal_neg)
 
 	if not rig.solve(): ok = false
-	print('Triode: ', ok)
 	res = rig.results(pmos_tr)
-	print_debug("    TRIODE solve → region=%s , Id=%s"
-				% [res.get("region","N/A"), str(res.get("Id", NAN))])
+	region_str = res.get("region", "N/A")
+	id_val = res.get("Id", NAN)
+	print_debug("    TRIODE solve → region=" + region_str + " , Id=" + str(id_val))
 	if not TestUtils.assert_equals(res.get("region",""), "TRIODE", "PMOS Test (TRI): Region is TRIODE"): ok = false
-	print('Region? ', ok)
 	if not TestUtils.assert_true(res.get("Id", NAN) > 0, "PMOS Test (TRI): Id > 0 (D->S current)"): ok = false
-	print("Id?", ok)
 	# ---- SATURATION ----
 	rig.reset_graph()
 	var ps_s_sat : PowerSource3D     = rig.add(ed.PowerSourceScene)
@@ -1718,14 +1714,12 @@ func test_pmosfet_regions() -> bool:
 	rig.ground(ps_s_sat.terminal_neg)
 	print('test')
 	if not rig.solve(): ok = false
-	print('Saturation solve: ', ok)
 	res = rig.results(pmos_sat)
-	print_debug("    SAT solve → region=%s , Id=%s"
-				% [res.get("region","N/A"), str(res.get("Id", NAN))])
+	region_str = res.get("region", "N/A")
+	id_val = res.get("Id", NAN)
+	print_debug("    SAT solve → region=" + region_str + " , Id=" + str(id_val))
 	if not TestUtils.assert_equals(res.get("region",""), "SATURATION", "PMOS Test (SAT): Region is SATURATION"): ok = false
-	print('Region? ', ok)
 	if not TestUtils.assert_true(res.get("Id", NAN) > 0, "PMOS Test (SAT): Id > 0 (D->S current)"): ok = false
-	print("Id?", ok)
 	rig.cleanup()
 	return ok
 func test_linear_regulator_normal() -> bool:
