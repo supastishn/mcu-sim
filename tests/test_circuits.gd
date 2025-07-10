@@ -287,14 +287,14 @@ func test_op_amp_inverting_amplifier() -> bool:
 	var r_f: Resistor3D = rig.add(ed.ResistorScene, Vector3(1,0,-1))
 
 	ps_vcc.target_voltage = 15.0; rig.cfg(ps_vcc)
-	ps_vee.target_voltage = -15.0; rig.cfg(ps_vee)
+	ps_vee.target_voltage = 15.0; rig.cfg(ps_vee)
 	ps_vin.target_voltage = 1.0; rig.cfg(ps_vin)
 	r_in.resistance = 1000.0; rig.cfg(r_in)
 	r_f.resistance = 10000.0; rig.cfg(r_f)
 	
 	# Powering the Op-Amp
 	rig.wire(opamp.terminal_vcc, ps_vcc.terminal_pos)
-	rig.wire(opamp.terminal_vee, ps_vee.terminal_pos) # Positive terminal of VEE source to get negative voltage
+	rig.wire(opamp.terminal_vee, ps_vee.terminal_neg) # Connect to negative terminal of VEE source
 
 	# Feedback loop and input signal
 	rig.wire(ps_vin.terminal_pos, r_in.terminal1)
@@ -304,7 +304,7 @@ func test_op_amp_inverting_amplifier() -> bool:
 	
 	# Ground connections
 	rig.ground(ps_vcc.terminal_neg)
-	rig.wire(ps_vee.terminal_neg, ps_vcc.terminal_neg)
+	rig.wire(ps_vee.terminal_pos, ps_vcc.terminal_neg) # Ground the positive terminal of VEE source
 	rig.wire(ps_vin.terminal_neg, ps_vcc.terminal_neg)
 	rig.wire(opamp.terminal_vp, ps_vcc.terminal_neg)
 
@@ -324,7 +324,7 @@ func test_op_amp_inverting_amplifier() -> bool:
 		var results_sat = rig.results(opamp)
 		if not TestUtils.assert_equals(results_sat.get("region"), "SAT_LOW", "Op-Amp is in SAT_LOW region"): ok = false
 		
-		var expected_sat_volt = ps_vee.target_voltage + opamp.rail_saturation_voltage
+		var expected_sat_volt = -ps_vee.target_voltage + opamp.rail_saturation_voltage
 		if not TestUtils.assert_approx_equals(results_sat.get("Vout", NAN), expected_sat_volt, 0.1, "Op-Amp Vout is saturated low"): ok = false
 
 	print("  Op-Amp Test: Inverting Amplifier (High Saturation)")
