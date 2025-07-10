@@ -112,6 +112,13 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 		else:
 			new_region = "LINEAR"
 
+	# Dampening: Prevent direct jumps between saturation states.
+	# This forces the solver to try the LINEAR model for an iteration,
+	# giving it a chance to converge instead of oscillating.
+	if (previous_region == "SAT_HIGH" and new_region == "SAT_LOW") or \
+	   (previous_region == "SAT_LOW" and new_region == "SAT_HIGH"):
+		new_region = "LINEAR"
+
 	if new_region != previous_region:
 		comp_data.properties["operating_region"] = new_region
 		return true
@@ -171,7 +178,12 @@ func stamp(A: Array, b: Array, node_map: Dictionary, vs_map: Dictionary, _induct
 			A[idx_i_out][idx_vee] = -1.0
 		b[idx_i_out] = rail_sat_v
 	else: # OFF or if Vout is not connected
-		# KVL: i_out = 0 (high impedance output)
+		# Model as a large resistor to ground to prevent floating node and aid convergence
+		var G_off = 1.0e-9 # 1 GigaOhm
+		if idx_vout != -1:
+			A[idx_vout][idx_vout] += G_off
+		
+		# Also force i_out to be zero as it's not contributing
 		A[idx_i_out][idx_i_out] = 1.0
 		b[idx_i_out] = 0.0
 
