@@ -39,7 +39,7 @@ mesh = SubResource("SphereMesh_terminal_vis")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
 visible = false
 billboard = 1
-text = "Negative Input"
+text = "Inverting Input"
 font_size = 20
 
 [node name="TerminalVp" type="Area3D" parent="."]
@@ -58,7 +58,7 @@ mesh = SubResource("SphereMesh_terminal_vis")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
 visible = false
 billboard = 1
-text = "Positive Input"
+text = "Non-inverting Input"
 font_size = 20
 
 [node name="TerminalVout" type="Area3D" parent="."]

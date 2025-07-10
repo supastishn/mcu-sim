@@ -75,65 +75,52 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 
 	var term_vp = comp_data.terminals["Vp"]
 	var term_vn = comp_data.terminals["Vn"]
-	var term_vout = comp_data.terminals["Vout"]
 	var term_vcc = comp_data.terminals["Vcc"]
 	var term_vee = comp_data.terminals["Vee"]
 
 	var node_vp_id = circuit.terminal_connections.get(term_vp.get_instance_id(), -1)
 	var node_vn_id = circuit.terminal_connections.get(term_vn.get_instance_id(), -1)
-	var node_vout_id = circuit.terminal_connections.get(term_vout.get_instance_id(), -1)
 	var node_vcc_id = circuit.terminal_connections.get(term_vcc.get_instance_id(), -1)
 	var node_vee_id = circuit.terminal_connections.get(term_vee.get_instance_id(), -1)
 
 	var idx_vp = node_map_iter.get(node_vp_id, -1)
 	var idx_vn = node_map_iter.get(node_vn_id, -1)
-	var idx_vout = node_map_iter.get(node_vout_id, -1)
 	var idx_vcc = node_map_iter.get(node_vcc_id, -1)
 	var idx_vee = node_map_iter.get(node_vee_id, -1)
 
 	var Vp = x_iter[idx_vp] if idx_vp != -1 else (0.0 if node_vp_id == circuit.ground_node_id else NAN)
 	var Vn = x_iter[idx_vn] if idx_vn != -1 else (0.0 if node_vn_id == circuit.ground_node_id else NAN)
-	var Vout = x_iter[idx_vout] if idx_vout != -1 else (0.0 if node_vout_id == circuit.ground_node_id else NAN)
 	var Vcc = x_iter[idx_vcc] if idx_vcc != -1 else (0.0 if node_vcc_id == circuit.ground_node_id else NAN)
 	var Vee = x_iter[idx_vee] if idx_vee != -1 else (0.0 if node_vee_id == circuit.ground_node_id else NAN)
 
 	var previous_region = comp_data.properties["operating_region"]
 	var new_region = previous_region
 
-	if is_nan(Vp) or is_nan(Vn) or is_nan(Vout) or is_nan(Vcc) or is_nan(Vee):
+	if is_nan(Vp) or is_nan(Vn) or is_nan(Vcc) or is_nan(Vee):
 		new_region = "OFF"
 	else:
 		var rail_sat_v = comp_data.properties["rail_saturation_voltage"]
-		var sat_high_threshold = Vcc - rail_sat_v
-		var sat_low_threshold = Vee + rail_sat_v
+		var v_diff = Vp - Vn
+		var vout_ideal = v_diff * open_loop_gain
+		var v_sat_high = Vcc - rail_sat_v
+		var v_sat_low = Vee + rail_sat_v
 
-		if previous_region == "LINEAR":
-			if Vout >= sat_high_threshold - 1e-6:
+		if previous_region == "SAT_HIGH" and v_diff < 0: # Condition to leave high saturation
+			new_region = "LINEAR"
+		elif previous_region == "SAT_LOW" and v_diff > 0: # Condition to leave low saturation
+			new_region = "LINEAR"
+		else: # Default check for entering saturation or staying linear/OFF
+			if vout_ideal >= v_sat_high:
 				new_region = "SAT_HIGH"
-			elif Vout <= sat_low_threshold + 1e-6:
+			elif vout_ideal <= v_sat_low:
 				new_region = "SAT_LOW"
-		elif previous_region == "SAT_HIGH":
-			if Vp <= Vn: # Condition to leave high saturation
-				new_region = "LINEAR"
-		elif previous_region == "SAT_LOW":
-			if Vp >= Vn: # Condition to leave low saturation
-				new_region = "LINEAR"
-		else: # Was OFF, initial check
-			var v_diff_for_check = Vp - Vn
-			var gain_for_check = open_loop_gain
-			if gain_for_check > 1e-9:
-				if v_diff_for_check > (sat_high_threshold / gain_for_check):
-					new_region = "SAT_HIGH"
-				elif v_diff_for_check < (sat_low_threshold / gain_for_check):
-					new_region = "SAT_LOW"
-				else:
-					new_region = "LINEAR"
 			else:
 				new_region = "LINEAR"
 
 	if new_region != previous_region:
 		comp_data.properties["operating_region"] = new_region
 		return true
+	
 	return false
 
 func stamp(A: Array, b: Array, node_map: Dictionary, vs_map: Dictionary, _inductor_map: Dictionary, terminal_connections: Dictionary, comp_data: Dictionary, _delta_time: float):
