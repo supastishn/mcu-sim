@@ -105,17 +105,12 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 		var v_sat_high = Vcc - rail_sat_v
 		var v_sat_low = Vee + rail_sat_v
 
-		if previous_region == "SAT_HIGH" and v_diff < 0: # Condition to leave high saturation
+		if vout_ideal >= v_sat_high:
+			new_region = "SAT_HIGH"
+		elif vout_ideal <= v_sat_low:
+			new_region = "SAT_LOW"
+		else:
 			new_region = "LINEAR"
-		elif previous_region == "SAT_LOW" and v_diff > 0: # Condition to leave low saturation
-			new_region = "LINEAR"
-		else: # Default check for entering saturation or staying linear/OFF
-			if vout_ideal >= v_sat_high:
-				new_region = "SAT_HIGH"
-			elif vout_ideal <= v_sat_low:
-				new_region = "SAT_LOW"
-			else:
-				new_region = "LINEAR"
 
 	if new_region != previous_region:
 		comp_data.properties["operating_region"] = new_region
