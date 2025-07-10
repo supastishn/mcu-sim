@@ -129,6 +129,8 @@ func stamp(A: Array, b: Array, node_map: Dictionary, vs_map: Dictionary, _induct
 	var idx_vp = node_map.get(terminal_connections.get(terminal_vp.get_instance_id(), -1), -1)
 	var idx_vn = node_map.get(terminal_connections.get(terminal_vn.get_instance_id(), -1), -1)
 	var idx_vout = node_map.get(terminal_connections.get(terminal_vout.get_instance_id(), -1), -1)
+	var idx_vcc = node_map.get(terminal_connections.get(terminal_vcc.get_instance_id(), -1), -1)
+	var idx_vee = node_map.get(terminal_connections.get(terminal_vee.get_instance_id(), -1), -1)
 
 	# Input terminals have very high impedance (ideal op-amp)
 	# Add a very small conductance to ground to prevent floating nodes if inputs are unconnected.
@@ -141,13 +143,6 @@ func stamp(A: Array, b: Array, node_map: Dictionary, vs_map: Dictionary, _induct
 		A[idx_vout][idx_i_out] = 1.0 # Current leaving Vout node
 
 	var region = comp_data.properties["operating_region"]
-	var circuit = comp_data.get("circuit_ref")
-
-	if not is_instance_valid(circuit):
-		# Fallback for OFF if circuit ref not available
-		A[idx_i_out][idx_i_out] = 1.0
-		b[idx_i_out] = 0.0
-		return
 
 	if region == "LINEAR":
 		var gain = comp_data.properties["open_loop_gain"]
@@ -158,20 +153,18 @@ func stamp(A: Array, b: Array, node_map: Dictionary, vs_map: Dictionary, _induct
 		b[idx_i_out] = 0.0
 	elif region == "SAT_HIGH":
 		var rail_sat_v = comp_data.properties["rail_saturation_voltage"]
-		var node_vcc_lookup = terminal_connections.get(terminal_vcc.get_instance_id(), -1)
-		var Vcc_prev = circuit.electrical_nodes.get(node_vcc_lookup, {}).get("voltage", 15.0)
-		if is_nan(Vcc_prev): Vcc_prev = 15.0
-		# KVL: Vout = Vcc_prev - rail_sat_v
+		# KVL: Vout - Vcc = -rail_sat_v
 		A[idx_i_out][idx_vout] = 1.0
-		b[idx_i_out] = Vcc_prev - rail_sat_v
+		if idx_vcc != -1:
+			A[idx_i_out][idx_vcc] = -1.0
+		b[idx_i_out] = -rail_sat_v
 	elif region == "SAT_LOW":
 		var rail_sat_v = comp_data.properties["rail_saturation_voltage"]
-		var node_vee_lookup = terminal_connections.get(terminal_vee.get_instance_id(), -1)
-		var Vee_prev = circuit.electrical_nodes.get(node_vee_lookup, {}).get("voltage", -15.0)
-		if is_nan(Vee_prev): Vee_prev = -15.0
-		# KVL: Vout = Vee_prev + rail_sat_v
+		# KVL: Vout - Vee = rail_sat_v
 		A[idx_i_out][idx_vout] = 1.0
-		b[idx_i_out] = Vee_prev + rail_sat_v
+		if idx_vee != -1:
+			A[idx_i_out][idx_vee] = -1.0
+		b[idx_i_out] = rail_sat_v
 	else: # OFF or if Vout is not connected
 		# KVL: i_out = 0 (high impedance output)
 		A[idx_i_out][idx_i_out] = 1.0

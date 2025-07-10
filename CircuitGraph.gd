@@ -201,7 +201,6 @@ func add_component(component: Node3D):
 		component_data.terminals["Vout"] = component.terminal_vout
 		component_data.terminals["Vcc"] = component.terminal_vcc
 		component_data.terminals["Vee"] = component.terminal_vee
-		component_data["circuit_ref"] = self # Pass a reference for state updates
 
 	for term_name in component_data.terminals:
 		var terminal = component_data.terminals[term_name]
