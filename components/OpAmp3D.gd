@@ -146,10 +146,15 @@ func stamp(A: Array, b: Array, node_map: Dictionary, vs_map: Dictionary, _induct
 
 	if region == "LINEAR":
 		var gain = comp_data.properties["open_loop_gain"]
-		# KVL: Vout - gain * (Vp - Vn) = 0
-		A[idx_i_out][idx_vout] = 1.0
-		if idx_vp != -1:   A[idx_i_out][idx_vp] = -gain
-		if idx_vn != -1:   A[idx_i_out][idx_vn] = gain
+		# KVL: Vout = gain * (Vp - Vn)
+		# Reformulated for better numerical stability: Vp - Vn - Vout/gain = 0
+		if gain > 1e-9: # Avoid division by zero
+			A[idx_i_out][idx_vout] = -1.0 / gain
+		else: # Treat as ideal op-amp with infinite gain
+			A[idx_i_out][idx_vout] = 0.0
+
+		if idx_vp != -1:   A[idx_i_out][idx_vp] = 1.0
+		if idx_vn != -1:   A[idx_i_out][idx_vn] = -1.0
 		b[idx_i_out] = 0.0
 	elif region == "SAT_HIGH":
 		var rail_sat_v = comp_data.properties["rail_saturation_voltage"]
