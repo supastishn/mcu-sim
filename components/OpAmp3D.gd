@@ -130,36 +130,46 @@ func stamp(A, b, node_map, vs_map, inductor_map, terminal_connections, comp_data
 		A[idx_vp][idx_vn] -= G_in
 		A[idx_vn][idx_vp] -= G_in
 
-	# Output stamping
-	if idx_vout != -1:
-		A[idx_vout][idx_opamp] = 1.0
-		A[idx_opamp][idx_vout] = 1.0
-	
+	# Output stamping is now fully conditional for each region
 	if region == "LINEAR":
-		# Vout = gain * (Vp - Vn)  => Vout - gain*Vp + gain*Vn = 0
+		# Model: VCVS Vout = gain * (Vp - Vn), referenced to ground.
+		# KCL at Vout, and constitutive equation for the source.
+		if idx_vout != -1:
+			A[idx_vout][idx_opamp] = 1.0
+			A[idx_opamp][idx_vout] = 1.0
 		if idx_vp != -1: A[idx_opamp][idx_vp] = -gain
 		if idx_vn != -1: A[idx_opamp][idx_vn] = gain
 		b[idx_opamp] = 0.0
 	elif region == "SAT_HIGH":
-		# Vout = Vcc - sat_drop. Model with a very small series resistance for numerical stability.
-		# Vout - Vcc + R_sat * I_out = -sat_drop
+		# Model: Voltage source Vout - Vcc = -sat_drop
 		var R_sat = 1e-6
-		A[idx_opamp][idx_opamp] += R_sat # I_out term
+		A[idx_opamp][idx_opamp] += R_sat
+		if idx_vout != -1:
+			A[idx_vout][idx_opamp] = 1.0
+			A[idx_opamp][idx_vout] = 1.0
 		if idx_vcc != -1:
-			A[idx_opamp][idx_vcc] = -1.0 # Vcc term in constitutive eq
-			A[idx_vcc][idx_opamp] = -1.0 # KCL at Vcc node
+			A[idx_vcc][idx_opamp] = -1.0
+			A[idx_opamp][idx_vcc] = -1.0
 		b[idx_opamp] = -sat_drop
 	elif region == "SAT_LOW":
-		# Vout = Vee + sat_drop. Model with a very small series resistance for numerical stability.
-		# Vout - Vee + R_sat * I_out = sat_drop
+		# Model: Voltage source Vout - Vee = sat_drop
 		var R_sat = 1e-6
-		A[idx_opamp][idx_opamp] += R_sat # I_out term
+		A[idx_opamp][idx_opamp] += R_sat
+		if idx_vout != -1:
+			A[idx_vout][idx_opamp] = 1.0
+			A[idx_opamp][idx_vout] = 1.0
 		if idx_vee != -1:
-			A[idx_opamp][idx_vee] = -1.0 # Vee term in constitutive eq
-			A[idx_vee][idx_opamp] = -1.0 # KCL at Vee node
+			A[idx_vee][idx_opamp] = -1.0
+			A[idx_opamp][idx_vee] = -1.0
 		b[idx_opamp] = sat_drop
 	else: # OFF
-		b[idx_opamp] = 0.0
+		# Model as 0V source with high series resistance.
+		var R_off = 1e9
+		if idx_vout != -1:
+			A[idx_vout][idx_opamp] = 1.0 # KCL at Vout
+			A[idx_opamp][idx_vout] = 1.0 # Constitutive eq
+		A[idx_opamp][idx_opamp] = R_off  # Constitutive eq
+		b[idx_opamp] = 0.0              # Constitutive eq
 
 func gather_sim_results(circuit, comp_data, x, node_map, vs_map, inductor_map, delta_time):
 	var comp_id = self.get_instance_id()
