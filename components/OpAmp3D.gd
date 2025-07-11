@@ -97,8 +97,8 @@ func update_nonlinear_state(
 	inductor_map: Dictionary,
 	delta_time: float
 ) -> bool:
-	# Helper to get voltage at a terminal
-	func get_voltage(terminal: Area3D) -> float:
+	# Helper to get voltage at a terminal (lambda assigned to variable)
+	var get_voltage = func(terminal: Area3D) -> float:
 		var node_id = graph.terminal_connections.get(terminal.get_instance_id(), -1)
 		if node_id == -1:
 			return 0.0
@@ -108,11 +108,11 @@ func update_nonlinear_state(
 				return x[idx]
 		return 0.0
 
-	var v_vee = get_voltage(terminal_vee)
-	var v_vp = get_voltage(terminal_vp)
-	var v_vn = get_voltage(terminal_vn)
-	var v_vcc = get_voltage(terminal_vcc)
-	var vout = get_voltage(terminal_vout)
+	var v_vee = get_voltage.call(terminal_vee)
+	var v_vp = get_voltage.call(terminal_vp)
+	var v_vn = get_voltage.call(terminal_vn)
+	var v_vcc = get_voltage.call(terminal_vcc)
+	var vout = get_voltage.call(terminal_vout)
 
 	var linear_vout = open_loop_gain * (v_vp - v_vn)
 	var rail_high = v_vcc - rail_saturation_voltage
