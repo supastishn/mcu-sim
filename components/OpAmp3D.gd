@@ -147,14 +147,15 @@ func stamp(
 	# KVL: Equation for the controlled source
 
 	if region == "LINEAR" or region == "OFF": # Treat OFF as linear for first iteration
-		# Use ideal op-amp behavior for stamping (Vp = Vn) to improve numerical stability.
-		# The state detection in update_nonlinear_state still uses the high-gain
-		# model to determine when to enter/leave saturation.
-		# KVL equation for ideal op-amp: Vp - Vn = 0
+		# Vout = G * (Vp - Vn)  =>  Vp - Vn - Vout/G = 0
+		# This form is more numerically stable than the one with large gain factors.
+		var gain = comp_data.properties["open_loop_gain"]
 		if vp_idx != -1:
 			A[vs_idx][vp_idx] = 1.0
 		if vn_idx != -1:
 			A[vs_idx][vn_idx] = -1.0
+		if vout_idx != -1:
+			A[vs_idx][vout_idx] = -1.0 / gain
 		b[vs_idx] = 0.0
 	elif region == "SAT_HIGH":
 		var sat_drop = comp_data.properties["rail_saturation_voltage"]
