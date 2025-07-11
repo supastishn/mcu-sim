@@ -661,6 +661,30 @@ func _build_mna_system(delta_time: float) -> Dictionary:
 				delta_time
 			)
 			
+	# --- BEGIN KCL PATCH FOR OP-AMP ---
+	# This corrects a bug in the OpAmp's stamp method where it fails to add
+	# its output current to the KCL equation of its output node.
+	for comp_data_item in components:
+		if comp_data_item.type == "OpAmp":
+			var opamp_id = comp_data_item.component_node.get_instance_id()
+			if not active_vs_id_to_matrix_index.has(opamp_id): continue
+
+			var i_opamp_idx = active_vs_id_to_matrix_index[opamp_id]
+
+			var vout_term = comp_data_item.terminals.get("Vout")
+			if not is_instance_valid(vout_term): continue
+			
+			var vout_node_id = terminal_connections.get(vout_term.get_instance_id(), -1)
+			if not node_id_to_matrix_index.has(vout_node_id): continue
+
+			var vout_idx = node_id_to_matrix_index[vout_node_id]
+			
+			# The op-amp is a ground-referenced VCVS. Its current should be
+			# added to the KCL sum of its single output node.
+			if vout_idx != -1 and i_opamp_idx != -1:
+				A[vout_idx][i_opamp_idx] += 1.0
+	# --- END KCL PATCH FOR OP-AMP ---
+
 	_needs_rebuild = false
 	return { "A": A, "b": b, "node_map": node_id_to_matrix_index, "vs_map": active_vs_id_to_matrix_index, "inductor_map": inductor_id_to_matrix_index }
 
