@@ -30,7 +30,7 @@ func _cleanup_components_and_graph(editor_script: CircuitEditor3D, graph_script:
 func _ready():
 	run_from_cli()
 
-async func run_from_cli():
+func run_from_cli():
 	print_rich("[b]Starting Circuit Simulation Tests...[/b]")
 	var results = await run_all_tests()
 	print_rich("[b]All tests completed.[/b]")
@@ -46,11 +46,11 @@ async func run_from_cli():
 
 	get_tree().quit()
 
-async func run_tests_from_ui():
+func run_tests_from_ui():
 	var results = await run_all_tests()
 	emit_signal("tests_completed", results)
 
-async func run_all_tests() -> Dictionary:
+func run_all_tests() -> Dictionary:
 	var local_total_tests = 0
 	var local_passed_tests = 0
 	var local_failed_test_names: Array[String] = []
