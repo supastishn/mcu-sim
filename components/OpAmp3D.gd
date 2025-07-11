@@ -78,15 +78,17 @@ func update_nonlinear_state(
 		Vcc = Vee
 		Vee = temp
 
-	var ideal_vout = comp_data.properties.open_loop_gain * (Vp - Vn)
-	
-	var high_rail = Vcc - comp_data.properties.rail_saturation_voltage
-	var low_rail = Vee + comp_data.properties.rail_saturation_voltage
-	
+	var gain = comp_data.properties["open_loop_gain"]
+	var ideal_vout = gain * (Vp - Vn)
+
+	var rail_drop = comp_data.properties["rail_saturation_voltage"]
+	var high_rail = Vcc - rail_drop
+	var low_rail  = Vee + rail_drop
+
 	print_debug("  -> ideal_vout={iv}, high_rail={hr}, low_rail={lr}".format({
 		"iv": ideal_vout, "hr": high_rail, "lr": low_rail
 	}))
-	
+
 	var new_region = ""
 	if ideal_vout > high_rail:
 		new_region = "SAT_HIGH"
@@ -95,12 +97,12 @@ func update_nonlinear_state(
 	else:
 		new_region = "LINEAR"
 
-	var previous_region = comp_data.properties.get("operating_region", "OFF")
+	var previous_region = comp_data.properties["operating_region"]
 	if new_region != previous_region:
 		print_debug("  -> Region change: {pr} -> {nr}".format({"pr": previous_region, "nr": new_region}))
-		comp_data.properties.operating_region = new_region
+		comp_data.properties["operating_region"] = new_region
 		return true # State changed
-	
+
 	print_debug("  -> Region stable: {r}".format({"r": new_region}))
 	return false # State did not change
 
@@ -127,26 +129,25 @@ func stamp(
 	var vee_idx = node_map.get(vee_node_id, -1)
 	
 	var vs_idx = vs_map.get(self.get_instance_id(), -1)
-	var region = comp_data.properties.operating_region
+	var region = comp_data.properties["operating_region"]
 	print_debug("OpAmp({name}) stamp: region={r}, Vout_idx={vo_idx}, Vp_idx={vp_idx}, Vn_idx={vn_idx}, I_idx={vs_idx}".format({
 		"name": self.name, "r": region, "vo_idx": vout_idx, "vp_idx": vp_idx, "vn_idx": vn_idx, "vs_idx": vs_idx
 	}))
 	if vs_idx == -1:
 		printerr("OpAmp stamp error: component not found in vs_map.")
 		return
-		
+
 	# KCL: Current through OpAmp output terminal
 	if vout_idx != -1:
 		print_debug("  -> Stamping KCL for Vout node (idx {vo_idx}) with opamp current (idx {vs_idx})".format({
 			"vo_idx": vout_idx, "vs_idx": vs_idx
 		}))
 		A[vout_idx][vs_idx] += 1.0
-		
+
 	# KVL: Equation for the controlled source
-	var sat_drop = comp_data.properties.rail_saturation_voltage
-	
+
 	if region == "LINEAR" or region == "OFF": # Treat OFF as linear for first iteration
-		var gain = comp_data.properties.open_loop_gain
+		var gain = comp_data.properties["open_loop_gain"]
 		print_debug("  -> Stamping KVL for LINEAR region. Gain={g}".format({"g": gain}))
 		# Vout = gain * (Vp - Vn)  =>  Vout - gain*Vp + gain*Vn = 0
 		if vout_idx != -1: A[vs_idx][vout_idx] = 1.0
@@ -154,12 +155,14 @@ func stamp(
 		if vn_idx != -1: A[vs_idx][vn_idx] = gain
 		b[vs_idx] = 0.0
 	elif region == "SAT_HIGH":
+		var sat_drop = comp_data.properties["rail_saturation_voltage"]
 		print_debug("  -> Stamping KVL for SAT_HIGH region.")
 		# Vout = Vcc - sat_drop => Vout - Vcc = -sat_drop
 		if vout_idx != -1: A[vs_idx][vout_idx] = 1.0
 		if vcc_idx != -1: A[vs_idx][vcc_idx] = -1.0
 		b[vs_idx] = -sat_drop
 	elif region == "SAT_LOW":
+		var sat_drop = comp_data.properties["rail_saturation_voltage"]
 		print_debug("  -> Stamping KVL for SAT_LOW region.")
 		# Vout = Vee + sat_drop => Vout - Vee = sat_drop
 		if vout_idx != -1: A[vs_idx][vout_idx] = 1.0
