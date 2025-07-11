@@ -303,10 +303,11 @@ func test_op_amp_inverting_amplifier() -> bool:
 	rig.wire(r_f.terminal2, opamp.terminal_vout)
 	
 	# Ground connections
-	rig.ground(ps_vcc.terminal_neg)
-	rig.wire(ps_vee.terminal_pos, ps_vcc.terminal_neg) # Ground the positive terminal of VEE source
-	rig.wire(ps_vin.terminal_neg, ps_vcc.terminal_neg)
-	rig.wire(opamp.terminal_vp, ps_vcc.terminal_neg)
+	# Centralize ground on op-amp's non-inverting input for clarity
+	rig.ground(opamp.terminal_vp)
+	rig.wire(ps_vcc.terminal_neg, opamp.terminal_vp)
+	rig.wire(ps_vee.terminal_pos, opamp.terminal_vp)
+	rig.wire(ps_vin.terminal_neg, opamp.terminal_vp)
 
 	if not rig.solve(): ok = false
 	if ok:
