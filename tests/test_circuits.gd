@@ -6,9 +6,7 @@ const CircuitEditorScene = preload("res://CircuitEditor3D.tscn")  # legacy tests
 const PChannelMOSFETScene = preload("res://components/PChannelMOSFET3D.tscn")   # optional
 const OpAmpScene = preload("res://components/OpAmp3D.tscn")
 
-var total_tests = 0
-var passed_tests = 0
-var failed_test_names: Array[String] = []
+signal tests_completed(results: Dictionary)
 
 func _cleanup_components_and_graph(editor_script: CircuitEditor3D, graph_script: CircuitGraph) -> void:
 	var nodes := []
@@ -30,178 +28,188 @@ func _cleanup_components_and_graph(editor_script: CircuitEditor3D, graph_script:
 	graph_script._needs_rebuild = true
 
 func _ready():
+	run_from_cli()
+
+async func run_from_cli():
 	print_rich("[b]Starting Circuit Simulation Tests...[/b]")
-	await run_all_tests()
+	var results = await run_all_tests()
 	print_rich("[b]All tests completed.[/b]")
-	print_rich("[b]Summary: {p}/{t} tests passed.[/b]".format({"p": passed_tests, "t": total_tests}))
-	
-	if passed_tests == total_tests:
+	print_rich("[b]Summary: {p}/{t} tests passed.[/b]".format({"p": results.passed, "t": results.total}))
+
+	if results.passed == results.total:
 		print_rich("[color=green]All tests successful![/color]")
 	else:
 		printerr("\n[b][color=red]----- FAILED TESTS ----- [/color][/b]")
-		for failed_test_name in failed_test_names:
+		for failed_test_name in results.failed_names:
 			printerr("  - {name}".format({"name": failed_test_name}))
-		printerr("\n{f} test(s) failed overall.".format({"f": total_tests - passed_tests}))
-	
-	get_tree().quit() 
+		printerr("\n{f} test(s) failed overall.".format({"f": results.total - results.passed}))
 
+	get_tree().quit()
 
-func run_all_tests():
+async func run_tests_from_ui():
+	var results = await run_all_tests()
+	emit_signal("tests_completed", results)
+
+async func run_all_tests() -> Dictionary:
+	var local_total_tests = 0
+	var local_passed_tests = 0
+	var local_failed_test_names: Array[String] = []
+
 	var test1_name = "Test: Simple PowerSupply, Resistor, LED Circuit"
 	print_rich("\n[b]{name}[/b]".format({"name": test1_name}))
-	total_tests += 1
+	local_total_tests += 1
 	if await test_simple_powersupply_resistor_led_circuit():
-		passed_tests += 1
+		local_passed_tests += 1
 	else:
-		failed_test_names.push_back(test1_name)
+		local_failed_test_names.push_back(test1_name)
 
 	var test2_name = "Test: LED Burnout Scenario"
 	print_rich("\n[b]{name}[/b]".format({"name": test2_name}))
-	total_tests += 1
+	local_total_tests += 1
 	if await test_led_burnout():
-		passed_tests += 1
+		local_passed_tests += 1
 	else:
-		failed_test_names.push_back(test2_name)
+		local_failed_test_names.push_back(test2_name)
 		
 	var test3_name = "Test: LED Not Lighting (High Resistance)"
 	print_rich("\n[b]{name}[/b]".format({"name": test3_name}))
-	total_tests += 1
+	local_total_tests += 1
 	if await test_led_not_lighting():
-		passed_tests += 1
+		local_passed_tests += 1
 	else:
-		failed_test_names.push_back(test3_name)
+		local_failed_test_names.push_back(test3_name)
 
 	var test4_name = "Test: Switch NC and NO Operation"
 	print_rich("\n[b]{name}[/b]".format({"name": test4_name}))
-	total_tests += 1
+	local_total_tests += 1
 	if await test_switch_behavior():
-		passed_tests += 1
+		local_passed_tests += 1
 	else:
-		failed_test_names.push_back(test4_name)
+		local_failed_test_names.push_back(test4_name)
 
 	var test5_name = "Test: Diode Forward and Reverse Bias"
 	print_rich("\n[b]{name}[/b]".format({"name": test5_name}))
-	total_tests += 1
+	local_total_tests += 1
 	if await test_diode_behavior():
-		passed_tests += 1
+		local_passed_tests += 1
 	else:
-		failed_test_names.push_back(test5_name)
+		local_failed_test_names.push_back(test5_name)
 
 	var test6_name = "Test: Potentiometer Wiper Voltage Division"
 	print_rich("\n[b]{name}[/b]".format({"name": test6_name}))
-	total_tests += 1
+	local_total_tests += 1
 	if await test_potentiometer_behavior():
-		passed_tests += 1
+		local_passed_tests += 1
 	else:
-		failed_test_names.push_back(test6_name)
+		local_failed_test_names.push_back(test6_name)
 
 	var test7_name = "Test: Battery Voltage Output with Different Cell Counts"
 	print_rich("\n[b]{name}[/b]".format({"name": test7_name}))
-	total_tests += 1
+	local_total_tests += 1
 	if await test_battery_behavior():
-		passed_tests += 1
+		local_passed_tests += 1
 	else:
-		failed_test_names.push_back(test7_name)
+		local_failed_test_names.push_back(test7_name)
 		
 	var test8_name = "Test: Polarized Capacitor Charging and Explosion"
 	print_rich("\n[b]{name}[/b]".format({"name": test8_name}))
-	total_tests += 1
+	local_total_tests += 1
 	if await test_polarized_capacitor_behavior(): 
-		passed_tests += 1
+		local_passed_tests += 1
 	else:
-		failed_test_names.push_back(test8_name)
+		local_failed_test_names.push_back(test8_name)
 
 	var test9_name = "Test: Non-Polarized Capacitor Charging"
 	print_rich("\n[b]{name}[/b]".format({"name": test9_name}))
-	total_tests += 1
+	local_total_tests += 1
 	if await test_non_polarized_capacitor_behavior(): 
-		passed_tests += 1
+		local_passed_tests += 1
 	else:
-		failed_test_names.push_back(test9_name)
+		local_failed_test_names.push_back(test9_name)
 
 	var test10_name = "Test: Inductor Current Behavior"
 	print_rich("\n[b]{name}[/b]".format({"name": test10_name}))
-	total_tests += 1
+	local_total_tests += 1
 	if await test_inductor_behavior(): 
-		passed_tests += 1
+		local_passed_tests += 1
 	else:
-		failed_test_names.push_back(test10_name)
+		local_failed_test_names.push_back(test10_name)
 
 	var test11_name = "Test: NPN BJT Operating Regions"
 	print_rich("\n[b]{name}[/b]".format({"name": test11_name}))
-	total_tests += 1
+	local_total_tests += 1
 	if await test_npn_bjt_regions(): 
-		passed_tests += 1
+		local_passed_tests += 1
 	else:
-		failed_test_names.push_back(test11_name)
+		local_failed_test_names.push_back(test11_name)
 
 	var test12_name = "Test: PNP BJT Operating Regions"
 	print_rich("\n[b]{name}[/b]".format({"name": test12_name}))
-	total_tests += 1
+	local_total_tests += 1
 	if await test_pnp_bjt_regions():
-		passed_tests += 1
+		local_passed_tests += 1
 	else:
-		failed_test_names.push_back(test12_name)
+		local_failed_test_names.push_back(test12_name)
 
 	var test13_name = "Test: Zener Diode Forward, Reverse, and Breakdown"
 	print_rich("\n[b]{name}[/b]".format({"name": test13_name}))
-	total_tests += 1
+	local_total_tests += 1
 	if await test_zener_diode_behavior():
-		passed_tests += 1
+		local_passed_tests += 1
 	else:
-		failed_test_names.push_back(test13_name)
+		local_failed_test_names.push_back(test13_name)
 
 	var test_mos_name = "Test: N-Channel MOSFET Operating Regions"
 	print_rich("\n[b]{name}[/b]".format({"name": test_mos_name}))
-	total_tests += 1
+	local_total_tests += 1
 	if await test_nmosfet_regions():
-		passed_tests += 1
+		local_passed_tests += 1
 	else:
-		failed_test_names.push_back(test_mos_name)
+		local_failed_test_names.push_back(test_mos_name)
 
 	var test_pmos_name = "Test: P-Channel MOSFET Operating Regions"
 	print_rich("\n[b]{name}[/b]".format({"name": test_pmos_name}))
-	total_tests += 1
+	local_total_tests += 1
 	if await test_pmosfet_regions():
-		passed_tests += 1
+		local_passed_tests += 1
 	else:
 		print('oop')
-		failed_test_names.push_back(test_pmos_name)
+		local_failed_test_names.push_back(test_pmos_name)
 
 	var test14_name = "Test: Relay Energized and De-energized States"
 	print_rich("\n[b]{name}[/b]".format({"name": test14_name}))
-	total_tests += 1
+	local_total_tests += 1
 	if await test_relay_behavior():
-		passed_tests += 1
+		local_passed_tests += 1
 	else:
-		failed_test_names.push_back(test14_name)
+		local_failed_test_names.push_back(test14_name)
 
 	# --- Linear Regulator tests ---
 	var test15_name = "Test: Linear Regulator Normal Operation"
 	print_rich("\n[b]{name}[/b]".format({"name": test15_name}))
-	total_tests += 1
+	local_total_tests += 1
 	if await test_linear_regulator_normal():
-		passed_tests += 1
+		local_passed_tests += 1
 	else:
-		failed_test_names.push_back(test15_name)
+		local_failed_test_names.push_back(test15_name)
 
 	var test16_name = "Test: Linear Regulator Dropout Scenario"
 	print_rich("\n[b]{name}[/b]".format({"name": test16_name}))
-	total_tests += 1
+	local_total_tests += 1
 	if await test_linear_regulator_dropout():
-		passed_tests += 1
+		local_passed_tests += 1
 	else:
-		failed_test_names.push_back(test16_name)
+		local_failed_test_names.push_back(test16_name)
 
 	var test17_name = "Test: Op-Amp Inverting Amplifier"
 	print_rich("\n[b]{name}[/b]".format({"name": test17_name}))
-	total_tests += 1
+	local_total_tests += 1
 	if await test_op_amp_inverting_amplifier():
-		passed_tests += 1
+		local_passed_tests += 1
 	else:
-		failed_test_names.push_back(test17_name)
+		local_failed_test_names.push_back(test17_name)
 
-
+	return { "total": local_total_tests, "passed": local_passed_tests, "failed_names": local_failed_test_names }
 
 func test_simple_powersupply_resistor_led_circuit() -> bool:
 	var overall_test_passed = true
