@@ -418,7 +418,7 @@ func _reset_voltages():
 func solve_single_time_step(delta_time: float) -> bool:
 	for node_id in electrical_nodes:
 		if node_id != ground_node_id:
-			electrical_nodes[node_id].voltage = NAN
+			electrical_nodes[node_id].voltage = 0.0
 		else:
 			electrical_nodes[node_id].voltage = 0.0 
 	component_results.clear() 
