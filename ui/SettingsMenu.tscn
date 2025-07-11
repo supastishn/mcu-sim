@@ -42,6 +42,11 @@ custom_minimum_size = Vector2(150, 0)
 layout_mode = 2
 text = "Back"
 
+[node name="BetaFeaturesCheckButton" type="CheckButton" parent="VBoxContainer"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+text = "Enable Beta Components"
+
 [node name="RunTestsButton" type="Button" parent="VBoxContainer"]
 custom_minimum_size = Vector2(150, 0)
 layout_mode = 2
@@ -86,4 +91,5 @@ text = "Test results will appear here..."
 fit_content = true
 
 [connection signal="pressed" from="VBoxContainer/BackButton" to="." method="_on_back_button_pressed"]
+[connection signal="toggled" from="VBoxContainer/BetaFeaturesCheckButton" to="." method="_on_beta_features_check_button_toggled"]
 [connection signal="pressed" from="VBoxContainer/RunTestsButton" to="." method="_on_run_tests_button_pressed"]

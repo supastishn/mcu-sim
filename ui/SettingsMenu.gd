@@ -6,6 +6,12 @@ var test_runner_instance: Node = null
 @onready var run_tests_button: Button = $VBoxContainer/RunTestsButton
 @onready var results_panel: Panel = $ResultsPanel
 @onready var results_label: RichTextLabel = $ResultsPanel/MarginContainer/ScrollContainer/ResultsLabel
+@onready var beta_features_check_button: CheckButton = $VBoxContainer/BetaFeaturesCheckButton
+
+const BETA_COMPONENTS_SETTING = "mcu_sim/features/enable_beta_components"
+
+func _ready():
+	beta_features_check_button.button_pressed = ProjectSettings.get_setting(BETA_COMPONENTS_SETTING, false)
 
 func _on_back_button_pressed():
 	results_panel.visible = false
@@ -25,6 +31,9 @@ func _on_run_tests_button_pressed():
 
 	test_runner_instance.run_tests_from_ui()
 
+func _on_beta_features_check_button_toggled(button_pressed: bool):
+	ProjectSettings.set_setting(BETA_COMPONENTS_SETTING, button_pressed)
+	ProjectSettings.save()
 
 func _on_tests_completed(results: Dictionary):
 	var summary_text = ""

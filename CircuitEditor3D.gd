@@ -213,6 +213,10 @@ func _ready():
 
 	show_voltage_labels = false 
 
+	# Handle beta components visibility
+	var enable_beta = ProjectSettings.get_setting("mcu_sim/features/enable_beta_components", false)
+	add_op_amp_button.visible = enable_beta
+
 func _input(event):
 	
 	
