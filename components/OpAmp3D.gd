@@ -1,168 +1,127 @@
 extends Node3D
-class_name OpAmp3D
 
-var open_loop_gain := 100000.0
-var rail_saturation_voltage := 0.5
-
-@onready var terminal_vcc: Area3D = $TerminalVcc
-@onready var terminal_vee: Area3D = $TerminalVee
-@onready var terminal_vp: Area3D = $TerminalVp
-@onready var terminal_vn: Area3D = $TerminalVn
+# Terminal References
+@onready var terminal_vp  : Area3D = $TerminalVp
+@onready var terminal_vn  : Area3D = $TerminalVn
 @onready var terminal_vout: Area3D = $TerminalVout
+@onready var terminal_vcc : Area3D = $TerminalVcc
+@onready var terminal_vee : Area3D = $TerminalVee
 
-# Stamps OpAmp equations into MNA matrix
+# Properties
+@export var open_loop_gain: float = 100000.0
+@export var rail_saturation_voltage: float = 0.2
+
+func update_nonlinear_state(
+	graph: CircuitGraph, 
+	comp_data: Dictionary, 
+	x: Array, 
+	node_map: Dictionary, 
+	vs_map: Dictionary, 
+	inductor_map: Dictionary
+) -> bool:
+	var term_vp = comp_data.terminals["Vp"]
+	var term_vn = comp_data.terminals["Vn"]
+	var term_vcc = comp_data.terminals["Vcc"]
+	var term_vee = comp_data.terminals["Vee"]
+	
+	var node_id_vp = graph.terminal_connections.get(term_vp.get_instance_id(), -1)
+	var node_id_vn = graph.terminal_connections.get(term_vn.get_instance_id(), -1)
+	var node_id_vcc = graph.terminal_connections.get(term_vcc.get_instance_id(), -1)
+	var node_id_vee = graph.terminal_connections.get(term_vee.get_instance_id(), -1)
+	
+	if node_id_vp == -1 or node_id_vn == -1 or node_id_vcc == -1 or node_id_vee == -1:
+		return false
+	
+	# Get voltages
+	var vcc = graph.electrical_nodes.get(node_id_vcc, {}).get("voltage", NAN)
+	var vee = graph.electrical_nodes.get(node_id_vee, {}).get("voltage", NAN)
+	var vp = graph.electrical_nodes.get(node_id_vp, {}).get("voltage", NAN)
+	var vn = graph.electrical_nodes.get(node_id_vn, {}).get("voltage", NAN)
+	
+	# Check power validity
+	if is_nan(vcc) or is_nan(vee) or is_nan(vp) or is_nan(vn) or vcc - vee < 0.1:
+		comp_data.properties["operating_region"] = "OFF"
+		comp_data["_output_voltage"] = 0.0
+		return true
+	
+	# Determine output state
+	var linear_out = open_loop_gain * (vp - vn)
+	var vout_high = vcc - rail_saturation_voltage
+	var vout_low = vee + rail_saturation_voltage
+	
+	var new_region: String
+	var new_vout: float
+	
+	if linear_out >= vout_high:
+		new_region = "SAT_HIGH"
+		new_vout = vout_high
+	elif linear_out <= vout_low:
+		new_region = "SAT_LOW"
+		new_vout = vout_low
+	else:
+		new_region = "LINEAR"
+		new_vout = linear_out
+	
+	# Update state if changed
+	if new_region != comp_data.properties.get("operating_region") or \
+	   abs(new_vout - comp_data.get("_output_voltage", 0.0)) > 0.0001:
+		comp_data.properties["operating_region"] = new_region
+		comp_data["_output_voltage"] = new_vout
+		return true
+	
+	return false
+
 func stamp(
 	A: Array, 
-	b: Array,
-	node_map: Dictionary,
-	vs_map: Dictionary,
-	inductor_map: Dictionary,
+	b: Array, 
+	node_map: Dictionary, 
+	vs_map: Dictionary, 
+	inductor_map: Dictionary, 
 	terminal_connections: Dictionary,
-	component_data: Dictionary,
+	comp_data: Dictionary,
 	delta_time: float
 ) -> void:
-	if "operating_region" not in component_data.properties:
-		component_data.properties["operating_region"] = "OFF"
+	var output_voltage = comp_data.get("_output_voltage", 0.0)
+	var term = terminal_vout
+	var term_id = term.get_instance_id()
+	
+	# Get connected node for Vout
+	var node_id = terminal_connections.get(term_id, -1)
+	if node_id == -1: 
+		return
+	
+	# Get matrix indices
+	var n_nodes = node_map.size()
+	var vs_id = vs_map.get(get_instance_id(), -1)
+	if vs_id == -1: 
+		return
+	var idx_vout = node_map.get(node_id, -1)
+	if idx_vout == -1: 
+		return
+	
+	# Stamp as voltage source to ground
+	if not is_nan(output_voltage):
+		var col_idx = n_nodes + vs_id
+		var row_idx = n_nodes + vs_id
 		
-	var active_vs_index: int = vs_map.get(get_instance_id(), -1)
-	if active_vs_index < 0:
-		return
-	
-	var p_node_id = terminal_connections.get(terminal_vp.get_instance_id(), -1)
-	var n_node_id = terminal_connections.get(terminal_vn.get_instance_id(), -1)
-	var out_node_id = terminal_connections.get(terminal_vout.get_instance_id(), -1)
-	var vcc_node_id = terminal_connections.get(terminal_vcc.get_instance_id(), -1)
-	var vee_node_id = terminal_connections.get(terminal_vee.get_instance_id(), -1)
-	
-	if active_vs_index >= A.size():
-		return
-	if component_data.properties["operating_region"] == "LINEAR":
-		_stamp_linear(A, node_map, out_node_id, p_node_id, n_node_id, active_vs_index)
-	else:
-		_stamp_saturated(A, b, node_map, component_data, out_node_id, vcc_node_id, vee_node_id, active_vs_index)
-	
-	if node_map.has(out_node_id):
-		A[node_map[out_node_id]][active_vs_index] += 1.0
+		if col_idx < A[0].size() and row_idx < A.size():
+			# KCL for Vout node
+			A[idx_vout][col_idx] += 1.0
+			# Voltage source equation
+			A[row_idx][idx_vout] = 1.0
+			b[row_idx] = output_voltage
 
-# Helper: Stamps linear region equations
-func _stamp_linear(A: Array, node_map: Dictionary, out_node: int, p_node: int, n_node: int, vs_index: int) -> void:
-	if node_map.has(out_node):
-		A[vs_index][node_map[out_node]] = 1.0
-	if node_map.has(p_node):
-		A[vs_index][node_map[p_node]] = -open_loop_gain
-	if node_map.has(n_node):
-		A[vs_index][node_map[n_node]] = open_loop_gain
-
-# Helper: Stamps saturated region equations
-func _stamp_saturated(A: Array, b: Array, node_map: Dictionary, data: Dictionary, out_node: int, vcc: int, vee: int, vs_index: int) -> void:
-	var target_voltage = 0.0
-	if data.properties["operating_region"] == "SAT_HIGH":
-		target_voltage = 0.0
-		if node_map.has(vcc):
-			target_voltage = NAN
-		if vcc in node_map:
-			target_voltage = NAN
-		target_voltage = 0.0
-		if vcc in node_map:
-			target_voltage = NAN
-		# Actually, we need the voltage at vcc node minus rail_saturation_voltage
-		# But we don't have the voltage here, so we stamp a constraint: Vout = Vcc - rail_saturation_voltage
-		# The update_nonlinear_state will ensure the region is correct
-	else: # SAT_LOW
-		target_voltage = 0.0
-		if node_map.has(vee):
-			target_voltage = NAN
-		if vee in node_map:
-			target_voltage = NAN
-		target_voltage = 0.0
-		if vee in node_map:
-			target_voltage = NAN
-		# Actually, we need the voltage at vee node plus rail_saturation_voltage
-		# But we don't have the voltage here, so we stamp a constraint: Vout = Vee + rail_saturation_voltage
-		# The update_nonlinear_state will ensure the region is correct
-	
-	A[vs_index][vs_index] = 0.0
-	if node_map.has(out_node):
-		A[vs_index][node_map[out_node]] = 1.0
-	
-	# The actual value for b[vs_index] will be set in update_nonlinear_state, so leave as is
-
-# Updates nonlinear state based on voltages
-func update_nonlinear_state(
-	graph: Node,
-	component_data: Dictionary,
-	x: Array,
-	node_map: Dictionary,
-	vs_map: Dictionary,
-	inductor_map: Dictionary,
-	delta_time: float
-) -> bool:
-	# Helper to get voltage at a terminal (lambda assigned to variable)
-	var get_voltage = func(terminal: Area3D) -> float:
-		var node_id = graph.terminal_connections.get(terminal.get_instance_id(), -1)
-		if node_id == -1:
-			return 0.0
-		if node_map.has(node_id):
-			var idx = node_map[node_id]
-			if idx < x.size():
-				return x[idx]
-		return 0.0
-
-	var v_vee = get_voltage.call(terminal_vee)
-	var v_vp = get_voltage.call(terminal_vp)
-	var v_vn = get_voltage.call(terminal_vn)
-	var v_vcc = get_voltage.call(terminal_vcc)
-	var vout = get_voltage.call(terminal_vout)
-
-	var linear_vout = open_loop_gain * (v_vp - v_vn)
-	var rail_high = v_vcc - rail_saturation_voltage
-	var rail_low = v_vee + rail_saturation_voltage
-
-	var new_region = "LINEAR"
-	if linear_vout > rail_high:
-		new_region = "SAT_HIGH"
-	elif linear_vout < rail_low:
-		new_region = "SAT_LOW"
-
-	var changed = component_data.properties["operating_region"] != new_region
-	component_data.properties["operating_region"] = new_region
-
-	# For result reporting
-	var vout_clamped = clamp(linear_vout, rail_low, rail_high)
-	component_data["vout"] = vout_clamped
-
-	# For SAT_HIGH/SAT_LOW, set the correct b value in the matrix
-	if vs_map.has(get_instance_id()):
-		var vs_index = vs_map[get_instance_id()]
-		if new_region == "SAT_HIGH":
-			if node_map.has(terminal_vcc.get_instance_id()):
-				var idx = node_map[graph.terminal_connections.get(terminal_vcc.get_instance_id(), -1)]
-				if idx < x.size():
-					graph._build_mna_system_last_b[vs_index] = x[idx] - rail_saturation_voltage
-		elif new_region == "SAT_LOW":
-			if node_map.has(terminal_vee.get_instance_id()):
-				var idx = node_map[graph.terminal_connections.get(terminal_vee.get_instance_id(), -1)]
-				if idx < x.size():
-					graph._build_mna_system_last_b[vs_index] = x[idx] + rail_saturation_voltage
-
-	return changed
-
-# Collects simulation results for display
 func gather_sim_results(
-	graph: Node,
-	component_data: Dictionary,
+	graph: CircuitGraph,
+	comp_data: Dictionary,
 	x: Array,
 	node_map: Dictionary,
 	vs_map: Dictionary,
 	inductor_map: Dictionary,
 	delta_time: float
 ) -> void:
-	var results = {}
-	if "operating_region" in component_data.properties:
-		results["region"] = component_data.properties["operating_region"]
-		results["Vout"] = component_data.get("vout", NAN)
-		if vs_map.has(get_instance_id()):
-			var vs_index = vs_map[get_instance_id()]
-			if vs_index < x.size():
-				results["current"] = x[vs_index]
+	var results = {
+		"region": comp_data.properties.get("operating_region", "OFF"),
+		"Vout": comp_data.get("_output_voltage", 0.0)
+	}
 	graph.component_results[get_instance_id()] = results
