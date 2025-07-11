@@ -1,22 +1,32 @@
 extends Control
 
+## Preloaded script for the test runner.
 const TestCircuitsScript = preload("res://tests/test_circuits.gd")
+## Instance of the test runner node.
 var test_runner_instance: Node = null
 
+## Reference to the button that starts the test suite.
 @onready var run_tests_button: Button = $VBoxContainer/RunTestsButton
+## Reference to the panel that displays test results.
 @onready var results_panel: Panel = $ResultsPanel
+## Reference to the RichTextLabel inside the results panel.
 @onready var results_label: RichTextLabel = $ResultsPanel/MarginContainer/ScrollContainer/ResultsLabel
+## Reference to the checkbox for enabling beta components.
 @onready var beta_features_check_button: CheckButton = $VBoxContainer/BetaFeaturesCheckButton
 
+## The project setting key for enabling beta components.
 const BETA_COMPONENTS_SETTING = "mcu_sim/features/enable_beta_components"
 
+## Called when the node enters the scene tree. Initializes the beta features checkbox.
 func _ready():
 	beta_features_check_button.button_pressed = ProjectSettings.get_setting(BETA_COMPONENTS_SETTING, false)
 
+## Called when the Back button is pressed. Returns to the main menu.
 func _on_back_button_pressed():
 	results_panel.visible = false
 	get_tree().change_scene_to_file("res://ui/MainMenu.tscn")
 
+## Called when the Run Tests button is pressed. Initiates the test suite.
 func _on_run_tests_button_pressed():
 	run_tests_button.disabled = true
 	results_label.clear()
@@ -31,10 +41,12 @@ func _on_run_tests_button_pressed():
 
 	test_runner_instance.run_tests_from_ui()
 
+## Called when the Beta Features checkbox is toggled. Saves the setting.
 func _on_beta_features_check_button_toggled(button_pressed: bool):
 	ProjectSettings.set_setting(BETA_COMPONENTS_SETTING, button_pressed)
 	ProjectSettings.save()
 
+## Callback function for when the test runner completes. Displays the results.
 func _on_tests_completed(results: Dictionary):
 	var summary_text = ""
 	summary_text += "Test run complete.\n"

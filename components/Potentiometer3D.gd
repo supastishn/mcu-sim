@@ -3,21 +3,30 @@ extends Node3D
 class_name Potentiometer3D
 
 
+## Emitted when the wiper position changes, usually via the UI slider.
 signal wiper_position_changed(pot_node: Node3D, new_position: float)
 
 
+## The total resistance between terminal 1 and terminal 2, in Ohms.
 @export var total_resistance: float = 10000.0
 
 
+## The wiper's position, from 0.0 (closest to terminal 1) to 1.0 (closest to terminal 2).
 @export var wiper_position: float = 0.5 : set = set_wiper_position
 
+## Reference to the first main terminal Area3D node.
 @onready var terminal1: Area3D = $Terminal1 
+## Reference to the second main terminal Area3D node.
 @onready var terminal2: Area3D = $Terminal2 
+## Reference to the wiper terminal Area3D node.
 @onready var terminal_wiper: Area3D = $TerminalWiper 
 
+## Reference to the main body Area3D for collision detection.
 @onready var component_body: Area3D = $ComponentBody
+## Reference to the Label3D for displaying current.
 @onready var current_label: Label3D = $CurrentLabel
 
+## Called when the node enters the scene tree. Initializes the component.
 func _ready():
 	if not terminal1 or not terminal2 or not terminal_wiper:
 		printerr("Potentiometer3D requires child Area3D nodes named 'Terminal1', 'Terminal2', and 'TerminalWiper'.")
@@ -30,6 +39,7 @@ func _ready():
 	set_wiper_position(wiper_position)
 
 
+## Sets the wiper position, clamps it between 0.0 and 1.0, and emits a signal.
 func set_wiper_position(new_pos: float):
 	var clamped_pos = clampf(new_pos, 0.0, 1.0)
 	if not is_equal_approx(wiper_position, clamped_pos): 
@@ -45,6 +55,7 @@ func set_wiper_position(new_pos: float):
 
 
 
+## Displays the calculated currents flowing through the two resistive segments of the potentiometer.
 func show_current(current_t1_w: float, current_w_t2: float):
 	if not current_label: return
 	
@@ -63,12 +74,14 @@ func show_current(current_t1_w: float, current_w_t2: float):
 	current_label.text = "I(T1-W): {val1}\nI(W-T2): {val2}".format({"val1": str_t1_w, "val2": str_w_t2})
 	current_label.visible = true
 
+## Hides the current display label.
 func hide_current():
 	if not current_label: return
 	current_label.visible = false
 
 # -------------------------------------------------------------------------
 # MNA‐stamping interface
+## Stamps the two resistances of the potentiometer model into the MNA matrix.
 func stamp(
 	A: Array,
 	b: Array, # Unused by Potentiometer
@@ -118,6 +131,7 @@ func stamp(
 
 # -----------------------------------------------------------------
 # Simulation-results extraction
+## Extracts and stores the currents flowing through the potentiometer's resistive segments.
 func gather_sim_results(
 		circuit      : CircuitGraph,
 		comp_data    : Dictionary,

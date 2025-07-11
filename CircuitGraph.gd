@@ -3,40 +3,59 @@ extends Node
 class_name CircuitGraph
 
 const LinearSolver = preload("res://LinearSolver.gd")
+## Model resistance for a conducting LED, in Ohms.
 const R_LED_ON            := 0.1                   
+## Model resistance for a non-conducting LED, in Ohms.
 const R_LED_OFF           := 1.0e9                 
+## Model resistance for a conducting diode, in Ohms.
 const R_DIODE_ON          := R_LED_ON              
+## Model resistance for a non-conducting diode, in Ohms.
 const R_DIODE_OFF         := R_LED_OFF
+## Model resistance for a closed switch, in Ohms.
 const R_SWITCH_CLOSED     := 1e-6                  
+## Model resistance for an open switch, in Ohms.
 const R_SWITCH_OPEN       := 1.0e12                
 
+## Helper function for string formatting.
 static func fmt(t : String, d : Dictionary) -> String:
 	return t.format(d)
 
+## Voltage margin used to determine if a BJT is in saturation.
 const BJT_SATURATION_VOLTAGE_MARGIN: float = 0.05 
 
 
+## Maps terminal instance IDs to electrical node IDs.
 var terminal_connections: Dictionary = {} 
 
+## Stores data for each electrical node, including connected terminals and solved voltage.
 var electrical_nodes: Dictionary = {} 
 
+## An array containing data for each component in the circuit.
 var components: Array[Dictionary] = []
+## Stores the latest simulation results for each component, keyed by instance ID.
 var component_results: Dictionary = {}
 
+## Maps component Node3D instances to their data dictionary in the `components` array.
 var component_node_map: Dictionary = {}
 
+## The ID of the node designated as ground (0V reference).
 var ground_node_id: int = -1 
+## Flag indicating if the circuit has a valid solution from the last simulation step.
 var _is_solved: bool = false 
+## Flag indicating if the MNA system needs to be rebuilt due to circuit changes.
 var _needs_rebuild: bool = true 
 
+## A counter to generate unique electrical node IDs.
 var _next_node_id: int = 0
 
 
+## Returns a new unique ID for an electrical node.
 func _get_new_node_id() -> int:
 	_next_node_id += 1
 	return _next_node_id
 
 
+## Adds a component to the circuit graph, creating its data structure.
 func add_component(component: Node3D):
 	_is_solved = false 
 	_needs_rebuild = true
@@ -236,6 +255,7 @@ func add_component(component: Node3D):
 
 
 
+## Removes a component from the circuit graph and cleans up its terminal connections.
 func remove_component(component_node: Node3D):
 	_is_solved = false
 	_needs_rebuild = true
@@ -267,6 +287,7 @@ func remove_component(component_node: Node3D):
 
 
 
+## Connects two component terminals, merging their electrical nodes.
 func connect_terminals(terminal_a: Area3D, terminal_b: Area3D):
 	_is_solved = false 
 	_needs_rebuild = true 
@@ -302,6 +323,7 @@ func connect_terminals(terminal_a: Area3D, terminal_b: Area3D):
 			electrical_nodes.erase(node_b)
 
 
+## Designates the electrical node connected to the given terminal as the circuit's ground reference.
 func set_ground_node(terminal: Area3D):
 	_is_solved = false 
 	_needs_rebuild = true 
@@ -320,6 +342,7 @@ func set_ground_node(terminal: Area3D):
 		electrical_nodes[ground_node_id].voltage = 0.0
 
 
+## Updates the graph's internal data for a component whose properties have changed.
 func component_config_changed(component_node: Node3D):
 	_is_solved = false
 	_needs_rebuild = true
@@ -407,6 +430,7 @@ func component_config_changed(component_node: Node3D):
 
 
 
+## Resets all solved voltages and clears simulation results.
 func _reset_voltages():
 	component_results.clear() 
 	_is_solved = false
@@ -415,6 +439,7 @@ func _reset_voltages():
 
 
 
+## Solves the circuit for a single transient time step using the MNA method with a nonlinear iterative solver.
 func solve_single_time_step(delta_time: float) -> bool:
 	for node_id in electrical_nodes:
 		if node_id != ground_node_id:
@@ -567,6 +592,7 @@ func solve_single_time_step(delta_time: float) -> bool:
 
 
 
+## Builds the Modified Nodal Analysis (MNA) system matrices (A, b) and corresponding node maps for the current state of the circuit.
 func _build_mna_system(delta_time: float) -> Dictionary:
 	var non_ground_nodes: Array[int] = []
 	for node_id in electrical_nodes:
@@ -1107,6 +1133,7 @@ func _build_mna_system(delta_time: float) -> Dictionary:
 
 
 
+## Resets the 'is_burned' state of an LED component.
 func reset_led_burn_state(component_node: Node3D): 
 	for comp_data_item in components: 
 		if comp_data_item.component_node == component_node and comp_data_item.type == "LED":

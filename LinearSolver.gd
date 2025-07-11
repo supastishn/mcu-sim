@@ -7,6 +7,7 @@ class_name LinearSolver
 
 
 
+## Solves a system of linear equations Ax = b using Gaussian elimination with partial pivoting.
 static func solve(A: Array, b: Array) -> Array:
 	var n = b.size()
 	if A.size() != n:
@@ -61,6 +62,7 @@ static func solve(A: Array, b: Array) -> Array:
 	return x
 
 
+## Utility function to print a matrix to the console for debugging.
 static func print_matrix(M: Array, name: String = "Matrix"):
 	print("--- {matrix_name} ---".format({"matrix_name": name}))
 	if M.is_empty() or not M[0] is Array:
@@ -78,6 +80,7 @@ static func print_matrix(M: Array, name: String = "Matrix"):
 	print("--------------")
 
 
+## Utility function to print a vector to the console for debugging.
 static func print_vector(V: Array, name: String = "Vector"):
 	print("--- {vector_name} ---".format({"vector_name": name}))
 	var vec_str = "[ "

@@ -1,5 +1,6 @@
 class_name TestUtils
 
+## Asserts that a condition is true.
 static func assert_true(condition: bool, message: String = "") -> bool:
 	if condition:
 		print("  PASSED: {msg}".format({"msg": message if message else "Condition is true"}))
@@ -7,6 +8,7 @@ static func assert_true(condition: bool, message: String = "") -> bool:
 		printerr("  FAILED: {msg}".format({"msg": message if message else "Condition expected to be true, but was false"}))
 	return condition
 
+## Asserts that a condition is false.
 static func assert_false(condition: bool, message: String = "") -> bool:
 	if not condition:
 		print("  PASSED: {msg}".format({"msg": message if message else "Condition is false"}))
@@ -14,6 +16,7 @@ static func assert_false(condition: bool, message: String = "") -> bool:
 		printerr("  FAILED: {msg}".format({"msg": message if message else "Condition expected to be false, but was true"}))
 	return not condition
 
+## Asserts that two float values are approximately equal within a given tolerance.
 static func assert_approx_equals(actual: float, expected: float, tolerance: float, message: String = "") -> bool:
 	var are_equal = abs(actual - expected) <= tolerance
 	var msg_prefix = "Value approx. equals"
@@ -26,6 +29,7 @@ static func assert_approx_equals(actual: float, expected: float, tolerance: floa
 		printerr("  FAILED: {pfx} (Actual: {act}, Expected: {exp}, Tolerance: {tol}) - Difference: {diff}".format({"pfx": msg_prefix, "act": actual, "exp": expected, "tol": tolerance, "diff": abs(actual - expected)}))
 	return are_equal
 
+## Asserts that two values are equal.
 static func assert_equals(actual, expected, message: String = "") -> bool:
 	var are_equal = actual == expected
 	var msg_prefix = "Value equals"
@@ -38,6 +42,7 @@ static func assert_equals(actual, expected, message: String = "") -> bool:
 		printerr("  FAILED: {pfx} (Actual: {act}, Expected: {exp})".format({"pfx": msg_prefix, "act": actual, "exp": expected}))
 	return are_equal
 
+## Asserts that a float value is not NaN (Not a Number).
 static func assert_not_nan(value: float, message: String = "") -> bool:
 	var is_not_nan = not is_nan(value)
 	var msg_prefix = "Value is not NaN"

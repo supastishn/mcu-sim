@@ -3,29 +3,44 @@ extends Node3D
 class_name LED3D
 
 
+## The voltage drop across the LED when conducting, in Volts.
 @export var forward_voltage: float = 2.0
 
+## The color of the light emitted by the LED.
 @export var led_color: Color = Color.RED
 
+## The minimum forward current required for the LED to start emitting visible light, in Amperes.
 @export var min_current_to_light: float = 0.015 
 
+## The maximum forward current the LED can handle before being destroyed, in Amperes.
 @export var max_current_before_burn: float = 0.040 
 
+## The emission energy multiplier when the current is at `min_current_to_light`.
 @export var min_emission_multiplier: float = 0.5
 
+## The emission energy multiplier when the current is at or above `max_current_before_burn`.
 @export var max_emission_multiplier: float = 2.0
 
 
+## Reference to the Anode terminal Area3D node.
 @onready var terminal_anode: Area3D = $TerminalAnode 
+## Reference to the Kathode terminal Area3D node.
 @onready var terminal_kathode: Area3D = $TerminalKathode 
+## Reference to the visual representation (MeshInstance3D) of the LED.
 @onready var led_mesh_instance: MeshInstance3D = $MeshInstance3D 
+## Reference to the Label3D node for displaying the "burned" message.
 @onready var burn_label: Label3D = $BurnLabel
+## Reference to the Label3D node for displaying current flow.
 @onready var current_label: Label3D = $CurrentLabel
 
+## A copy of the LED's material when it is off.
 var _original_material: StandardMaterial3D = null
+## A copy of the LED's material, modified to emit light.
 var _lit_material: StandardMaterial3D = null
+## A flag indicating if the LED has been destroyed by excessive current.
 var is_actually_burned: bool = false 
 
+## Called when the node enters the scene tree. Initializes materials and labels.
 func _ready():
 	if not burn_label:
 		printerr("LED3D requires a child Label3D named 'BurnLabel'.")
@@ -49,6 +64,7 @@ func _ready():
 	
 	reset_visual_state() 
 
+## Updates the LED's conducting state based on the latest voltage solution from an MNA iteration.
 func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter: Array, node_map_iter: Dictionary, _vs_map_iter: Dictionary) -> bool:
 	if x_iter.is_empty():
 		return false
@@ -75,6 +91,7 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 	return false
 
 
+## Updates the LED's visual appearance (lit, unlit, or burned) based on the simulation results.
 func update_visual_state(current: float, p_is_logically_burned: bool):
 	is_actually_burned = p_is_logically_burned
 
@@ -111,6 +128,7 @@ func update_visual_state(current: float, p_is_logically_burned: bool):
 
 
 
+## Resets the LED to its default, unlit, and unburned state.
 func reset_visual_state():
 	is_actually_burned = false
 	if burn_label:
@@ -120,6 +138,7 @@ func reset_visual_state():
 	if _original_material:
 		led_mesh_instance.material_override = _original_material
 
+## Displays the calculated current value on the component's 3D label.
 func show_current(current_value: float):
 	if not current_label or is_actually_burned: 
 		if current_label: current_label.visible = false
@@ -136,6 +155,7 @@ func show_current(current_value: float):
 			current_label.text = "I: {val_str} A".format({"val_str": String.num(current_value, 2)})
 	current_label.visible = true
 
+## Hides the current display label.
 func hide_current():
 	if not current_label: return
 	current_label.visible = false
@@ -144,6 +164,7 @@ func hide_current():
 
 # -----------------------------------------------------------------
 # Simulation-results extraction
+## Extracts and stores simulation results for this component from the main solution vector.
 func gather_sim_results(
 		circuit      : CircuitGraph,
 		comp_data    : Dictionary,
@@ -192,6 +213,7 @@ func gather_sim_results(
 	circuit.component_results[comp_id]["current"] = current
 	#endregion
 
+## Applies the LED's contribution to the MNA matrices based on its current state.
 func stamp(
 	A: Array,
 	b: Array,

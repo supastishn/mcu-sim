@@ -3,19 +3,27 @@ extends Node3D
 class_name PolarizedCapacitor3D
 
 
+## Emitted when a key property (like capacitance or max voltage) of the capacitor changes.
 signal configuration_changed(component_node: Node3D)
 
 
+## The capacitance value in Farads.
 @export var capacitance: float = 1.0e-6 : set = set_capacitance
 
+## The maximum forward voltage the capacitor can safely handle before exploding.
 @export var max_voltage: float = 16.0 : set = set_max_voltage
 
+## Reference to the positive terminal (anode) Area3D node.
 @onready var terminal1: Area3D = $Terminal1
+## Reference to the negative terminal (cathode) Area3D node.
 @onready var terminal2: Area3D = $Terminal2
+## Reference to the Label3D for displaying simulation info.
 @onready var info_label: Label3D = $InfoLabel
 
+## Flag to track the visual "exploded" state.
 var is_visually_exploded: bool = false
 
+## Called when the node enters the scene tree. Initializes the component.
 func _ready():
 	if not terminal1 or not terminal2:
 		printerr("PolarizedCapacitor3D requires child Area3D nodes named 'Terminal1' and 'Terminal2'.")
@@ -25,6 +33,7 @@ func _ready():
 	reset_visual_state()
 	
 
+## Sets the capacitance value, validates it, and emits the configuration_changed signal.
 func set_capacitance(value: float):
 	var new_cap = max(1e-12, value)
 	if not is_equal_approx(capacitance, new_cap):
@@ -35,6 +44,7 @@ func set_capacitance(value: float):
 	elif capacitance != new_cap:
 		capacitance = new_cap
 
+## Sets the maximum voltage rating, validates it, and emits the configuration_changed signal.
 func set_max_voltage(value: float):
 	var new_max_v = max(0.1, value)
 	if not is_equal_approx(max_voltage, new_max_v):
@@ -47,6 +57,7 @@ func set_max_voltage(value: float):
 
 
 
+## Displays the calculated voltage, current, or exploded state on the component's 3D label.
 func show_info(current_value: float, voltage_value: float, p_is_logically_exploded: bool):
 	if not info_label: return
 
@@ -77,6 +88,7 @@ func show_info(current_value: float, voltage_value: float, p_is_logically_explod
 	info_label.visible = true
 
 
+## Hides the information label.
 func hide_info():
 	if not info_label: return
 	info_label.visible = false
@@ -84,12 +96,14 @@ func hide_info():
 	info_label.modulate = Color.WHITE
 
 
+## Resets the component to its default visual state, hiding any simulation info.
 func reset_visual_state():
 	is_visually_exploded = false
 	hide_info()
 
 # -------------------------------------------------------------------------
 # MNA‐stamping interface
+## Stamps the capacitor's equivalent conductance and current source into the MNA matrices for transient analysis.
 func stamp(
 	A: Array,
 	b: Array,
@@ -143,6 +157,7 @@ func stamp(
 
 # -----------------------------------------------------------------
 # Simulation-results extraction
+## Extracts and stores simulation results, checking for overvoltage or reverse polarity explosion.
 func gather_sim_results(
 	circuit      : CircuitGraph,
 	comp_data    : Dictionary,

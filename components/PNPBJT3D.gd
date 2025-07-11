@@ -3,20 +3,29 @@ extends Node3D
 class_name PNPBJT3D
 
 
+## Emitted when a key property of the BJT changes.
 signal configuration_changed(component_node: Node3D)
 
 
+## The DC current gain (hFE) of the transistor.
 @export var beta_dc: float = 100.0 : set = set_beta_dc
 
+## The emitter-base voltage required to turn the transistor on, in Volts.
 @export var veb_on: float = 0.7 : set = set_veb_on
 
+## The emitter-collector saturation voltage, in Volts.
 @export var vec_sat: float = 0.2 : set = set_vec_sat
 
+## Reference to the Emitter terminal Area3D node.
 @onready var terminal_e: Area3D = $TerminalE 
+## Reference to the Base terminal Area3D node.
 @onready var terminal_b: Area3D = $TerminalB 
+## Reference to the Collector terminal Area3D node.
 @onready var terminal_c: Area3D = $TerminalC 
+## Reference to the Label3D for displaying simulation info.
 @onready var info_label: Label3D = $InfoLabel
 
+## Called when the node enters the scene tree. Initializes the component.
 func _ready():
 	if not terminal_e or not terminal_b or not terminal_c:
 		printerr("PNPBJT3D requires child Area3D nodes named 'TerminalE', 'TerminalB', and 'TerminalC'.")
@@ -28,6 +37,7 @@ func _ready():
 	set_veb_on(veb_on)
 	set_vec_sat(vec_sat)
 
+## Sets the DC current gain (beta), validates it, and emits a signal.
 func set_beta_dc(value: float):
 	var new_beta = max(1.0, value) 
 	if not is_equal_approx(beta_dc, new_beta):
@@ -38,6 +48,7 @@ func set_beta_dc(value: float):
 	elif beta_dc != new_beta: 
 		beta_dc = new_beta
 
+## Sets the emitter-base turn-on voltage, validates it, and emits a signal.
 func set_veb_on(value: float): 
 	var new_veb = max(0.1, value) 
 	if not is_equal_approx(veb_on, new_veb):
@@ -48,6 +59,7 @@ func set_veb_on(value: float):
 	elif veb_on != new_veb: 
 		veb_on = new_veb
 
+## Sets the emitter-collector saturation voltage, validates it, and emits a signal.
 func set_vec_sat(value: float): 
 	var new_vec_sat = max(0.0, value) 
 	if not is_equal_approx(vec_sat, new_vec_sat):
@@ -60,6 +72,7 @@ func set_vec_sat(value: float):
 
 
 
+## Displays the calculated operating region and currents on the component's 3D label.
 func show_info(results: Dictionary):
 	if not info_label: return
 	info_label.modulate = Color.WHITE 
@@ -83,6 +96,7 @@ func show_info(results: Dictionary):
 	info_label.text = "{r_str}\n{ic}\n{ib}\n{ie}".format({"r_str": region_str, "ic": ic_str, "ib": ib_str, "ie": ie_str})
 	info_label.visible = true
 
+## Helper function to format a float current value into a human-readable string with units.
 func _format_current(current_value: float) -> String:
 	if abs(current_value) < 1e-6 and abs(current_value) > 1e-15 : 
 		return "{val_str} nA".format({"val_str": String.num(current_value * 1e9, 2)})
@@ -94,17 +108,20 @@ func _format_current(current_value: float) -> String:
 		return "{val_str} A".format({"val_str": String.num(current_value, 2)})
 
 
+## Hides the information label.
 func hide_info():
 	if not info_label: return
 	info_label.visible = false
 	info_label.text = "" 
 
 
+## Resets the component to its default visual state.
 func reset_visual_state():
 	hide_info()
 
 # -----------------------------------------------------------------
 # Simulation-results extraction
+## Extracts and stores simulation results (currents, region) for this component.
 func gather_sim_results(
 		circuit      : CircuitGraph,
 		comp_data    : Dictionary,
@@ -169,6 +186,7 @@ func gather_sim_results(
 	circuit.component_results[comp_id]["region"] = region_pnp_calc
 	#endregion
 
+## Updates the BJT's operating region based on an MNA iteration.
 func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter: Array, node_map_iter: Dictionary, _vs_map_iter: Dictionary) -> bool:
 	if x_iter.is_empty():
 		return false
@@ -213,6 +231,7 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 		return true
 	return false
 
+## Applies the BJT's contribution to the MNA matrices based on its current operating region.
 func stamp(
 	A: Array,
 	b: Array,

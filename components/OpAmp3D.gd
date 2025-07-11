@@ -1,24 +1,35 @@
 extends Node3D
 class_name OpAmp3D
 
+## Emitted when a key property of the op-amp changes.
 signal configuration_changed(component_node: Node3D)
 
 # Properties for the ideal op-amp simulation model
+## The open-loop voltage gain of the op-amp.
 @export var open_loop_gain: float = 200000.0
+## The voltage drop from the supply rails for output saturation.
 @export var rail_saturation_voltage: float = 1.5 # Voltage drop from the supply rails
 
 # UI and component node references
+## Reference to the non-inverting input terminal (+) Area3D node.
 @onready var terminal_vp: Area3D = $TerminalVp
+## Reference to the inverting input terminal (-) Area3D node.
 @onready var terminal_vn: Area3D = $TerminalVn
+## Reference to the output terminal Area3D node.
 @onready var terminal_vout: Area3D = $TerminalVout
+## Reference to the positive supply voltage terminal (Vcc) Area3D node.
 @onready var terminal_vcc: Area3D = $TerminalVcc
+## Reference to the negative supply voltage terminal (Vee) Area3D node.
 @onready var terminal_vee: Area3D = $TerminalVee
+## Reference to the Label3D for displaying simulation info.
 @onready var info_label: Label3D = $InfoLabel
 
+## Called when the node enters the scene tree. Initializes the component.
 func _ready():
 	hide_info()
 
 # --- Visual Feedback ---
+## Displays the calculated operating region and voltages on the component's 3D label.
 func show_info(results: Dictionary):
 	if not is_instance_valid(info_label): return
 	
@@ -41,14 +52,17 @@ func show_info(results: Dictionary):
 	})
 	info_label.visible = true
 
+## Hides the information label.
 func hide_info():
 	if is_instance_valid(info_label):
 		info_label.visible = false
 
+## Resets the component to its default visual state.
 func reset_visual_state():
 	hide_info()
 
 # --- Simulation Interface ---
+## Updates the op-amp's operating region (LINEAR, SAT_HIGH, SAT_LOW) based on an MNA iteration.
 func update_nonlinear_state(
 		circuit: CircuitGraph,
 		comp_data: Dictionary,
@@ -106,6 +120,7 @@ func update_nonlinear_state(
 	print_debug("  -> Region stable: {r}".format({"r": new_region}))
 	return false # State did not change
 
+## Applies the op-amp's ideal voltage-controlled voltage source model to the MNA matrices.
 func stamp(
 		A: Array,
 		b: Array,
@@ -172,6 +187,7 @@ func stamp(
 		if vee_idx != -1: A[vs_idx][vee_idx] = -1.0
 		b[vs_idx] = sat_drop
 
+## Extracts and stores simulation results for this component.
 func gather_sim_results(
 		circuit: CircuitGraph,
 		comp_data: Dictionary,

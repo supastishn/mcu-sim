@@ -3,24 +3,37 @@ extends Node3D
 class_name Relay3D
 
 
+## Emitted when a key property of the relay changes.
 signal configuration_changed(component_node: Node3D)
 
 
+## The voltage required at the signal pin to energize the relay coil, in Volts.
 @export var signal_voltage_threshold: float = 2.5 : set = set_signal_voltage_threshold
 
+## The electrical resistance of the relay's coil, in Ohms.
 @export var coil_resistance: float = 100.0 : set = set_coil_resistance
 
+## A flag indicating whether the relay coil is currently energized.
 var is_energized: bool = false
 
+## Reference to the coil's positive supply terminal Area3D node.
 @onready var terminal_vcc: Area3D = $TerminalVCC         
+## Reference to the coil's ground terminal Area3D node.
 @onready var terminal_gnd: Area3D = $TerminalGND         
+## Reference to the coil's signal input terminal Area3D node.
 @onready var terminal_signal: Area3D = $TerminalSignal   
+## Reference to the switch's common terminal Area3D node.
 @onready var terminal_com: Area3D = $TerminalCOM         
+## Reference to the switch's normally open terminal Area3D node.
 @onready var terminal_no: Area3D = $TerminalNO           
+## Reference to the switch's normally closed terminal Area3D node.
 @onready var terminal_nc: Area3D = $TerminalNC           
+## Reference to the Label3D for displaying simulation info.
 @onready var info_label: Label3D = $InfoLabel
+## Reference to the main mesh of the component.
 @onready var mesh_instance: MeshInstance3D = $MeshInstance3D 
 
+## Called when the node enters the scene tree. Initializes the component.
 func _ready():
 	if not terminal_vcc or not terminal_gnd or not terminal_signal or \
 	   not terminal_com or not terminal_no or not terminal_nc:
@@ -34,6 +47,7 @@ func _ready():
 	set_signal_voltage_threshold(signal_voltage_threshold)
 	set_coil_resistance(coil_resistance)
 
+## Sets the signal voltage threshold, validates it, and emits a signal.
 func set_signal_voltage_threshold(value: float):
 	var new_threshold = max(0.1, value) 
 	if not is_equal_approx(signal_voltage_threshold, new_threshold):
@@ -44,6 +58,7 @@ func set_signal_voltage_threshold(value: float):
 	elif signal_voltage_threshold != new_threshold: 
 		signal_voltage_threshold = new_threshold
 
+## Sets the coil resistance, validates it, and emits a signal.
 func set_coil_resistance(value: float):
 	var new_resistance = max(1.0, value) 
 	if not is_equal_approx(coil_resistance, new_resistance):
@@ -57,6 +72,7 @@ func set_coil_resistance(value: float):
 
 
 
+## Displays the calculated state and voltages on the component's 3D label and updates the visual color.
 func show_info(results: Dictionary):
 	if not info_label: return
 
@@ -89,6 +105,7 @@ func show_info(results: Dictionary):
 			mat.albedo_color = Color(0.4, 0.4, 0.5, 1)
 			mesh_instance.material_override = mat
 
+## Updates the relay's energized state based on an MNA iteration.
 func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter: Array, node_map_iter: Dictionary, _vs_map_iter: Dictionary) -> bool:
 	if x_iter.is_empty():
 		return false
@@ -132,6 +149,7 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 
 
 
+## Applies the relay's contribution to the MNA matrices based on its state.
 func stamp(
 	A: Array,
 	b: Array, 
@@ -218,6 +236,7 @@ func stamp(
 		_inline_stamp_conductance.call(A, g_sw_open_val, idx_no_sw, idx_nc_sw)      
 	return          # or ‘pass’
 
+## Helper function to format a float current value into a human-readable string with units.
 func _format_current(current_value: float) -> String: 
 	if abs(current_value) < 1e-6 and abs(current_value) > 1e-15 : 
 		return "{val_str} nA".format({"val_str": String.num(current_value * 1e9, 2)})
@@ -228,11 +247,13 @@ func _format_current(current_value: float) -> String:
 	else: 
 		return "{val_str} A".format({"val_str": String.num(current_value, 2)})
 
+## Hides the information label.
 func hide_info():
 	if not info_label: return
 	info_label.visible = false
 	info_label.text = ""
 
+## Resets the component to its default de-energized visual state.
 func reset_visual_state():
 	hide_info()
 	is_energized = false
@@ -246,6 +267,7 @@ func reset_visual_state():
 
 # -----------------------------------------------------------------
 # Simulation-results extraction
+## Extracts and stores simulation results for this component.
 func gather_sim_results(
 		circuit      : CircuitGraph,
 		comp_data    : Dictionary,

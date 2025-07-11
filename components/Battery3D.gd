@@ -3,21 +3,30 @@ extends Node3D
 class_name Battery3D
 
 
+## Emitted when a key property (like number of cells) changes.
 signal configuration_changed(component_node: Node3D)
 
+## The nominal voltage of a single battery cell.
 const VOLTAGE_PER_CELL: float = 1.5
 
 
+## The number of cells in the battery, determining its total voltage.
 @export_range(1, 4, 1) var num_cells: int = 1 : set = set_num_cells
 
 
+## The target voltage of the battery, calculated from `num_cells`.
 var target_voltage: float = VOLTAGE_PER_CELL 
 
+## Reference to the positive terminal Area3D node.
 @onready var terminal_pos: Area3D = $TerminalPositive
+## Reference to the negative terminal Area3D node.
 @onready var terminal_neg: Area3D = $TerminalNegative
+## Reference to the Label3D for displaying current.
 @onready var current_label: Label3D = $CurrentLabel
+## An array of MeshInstance3D nodes representing the individual cells.
 var cell_meshes: Array[MeshInstance3D] 
 
+## Called when the node enters the scene tree. Initializes the component.
 func _ready():
 	cell_meshes = [
 		get_node("Cell1") as MeshInstance3D,
@@ -33,10 +42,12 @@ func _ready():
 	_recalculate_voltage()
 	_update_cell_visuals()
 
+## Recalculates the battery's total target voltage based on the number of cells.
 func _recalculate_voltage():
 	target_voltage = float(num_cells) * VOLTAGE_PER_CELL
 	print("Battery {batt_name} voltage recalculated to: {volt_str}V for {num_c} cells".format({"batt_name": name, "volt_str": String.num(target_voltage, 2), "num_c": num_cells}))
 
+## Sets the number of cells, validates the value, and updates visuals and voltage.
 func set_num_cells(value: int):
 	var new_val = clamp(value, 1, 4)
 	if num_cells != new_val:
@@ -50,6 +61,7 @@ func set_num_cells(value: int):
 		_recalculate_voltage()
 
 
+## Updates the visibility and position of the cell meshes to match `num_cells`.
 func _update_cell_visuals():
 	if not cell_meshes or cell_meshes.is_empty() or not is_instance_valid(cell_meshes[0]):
 		return
@@ -70,6 +82,7 @@ func _update_cell_visuals():
 	
 
 
+## Displays the calculated current and voltage on the component's 3D label.
 func show_current(actual_current: float, actual_voltage: float):
 	if not current_label: return
 
@@ -93,10 +106,12 @@ func show_current(actual_current: float, actual_voltage: float):
 	current_label.text = "{curr} @ {volt}".format({"curr": current_str, "volt": voltage_str}) 
 	current_label.visible = true
 
+## Hides the current display label.
 func hide_current():
 	if not current_label: return
 	current_label.visible = false
 
+## Applies the battery's ideal voltage source contribution to the MNA matrices.
 func stamp(
 	A: Array,
 	b: Array,
@@ -134,6 +149,7 @@ func stamp(
 
 # -----------------------------------------------------------------
 # Simulation-results extraction
+## Extracts and stores simulation results for this component from the main solution vector.
 func gather_sim_results(
 		circuit      : CircuitGraph,
 		comp_data    : Dictionary,

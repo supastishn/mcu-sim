@@ -3,37 +3,45 @@ extends Node3D
 class_name Resistor3D
 
 
+## The resistance value in Ohms.
 @export var resistance: float = 1000.0
 
+## Reference to the first terminal Area3D node.
 @onready var terminal1: Area3D = $Terminal1
+## Reference to the second terminal Area3D node.
 @onready var terminal2: Area3D = $Terminal2
+## Reference to the Label3D for displaying current.
 @onready var current_label: Label3D = $CurrentLabel
 
+## Called when the node enters the scene tree. Initializes the component.
 func _ready():
 	if not current_label:
 		printerr("Resistor3D requires a child Label3D named 'CurrentLabel'.")
 	else:
 		current_label.visible = false
 
+## Displays the calculated current value on the component's 3D label.
 func show_current(current_value: float):
 	if not current_label: return
 	if is_nan(current_value):
 		current_label.text = "I: N/A"
 	else:
-		if abs(current_value) < 1e-3 and abs(current_value) > 1e-12: 
+		if abs(current_value) < 1e-3 and abs(current_value) > 1e-12:
 			current_label.text = "I: {val_str} µA".format({"val_str": String.num(current_value * 1e6, 2)})
-		elif abs(current_value) < 1.0: 
+		elif abs(current_value) < 1.0:
 			current_label.text = "I: {val_str} mA".format({"val_str": String.num(current_value * 1e3, 2)})
 		else:
 			current_label.text = "I: {val_str} A".format({"val_str": String.num(current_value, 2)})
 	current_label.visible = true
 
+## Hides the current display label.
 func hide_current():
 	if not current_label: return
 	current_label.visible = false
 
 
 
+## Stamps the resistor's conductance value into the MNA matrix.
 func stamp(
 	A: Array,
 	b: Array,
@@ -70,6 +78,7 @@ func stamp(
 		A[i2][i2] += g
 # -----------------------------------------------------------------
 # Simulation‐results extraction
+## Extracts and stores the current flowing through the resistor.
 func gather_sim_results(
 		circuit      : CircuitGraph,
 		comp_data    : Dictionary,

@@ -1,29 +1,40 @@
 extends Node3D
 class_name PChannelMOSFET3D
 
+## Emitted when a key property of the MOSFET changes.
 signal configuration_changed(component_node : Node3D)
 
-@export var threshold_voltage : float = 2.0    : set = set_threshold_voltage   # |Vtp|
-@export var transconductance_parameter : float = 0.1 : set = set_kn            # kp
+## The absolute gate-source threshold voltage |Vtp| required to turn the MOSFET on.
+@export var threshold_voltage : float = 2.0    : set = set_threshold_voltage
+## The transconductance parameter (Kp), related to the MOSFET's current-carrying capability.
+@export var transconductance_parameter : float = 0.1 : set = set_kn
 
+## Reference to the Drain terminal Area3D node.
 @onready var terminal_d : Area3D = $TerminalD
+## Reference to the Gate terminal Area3D node.
 @onready var terminal_g : Area3D = $TerminalG
+## Reference to the Source terminal Area3D node.
 @onready var terminal_s : Area3D = $TerminalS
+## Reference to the Label3D for displaying simulation info.
 @onready var info_label : Label3D = $InfoLabel
 
+## Called when the node enters the scene tree. Initializes the component.
 func _ready():
 	set_threshold_voltage(threshold_voltage)
 	set_kn(transconductance_parameter)
 	reset_visual_state()
 
+## Sets the threshold voltage, validates it, and emits a signal.
 func set_threshold_voltage(v):
 	threshold_voltage = clampf(v,0.1,10.0)
 	if is_inside_tree(): emit_signal("configuration_changed", self)
 
+## Sets the transconductance parameter, validates it, and emits a signal.
 func set_kn(v):
 	transconductance_parameter = max(1e-6,v)
 	if is_inside_tree(): emit_signal("configuration_changed", self)
 
+## Helper function to format a float current value into a human-readable string with units.
 func _format_current(current_value: float) -> String:
 	if abs(current_value) < 1e-9 and abs(current_value) > 1e-15 : 
 		return "{val_str} pA".format({"val_str": String.num(current_value * 1e12, 2)})
@@ -36,6 +47,7 @@ func _format_current(current_value: float) -> String:
 	else: 
 		return "{val_str} A".format({"val_str": String.num(current_value, 2)})
 
+## Displays the calculated operating region and characteristics on the component's 3D label.
 func show_info(results: Dictionary):
 	if not info_label: return
 	info_label.modulate = Color.WHITE 
@@ -64,15 +76,18 @@ func show_info(results: Dictionary):
 		})
 	info_label.visible = true
 
+## Hides the information label.
 func hide_info():
 	if not info_label: return
 	info_label.visible = false
 	info_label.text = "" 
 
+## Resets the component to its default visual state.
 func reset_visual_state():
 	hide_info()
 
 # ---------- NON-LINEAR REGION EVAL ----------
+## Updates the MOSFET's operating region based on an MNA iteration.
 func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter: Array, node_map_iter: Dictionary, _vs_map_iter: Dictionary) -> bool:
 	if x_iter.is_empty():
 		return false
@@ -110,6 +125,7 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 
 # --------------------------------------------------------------
 # generic G-stamp helper (same style as other component scripts)
+## Stamps a conductance value `g` between two nodes into the MNA matrix `A`.
 func _stamp_conductance(A: Array, g: float, idx1: int, idx2: int) -> void:
 	if idx1 != -1 and idx2 != -1:
 		A[idx1][idx1] += g
@@ -122,6 +138,7 @@ func _stamp_conductance(A: Array, g: float, idx1: int, idx2: int) -> void:
 		A[idx2][idx2] += g
 
 # ---------- STAMP ----------
+## Applies the MOSFET's contribution to the MNA matrices based on its current operating region.
 func stamp(A,b,node_map,vs_map,inductor_map,term_conn,comp_data,dt):
 	var reg = comp_data.properties["operating_region"]
 	var vt  = threshold_voltage
@@ -155,6 +172,7 @@ func stamp(A,b,node_map,vs_map,inductor_map,term_conn,comp_data,dt):
 		_stamp_conductance(A, Gds_sat, idx_s, idx_d)
 
 # ---------- gather_sim_results ----------
+## Extracts and stores simulation results (currents, voltages, region) for this component.
 func gather_sim_results(circuit,comp_data,x,node_map,vs_map,inductor_map,dt):
 	var cid = comp_data.component_node.get_instance_id()
 	if not cid in circuit.component_results: circuit.component_results[cid] = {}

@@ -6,8 +6,10 @@ const CircuitEditorScene = preload("res://CircuitEditor3D.tscn")  # legacy tests
 const PChannelMOSFETScene = preload("res://components/PChannelMOSFET3D.tscn")   # optional
 const OpAmpScene = preload("res://components/OpAmp3D.tscn")
 
+## Emitted when all tests are completed, carrying the results dictionary.
 signal tests_completed(results: Dictionary)
 
+## Helper function to clean up all components and wires from the test rig between tests.
 func _cleanup_components_and_graph(editor_script: CircuitEditor3D, graph_script: CircuitGraph) -> void:
 	var nodes := []
 	for cd in graph_script.components:
@@ -27,9 +29,11 @@ func _cleanup_components_and_graph(editor_script: CircuitEditor3D, graph_script:
 	graph_script._is_solved     = false
 	graph_script._needs_rebuild = true
 
+## Godot's ready function.
 func _ready():
 	run_from_cli()
 
+## Runs all tests when the script is executed from the command line and then quits.
 func run_from_cli():
 	print_rich("[b]Starting Circuit Simulation Tests...[/b]")
 	var results = await run_all_tests()
@@ -46,10 +50,12 @@ func run_from_cli():
 
 	get_tree().quit()
 
+## Runs all tests and emits a signal with the results, intended for use with the UI.
 func run_tests_from_ui():
 	var results = await run_all_tests()
 	emit_signal("tests_completed", results)
 
+## Main test runner function that executes all individual test cases.
 func run_all_tests() -> Dictionary:
 	var local_total_tests = 0
 	var local_passed_tests = 0
@@ -211,6 +217,7 @@ func run_all_tests() -> Dictionary:
 
 	return { "total": local_total_tests, "passed": local_passed_tests, "failed_names": local_failed_test_names }
 
+## Tests a basic circuit with a power supply, resistor, and LED to verify fundamental calculations.
 func test_simple_powersupply_resistor_led_circuit() -> bool:
 	var overall_test_passed = true
 	var rig := TestRig.new()
@@ -278,6 +285,7 @@ func test_simple_powersupply_resistor_led_circuit() -> bool:
 	rig.cleanup()
 	return overall_test_passed
 
+## Tests the Op-Amp model in various configurations: inverting amplifier in linear and saturation regions.
 func test_op_amp_inverting_amplifier() -> bool:
 	var ok := true
 	var rig := TestRig.new()
@@ -352,6 +360,7 @@ func test_op_amp_inverting_amplifier() -> bool:
 	return ok
 
 
+## Tests the Switch component's behavior in both Normally Closed (NC) and Normally Open (NO) states.
 func test_switch_behavior() -> bool:
 	var overall_test_passed = true
 	var editor_instance: Node3D = CircuitEditorScene.instantiate()
@@ -454,6 +463,7 @@ func test_switch_behavior() -> bool:
 	return overall_test_passed
 
 
+## Tests the Diode component in both forward-biased (conducting) and reverse-biased (non-conducting) states.
 func test_diode_behavior() -> bool:
 	var overall_test_passed = true
 	var editor_instance: Node3D = CircuitEditorScene.instantiate()
@@ -542,6 +552,7 @@ func test_diode_behavior() -> bool:
 	return overall_test_passed
 
 
+## Tests the Potentiometer as a voltage divider, checking the wiper voltage at various positions.
 func test_potentiometer_behavior() -> bool:
 	var overall_test_passed = true
 	var editor_instance: Node3D = CircuitEditorScene.instantiate()
@@ -602,6 +613,7 @@ func test_potentiometer_behavior() -> bool:
 	return overall_test_passed
 
 
+## Tests the Battery component, ensuring its output voltage and supplied current are correct for different cell counts.
 func test_battery_behavior() -> bool:
 	var overall_test_passed = true
 	var editor_instance: Node3D = CircuitEditorScene.instantiate()
@@ -664,6 +676,7 @@ func test_battery_behavior() -> bool:
 	return overall_test_passed
 
 
+## Tests the Polarized Capacitor, verifying its charging behavior and that it correctly "explodes" when over-voltaged.
 func test_polarized_capacitor_behavior() -> bool:
 	var overall_test_passed = true
 	var editor_instance: Node3D = CircuitEditorScene.instantiate()
@@ -793,6 +806,7 @@ func test_polarized_capacitor_behavior() -> bool:
 	return overall_test_passed
 
 
+## Tests the Non-Polarized Capacitor, verifying its charging behavior in an RC circuit.
 func test_non_polarized_capacitor_behavior() -> bool:
 	var overall_test_passed = true
 	var editor_instance: Node3D = CircuitEditorScene.instantiate()
@@ -849,6 +863,7 @@ func test_non_polarized_capacitor_behavior() -> bool:
 	return overall_test_passed
 
 
+## Tests the Inductor, verifying its current-ramping behavior in an RL circuit.
 func test_inductor_behavior() -> bool:
 	var overall_test_passed = true
 	var editor_instance: Node3D = CircuitEditorScene.instantiate()
@@ -904,6 +919,7 @@ func test_inductor_behavior() -> bool:
 	return overall_test_passed
 
 
+## Tests the NPN BJT model in its three main operating regions: Cutoff, Active, and Saturation.
 func test_npn_bjt_regions() -> bool:
 	var overall_test_passed = true
 	var editor_instance: Node3D = CircuitEditorScene.instantiate()
@@ -1043,6 +1059,7 @@ func test_npn_bjt_regions() -> bool:
 	return overall_test_passed
 
 
+## Tests the PNP BJT model in its three main operating regions: Cutoff, Active, and Saturation.
 func test_pnp_bjt_regions() -> bool:
 	print('test')
 	var overall_test_passed = true
@@ -1174,6 +1191,7 @@ func test_pnp_bjt_regions() -> bool:
 	return overall_test_passed
 
 
+## Tests the Zener Diode in its three main states: Forward-biased, reverse-biased (off), and Zener breakdown.
 func test_zener_diode_behavior() -> bool:
 	var overall_test_passed = true
 	var editor_instance: Node3D = CircuitEditorScene.instantiate()
@@ -1287,6 +1305,7 @@ func test_zener_diode_behavior() -> bool:
 	return overall_test_passed
 
 
+## Tests the Relay component, verifying that the correct switch path (NC or NO) is active when de-energized and energized.
 func test_relay_behavior() -> bool:
 	var overall_test_passed = true
 	var editor_instance: Node3D = CircuitEditorScene.instantiate()
@@ -1428,6 +1447,7 @@ func test_relay_behavior() -> bool:
 	return overall_test_passed
 
 
+## Tests that an LED correctly enters the "burned" state when subjected to excessive current.
 func test_led_burnout() -> bool:
 	var overall_test_passed = true
 	var editor_instance: Node3D = CircuitEditorScene.instantiate()
@@ -1484,6 +1504,7 @@ func test_led_burnout() -> bool:
 	editor_instance.queue_free()
 	return overall_test_passed
 
+## Tests that an LED does not visibly light up when the current is below its minimum threshold.
 func test_led_not_lighting() -> bool:
 	var overall_test_passed = true
 	var editor_instance: Node3D = CircuitEditorScene.instantiate()
@@ -1548,6 +1569,7 @@ func test_led_not_lighting() -> bool:
 	return overall_test_passed
 
 
+## Tests the N-Channel MOSFET model in its three main operating regions: OFF, TRIODE, and SATURATION.
 func test_nmosfet_regions() -> bool:
 	var ok := true
 	var ed_inst : Node3D = CircuitEditorScene.instantiate()
@@ -1649,6 +1671,7 @@ func test_nmosfet_regions() -> bool:
 	ed_inst.queue_free()
 	return ok
 
+## Tests the P-Channel MOSFET model in its three main operating regions: OFF, TRIODE, and SATURATION.
 func test_pmosfet_regions() -> bool:
 	print("  P-MOSFET Test: starting")
 	var ok := true
@@ -1731,6 +1754,8 @@ func test_pmosfet_regions() -> bool:
 	if not TestUtils.assert_true(res.get("Id", NAN) > 0, "PMOS Test (SAT): Id > 0 (D->S current)"): ok = false
 	rig.cleanup()
 	return ok
+
+## Tests the Linear Regulator model under normal operating conditions where Vin is well above Vout + dropout.
 func test_linear_regulator_normal() -> bool:
 	var overall_test_passed = true
 	var rig := TestRig.new()
@@ -1786,6 +1811,7 @@ func test_linear_regulator_normal() -> bool:
 	rig.cleanup()
 	return overall_test_passed
 
+## Tests the Linear Regulator model in a dropout scenario where Vin is too low for proper regulation.
 func test_linear_regulator_dropout() -> bool:
 	var overall_test_passed = true
 	var rig := TestRig.new()

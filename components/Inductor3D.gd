@@ -3,15 +3,21 @@ extends Node3D
 class_name Inductor3D
 
 
+## Emitted when a key property (like inductance) of the inductor changes.
 signal configuration_changed(component_node: Node3D)
 
 
+## The inductance value in Henrys.
 @export var inductance: float = 1.0e-3 : set = set_inductance 
 
+## Reference to the first terminal Area3D node.
 @onready var terminal1: Area3D = $Terminal1
+## Reference to the second terminal Area3D node.
 @onready var terminal2: Area3D = $Terminal2
+## Reference to the Label3D for displaying simulation info.
 @onready var info_label: Label3D = $InfoLabel 
 
+## Called when the node enters the scene tree. Initializes the component.
 func _ready():
 	if not terminal1 or not terminal2:
 		printerr("Inductor3D requires child Area3D nodes named 'Terminal1' and 'Terminal2'.")
@@ -21,6 +27,7 @@ func _ready():
 	reset_visual_state()
 	set_inductance(inductance)
 
+## Sets the inductance value, validates it, and emits the configuration_changed signal.
 func set_inductance(value: float):
 	var new_L = max(1e-9, value) 
 	if not is_equal_approx(inductance, new_L):
@@ -35,6 +42,7 @@ func set_inductance(value: float):
 
 
 
+## Displays the calculated voltage and current on the component's 3D label.
 func show_info(current_value: float, voltage_value: float):
 	if not info_label: return
 	info_label.modulate = Color.WHITE
@@ -55,16 +63,19 @@ func show_info(current_value: float, voltage_value: float):
 	info_label.text = "{v_str}\n{c_str}".format({"v_str": voltage_str, "c_str": current_str})
 	info_label.visible = true
 
+## Hides the information label.
 func hide_info():
 	if not info_label: return
 	info_label.visible = false
 	info_label.text = ""
 
+## Resets the component to its default visual state, hiding any simulation info.
 func reset_visual_state():
 	hide_info()
 
 # -------------------------------------------------------------------------
 # MNA‐stamping interface
+## Stamps the inductor's contribution to the MNA matrices for transient analysis.
 func stamp(
 	A: Array,
 	b: Array,
@@ -128,6 +139,7 @@ func stamp(
 
 # -----------------------------------------------------------------
 # Simulation-results extraction
+## Extracts and stores simulation results (current, voltage) for this component.
 func gather_sim_results(
 		circuit      : CircuitGraph,
 		comp_data    : Dictionary,

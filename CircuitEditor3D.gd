@@ -1,83 +1,141 @@
 extends Node3D
 class_name CircuitEditor3D
+
+## Collision layer for component terminals.
 const TERMINAL_COLLISION_LAYER = 2
+## Collision layer for component bodies.
 const COMPONENT_BODY_COLLISION_LAYER = 4
+## Collision layer for wires.
 const WIRE_COLLISION_LAYER = 16 
+## Collision layer for the ground plane.
 const GROUND_COLLISION_LAYER = 8 
+## The normal vector of the plane on which components are dragged.
 const DRAG_PLANE_NORMAL = Vector3.UP 
+## The size of the grid to which components snap.
 const GRID_SIZE: float = 0.05 
+## Default distance from the camera to place a new component if raycast fails.
 const DEFAULT_PLACEMENT_DISTANCE = 5.0 
 
+## Preloaded scene for the Resistor component.
 var ResistorScene = preload("res://components/Resistor3D.tscn")
+## Preloaded scene for the PowerSource component.
 var PowerSourceScene = preload("res://components/PowerSource3D.tscn")
+## Preloaded scene for the LED component.
 var LEDScene = preload("res://components/LED3D.tscn")
+## Preloaded scene for the Switch component.
 var SwitchScene = preload("res://components/Switch3D.tscn")
+## Preloaded scene for the Diode component.
 var DiodeScene = preload("res://components/Diode3D.tscn")
+## Preloaded scene for the Potentiometer component.
 var PotentiometerScene = preload("res://components/Potentiometer3D.tscn")
+## Preloaded scene for the Wire component.
 var WireScene = preload("res://components/Wire3D.tscn")
+## Preloaded scene for the Battery component.
 var BatteryScene = preload("res://components/Battery3D.tscn") 
+## Preloaded scene for the PolarizedCapacitor component.
 var PolarizedCapacitorScene = preload("res://components/PolarizedCapacitor3D.tscn") 
+## Preloaded scene for the NonPolarizedCapacitor component.
 var NonPolarizedCapacitorScene = preload("res://components/NonPolarizedCapacitor3D.tscn") 
+## Preloaded scene for the Inductor component.
 var InductorScene = preload("res://components/Inductor3D.tscn") 
+## Preloaded scene for the NPN BJT component.
 var NPNBJTScene = preload("res://components/NPNBJT3D.tscn") 
+## Preloaded scene for the PNP BJT component.
 var PNPBJTScene = preload("res://components/PNPBJT3D.tscn") 
+## Preloaded scene for the ZenerDiode component.
 var ZenerDiodeScene = preload("res://components/ZenerDiode3D.tscn") 
+## Preloaded scene for the N-Channel MOSFET component.
 var NChannelMOSFETScene = preload("res://components/NChannelMOSFET3D.tscn") 
+## Preloaded scene for the P-Channel MOSFET component.
 var PChannelMOSFETScene = preload("res://components/PChannelMOSFET3D.tscn")
+## Preloaded scene for the Relay component.
 var RelayScene = preload("res://components/Relay3D.tscn") 
+## Preloaded scene for the LinearRegulator component.
 var LinearRegulatorScene = preload("res://components/LinearRegulator3D.tscn")
+## Preloaded scene for the OpAmp component.
 var OpAmpScene = preload("res://components/OpAmp3D.tscn")
 
 
+## Reference to the main 3D camera.
 @onready var camera: Camera3D = $Camera3D
+## Reference to the CircuitGraph node that manages the simulation logic.
 @onready var circuit_graph: CircuitGraph = $CircuitGraph 
 
 
 enum WireState { IDLE, START_SELECTED }
 var current_wire_state: WireState = WireState.IDLE
 
+## Stores the first terminal selected during the wiring process.
 var first_selected_terminal: Area3D = null
 
+## Parent node for all component instances.
 @onready var components_node: Node3D = $Components
+## Parent node for all wire instances.
 @onready var wires_node: Node3D = $Wires 
 
 
+## The currently selected component in the editor.
 var selected_component: Node3D = null
+## Stores the component that is a candidate for being dragged.
 var _potential_drag_target: Node3D = null 
+## The screen position where a drag operation was initiated.
 var _drag_start_position: Vector2 = Vector2.ZERO 
 
+## Reference to the main UI canvas layer.
 @onready var ui_layer: CanvasLayer = $UI
+## Reference to the virtual joystick for movement on mobile.
 @onready var move_joystick: VirtualJoystick = $UI/MoveJoystick
+## Reference to the virtual joystick for looking on mobile.
 @onready var look_joystick: VirtualJoystick = $UI/LookJoystick
+## The grid container for component creation buttons.
 @onready var component_grid: GridContainer = $UI/ComponentBar/ComponentGrid
+## The VBoxContainer that holds property editors for the selected component.
 @onready var property_container: VBoxContainer = $UI/SelectionBar/PropertyContainer
+## The main container for the selection/property editing UI.
 @onready var selection_bar: VBoxContainer = $UI/SelectionBar
 
 
+## Flag indicating if the fly-camera mode is active.
 var is_flying: bool = false
+## Flag indicating if the simulation is running continuously.
 var is_simulating_continuously: bool = false
+## Flag indicating if voltage labels on terminals should be shown.
 var show_voltage_labels: bool = false
+## Reference to the button that toggles voltage label visibility.
 var display_voltage_button: Button = null
 
+## Movement speed for the fly-camera.
 @export var fly_speed: float = 5.0
+## Look sensitivity for the fly-camera.
 @export var look_sensitivity: float = 0.002 
 
+## Current movement input vector from the joystick.
 var move_vector: Vector2 = Vector2.ZERO
+## Current look input vector from the joystick.
 var look_vector: Vector2 = Vector2.ZERO
+## Current movement intensity from the joystick (0.0 to 1.0).
 var move_intensity: float = 0.0
+## Current look intensity from the joystick (0.0 to 1.0).
 var look_intensity: float = 0.0
 
+## Flag indicating if the current platform is mobile.
 var is_mobile: bool = false
 
 
+## Flag indicating if a component is currently being dragged.
 var is_dragging_component: bool = false
+## Reference to the component instance being dragged.
 var dragged_component: Node3D = null
+## Flag to prevent input processing immediately after adding a component.
 var _just_added_component: bool = false 
+## The minimum distance the mouse must move to initiate a drag.
 const DRAG_THRESHOLD: float = 5.0 
 
+## Flag to prevent recursive updates when changing a potentiometer slider's value from code.
 var _is_updating_pot_slider_programmatically: bool = false
 
-const SIMULATION_TIME_STEP: float = 0.01 
+## The fixed time step used for each simulation solve.
+const SIMULATION_TIME_STEP: float = 0.01
 
 
 
@@ -86,6 +144,7 @@ const SIMULATION_TIME_STEP: float = 0.01
 
 
 
+## Godot's ready function. Initializes the editor, sets up UI, and prepares for user interaction.
 func _ready():
 	
 	is_mobile = OS.has_feature("mobile")
@@ -116,6 +175,7 @@ func _ready():
 	var enable_beta = ProjectSettings.get_setting("mcu_sim/features/enable_beta_components", false)
 	# The op-amp button will be handled in _populate_component_bar now.
 
+## Handles all input events, including mouse clicks for selecting/wiring/dragging and keyboard controls for camera flight.
 func _input(event):
 	
 	
@@ -285,6 +345,7 @@ func _input(event):
 				camera.rotation.x = clamp(camera.rotation.x, -deg_to_rad(89.0), deg_to_rad(89.0))
 
 
+## Godot's process function. Handles continuous simulation steps and camera movement.
 func _process(delta):
 	if is_simulating_continuously:
 		_simulate_circuit()
@@ -328,6 +389,7 @@ func _process(delta):
 		
 		camera.rotation.x = clamp(camera.rotation.x, -deg_to_rad(89.0), deg_to_rad(89.0))
 
+## Performs a 3D raycast from the camera through the given screen position to detect objects in the world.
 func _raycast_from_camera(screen_pos: Vector2):
 	var space_state = get_world_3d().direct_space_state
 	var origin = camera.project_ray_origin(screen_pos)
@@ -344,6 +406,7 @@ func _raycast_from_camera(screen_pos: Vector2):
 	var result = space_state.intersect_ray(query)
 	return result
 
+## Manages the logic for wiring when a component terminal is clicked.
 func _handle_terminal_click(terminal: Area3D):
 	print("Clicked terminal: ", terminal.name, " on ", terminal.get_parent().name)
 	if current_wire_state == WireState.IDLE and not is_dragging_component: 
@@ -378,6 +441,7 @@ func _handle_terminal_click(terminal: Area3D):
 			
 			_reset_wiring_state()
 
+## Instantiates and configures a new Wire3D scene to connect two terminals.
 func _create_wire(terminal_a: Area3D, terminal_b: Area3D):
 	var wire_instance = WireScene.instantiate()
 	
@@ -394,6 +458,7 @@ func _create_wire(terminal_a: Area3D, terminal_b: Area3D):
 			
 
 
+## Snaps a given 3D position to the editor's grid.
 func _snap_to_grid(pos: Vector3) -> Vector3:
 	var snapped_x = round(pos.x / GRID_SIZE) * GRID_SIZE
 	var snapped_z = round(pos.z / GRID_SIZE) * GRID_SIZE
@@ -401,6 +466,7 @@ func _snap_to_grid(pos: Vector3) -> Vector3:
 
 
 
+## Begins the process of dragging a component in the 3D view.
 func _start_component_drag(component: Node3D):
 	print('begin')
 	if component in components_node.get_children(): 
@@ -414,6 +480,7 @@ func _start_component_drag(component: Node3D):
 		
 		
 
+## Updates the position of the currently dragged component based on mouse/touch screen position.
 func _update_dragged_component_position(screen_pos: Vector2):
 	
 	var space_state = get_world_3d().direct_space_state
@@ -432,6 +499,7 @@ func _update_dragged_component_position(screen_pos: Vector2):
 		dragged_component.global_position = snapped_position
 		print("Dragging {drag_comp_name}: screen_pos={scr_pos} -> world_pos={world_pos} -> snapped_pos={snap_pos}".format({"drag_comp_name": dragged_component.name, "scr_pos": screen_pos, "world_pos": result.position, "snap_pos": snapped_position}))
 
+## Finalizes the component drag operation.
 func _stop_component_drag():
 	if not is_dragging_component: return 
 	print("Stopping drag for: {drag_comp_name} at final position {final_pos}".format({"drag_comp_name": dragged_component.name, "final_pos": dragged_component.global_position}))
@@ -445,6 +513,7 @@ func _stop_component_drag():
 	
 	dragged_component = null
 
+## Adds a new component instance to the scene and the circuit graph.
 func _add_component(scene: PackedScene, pos: Vector3):
 	var component_instance: Node3D = scene.instantiate()
 	components_node.add_child(component_instance) 
@@ -481,6 +550,7 @@ func _add_component(scene: PackedScene, pos: Vector3):
 	return component_instance 
 	
 
+## Resets the wire creation state machine to its idle state.
 func _reset_wiring_state():
 	if current_wire_state == WireState.START_SELECTED and is_instance_valid(first_selected_terminal):
 		print("Wiring state reset (cancelled or completed).")
@@ -500,6 +570,7 @@ func _reset_wiring_state():
 
 
 
+## Callback for the 'Add Component' button, initiating the component placement process.
 func _on_add_component_button_pressed(scene_to_add: PackedScene):
 	print("Add component button pressed for scene: {scene_path}".format({"scene_path": scene_to_add.resource_path}))
 
@@ -535,6 +606,7 @@ func _on_add_component_button_pressed(scene_to_add: PackedScene):
 	_just_added_component = true 
 
 
+## Performs a single step of the circuit simulation.
 func _perform_simulation_step():
 	print("Performing simulation step...")
 	
@@ -567,6 +639,7 @@ func _perform_simulation_step():
 		print("  Simulation step failed. Check console for errors and circuit configuration.")
 		_hide_voltage_displays() 
 
+## Callback for the main 'Simulate' button, toggling continuous simulation.
 func _on_simulate_button_pressed():
 	is_simulating_continuously = not is_simulating_continuously 
 	
@@ -586,6 +659,7 @@ func _on_simulate_button_pressed():
 			display_voltage_button.text = "Display Voltage Labels"
 		
 		
+## Called every frame when continuous simulation is active.
 func _simulate_circuit():
 	
 	
@@ -641,6 +715,7 @@ func _simulate_circuit():
 
 # --- Dynamic UI generation for component bar and property editor ---
 
+## Dynamically creates and adds buttons for each available component to the component bar UI.
 func _populate_component_bar():
 	var components_to_add = [
 		{"name": "Power", "scene": PowerSourceScene},
@@ -686,10 +761,12 @@ func _populate_component_bar():
 	component_grid.add_child(display_voltage_button)
 
 
+## Removes all dynamically generated property editors from the selection bar.
 func _clear_properties():
 	for child in property_container.get_children():
 		child.queue_free()
 
+## Adds a property editor with a label and a LineEdit to the selection bar.
 func _add_line_edit_property(label_text: String, initial_value, change_callable: Callable):
 	var hbox = HBoxContainer.new()
 	var label = Label.new()
@@ -710,6 +787,7 @@ func _add_line_edit_property(label_text: String, initial_value, change_callable:
 	hbox.add_child(line_edit)
 	property_container.add_child(hbox)
 
+## Adds a property editor with a label and an OptionButton to the selection bar.
 func _add_option_button_property(label_text: String, items: Array[String], selected_index: int, change_callable: Callable):
 	var hbox = HBoxContainer.new()
 	var label = Label.new()
@@ -723,6 +801,7 @@ func _add_option_button_property(label_text: String, items: Array[String], selec
 	hbox.add_child(option_btn)
 	property_container.add_child(hbox)
 
+## Adds a property editor with a HSlider to the selection bar.
 func _add_slider_property(initial_value: float, change_callable: Callable):
 	var slider = HSlider.new()
 	slider.min_value = 0.0
@@ -737,12 +816,14 @@ func _add_slider_property(initial_value: float, change_callable: Callable):
 	)
 	property_container.add_child(slider)
 
+## Adds a simple button to the selection bar.
 func _add_action_button(text: String, press_callable: Callable):
 	var btn = Button.new()
 	btn.text = text
 	btn.pressed.connect(press_callable)
 	property_container.add_child(btn)
 
+## Adds a non-editable label and value text to the selection bar.
 func _add_label_property(label_text: String, value_text: String):
 	var hbox = HBoxContainer.new()
 	var label_title = Label.new()
@@ -754,6 +835,7 @@ func _add_label_property(label_text: String, value_text: String):
 	hbox.add_child(label_value)
 	property_container.add_child(hbox)
 
+## Selects a component, showing its properties in the selection bar.
 func _select_component(component: Node3D):
 	if component == selected_component:
 		return
@@ -848,6 +930,7 @@ func _select_component(component: Node3D):
 
 	selection_bar.get_node("DeleteButton").visible = true
 
+## Deselects the currently selected component and hides the property editor.
 func _deselect_component():
 	if selected_component:
 		print("Deselecting component: {sel_comp_name}".format({"sel_comp_name": selected_component.name}))

@@ -3,15 +3,21 @@ extends Node3D
 class_name PowerSource3D
 
 
+## The target output voltage in Constant Voltage (CV) mode.
 @export var target_voltage: float = 5.0
 
+## The target output current in Constant Current (CC) mode.
 @export var target_current: float = 1.0
 
 
+## Reference to the positive terminal Area3D node.
 @onready var terminal_pos: Area3D = $TerminalPositive
+## Reference to the negative terminal Area3D node.
 @onready var terminal_neg: Area3D = $TerminalNegative
+## Reference to the Label3D for displaying simulation info.
 @onready var current_label: Label3D = $CurrentLabel
 
+## Called when the node enters the scene tree. Initializes the component.
 func _ready():
 	if not current_label:
 		printerr("PowerSource3D requires a child Label3D named 'CurrentLabel'.")
@@ -20,6 +26,7 @@ func _ready():
 
 
 
+## Displays the current, voltage, and operating mode (CV or CC) on the component's 3D label.
 func show_current(actual_current: float, actual_voltage: float, operating_mode: String = "CV"):
 	if not current_label: return
 
@@ -74,10 +81,12 @@ func show_current(actual_current: float, actual_voltage: float, operating_mode: 
 	current_label.text = "{op_mode}: {curr_str} @ {volt_str}".format({"op_mode": op_mode_str, "curr_str": current_str, "volt_str": voltage_str})
 	current_label.visible = true
 
+## Hides the information label.
 func hide_current():
 	if not current_label: return
 	current_label.visible = false
 
+## Updates the power supply's operating mode (CV or CC) based on an MNA iteration.
 func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter: Array, node_map_iter: Dictionary, vs_map_iter: Dictionary) -> bool:
 	# x_iter is the current iteration's solution vector (circuit._current_iteration_solution)
 	# node_map_iter is the current iteration's node map (circuit._current_iteration_node_map)
@@ -129,6 +138,7 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 		
 	return state_changed
 
+## Applies the power supply's contribution to the MNA matrices, modeling it as a voltage or current source.
 func stamp(
 	A: Array,
 	b: Array,
@@ -178,6 +188,7 @@ func stamp(
 
 # -----------------------------------------------------------------
 # Simulation-results extraction
+## Extracts and stores simulation results (current, voltage, mode) for this component.
 func gather_sim_results(
 		circuit      : CircuitGraph,
 		comp_data    : Dictionary,

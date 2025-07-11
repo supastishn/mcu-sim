@@ -3,17 +3,24 @@ extends Node3D
 class_name ZenerDiode3D
 
 
+## Emitted when a key property (like forward or zener voltage) of the diode changes.
 signal configuration_changed(component_node: Node3D)
 
 
+## The forward voltage drop of the diode when conducting, in Volts.
 @export var forward_voltage: float = 0.7 : set = set_forward_voltage
 
+## The reverse breakdown (Zener) voltage, in Volts.
 @export var zener_voltage: float = 5.1 : set = set_zener_voltage
 
+## Reference to the Anode terminal Area3D node.
 @onready var terminal_anode: Area3D = $TerminalAnode 
+## Reference to the Kathode terminal Area3D node.
 @onready var terminal_kathode: Area3D = $TerminalKathode 
+## Reference to the Label3D for displaying simulation info.
 @onready var info_label: Label3D = $InfoLabel
 
+## Called when the node enters the scene tree. Initializes the component.
 func _ready():
 	if not terminal_anode or not terminal_kathode:
 		printerr("ZenerDiode3D requires child Area3D nodes named 'TerminalAnode' and 'TerminalKathode'.")
@@ -24,6 +31,7 @@ func _ready():
 	set_forward_voltage(forward_voltage)
 	set_zener_voltage(zener_voltage)
 
+## Sets the forward voltage, validates it, and emits the configuration_changed signal.
 func set_forward_voltage(value: float):
 	var new_vf = max(0.1, value) 
 	if not is_equal_approx(forward_voltage, new_vf):
@@ -34,6 +42,7 @@ func set_forward_voltage(value: float):
 	elif forward_voltage != new_vf: 
 		forward_voltage = new_vf
 
+## Sets the Zener voltage, validates it, and emits the configuration_changed signal.
 func set_zener_voltage(value: float):
 	var new_vz = max(0.1, value) 
 	if not is_equal_approx(zener_voltage, new_vz):
@@ -46,6 +55,7 @@ func set_zener_voltage(value: float):
 
 
 
+## Displays the calculated state, voltage, and current on the component's 3D label.
 func show_info(results: Dictionary):
 	if not info_label: return
 	info_label.modulate = Color.WHITE 
@@ -72,16 +82,19 @@ func show_info(results: Dictionary):
 	info_label.text = "State: {s}\n{v_str}\n{c_str}".format({"s": state_val, "v_str": voltage_str, "c_str": current_str})
 	info_label.visible = true
 
+## Hides the information label.
 func hide_info():
 	if not info_label: return
 	info_label.visible = false
 	info_label.text = ""
 
+## Resets the component to its default visual state.
 func reset_visual_state():
 	hide_info()
 
 # -----------------------------------------------------------------
 # Simulation-results extraction
+## Extracts and stores simulation results for this component from the main solution vector.
 func gather_sim_results(
 		circuit      : CircuitGraph,
 		comp_data    : Dictionary,
@@ -132,6 +145,7 @@ func gather_sim_results(
 	circuit.component_results[comp_id]["state"] = state_z
 	#endregion
 
+## Updates the diode's operating state (OFF, FORWARD, ZENER) based on an MNA iteration.
 func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter: Array, node_map_iter: Dictionary, _vs_map_iter: Dictionary) -> bool:
 	if x_iter.is_empty():
 		return false
@@ -170,6 +184,7 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 		return true
 	return false
 
+## Applies the Zener diode's contribution to the MNA matrices based on its current state.
 func stamp(
 	A: Array,
 	b: Array,

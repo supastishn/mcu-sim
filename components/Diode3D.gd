@@ -3,19 +3,26 @@ extends Node3D
 class_name Diode3D
 
 
+## The voltage drop across the diode when it is forward-biased, in volts.
 @export var forward_voltage: float = 0.7
 
+## Reference to the Anode terminal Area3D node.
 @onready var terminal_anode: Area3D = $TerminalAnode 
+## Reference to the Kathode terminal Area3D node.
 @onready var terminal_kathode: Area3D = $TerminalKathode 
+## Reference to the visual representation (MeshInstance3D) of the diode.
 @onready var diode_mesh_instance: MeshInstance3D = $MeshInstance3D 
+## Reference to the Label3D node for displaying current flow.
 @onready var current_label: Label3D = $CurrentLabel
 
+## Called when the node enters the scene tree for the first time. Initializes the component.
 func _ready():
 	if not current_label:
 		printerr("Diode3D requires a child Label3D named 'CurrentLabel'.")
 	else:
 		current_label.visible = false
 
+## Displays the calculated current value on the component's 3D label.
 func show_current(current_value: float):
 	if not current_label: return
 	if is_nan(current_value):
@@ -29,12 +36,14 @@ func show_current(current_value: float):
 			current_label.text = "I: {val_str} A".format({"val_str": String.num(current_value, 2)})
 	current_label.visible = true
 
+## Hides the current display label.
 func hide_current():
 	if not current_label: return
 	current_label.visible = false
 
 # -----------------------------------------------------------------
 # Simulation-results extraction
+## Extracts and stores simulation results for this component from the main solution vector.
 func gather_sim_results(
 		circuit      : CircuitGraph,
 		comp_data    : Dictionary,
@@ -74,6 +83,7 @@ func gather_sim_results(
 	circuit.component_results[comp_id]["current"] = current
 	#endregion
 
+## Updates the diode's conducting state based on the latest voltage solution from an MNA iteration.
 func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter: Array, node_map_iter: Dictionary, _vs_map_iter: Dictionary) -> bool:
 	if x_iter.is_empty():
 		return false
@@ -98,6 +108,7 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 		return true
 	return false
 
+## Applies the diode's contribution to the MNA matrices (A and b) based on its current state.
 func stamp(
 	A: Array,
 	b: Array,
