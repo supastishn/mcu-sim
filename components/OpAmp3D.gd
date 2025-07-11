@@ -1,127 +1,181 @@
 extends Node3D
+class_name OpAmp3D
 
-# Terminal References
-@onready var terminal_vp  : Area3D = $TerminalVp
-@onready var terminal_vn  : Area3D = $TerminalVn
+signal configuration_changed(component_node: Node3D)
+
+# Properties for the ideal op-amp simulation model
+@export var open_loop_gain: float = 200000.0
+@export var rail_saturation_voltage: float = 1.5 # Voltage drop from the supply rails
+
+# UI and component node references
+@onready var terminal_vp: Area3D = $TerminalVp
+@onready var terminal_vn: Area3D = $TerminalVn
 @onready var terminal_vout: Area3D = $TerminalVout
-@onready var terminal_vcc : Area3D = $TerminalVcc
-@onready var terminal_vee : Area3D = $TerminalVee
+@onready var terminal_vcc: Area3D = $TerminalVcc
+@onready var terminal_vee: Area3D = $TerminalVee
+@onready var info_label: Label3D = $InfoLabel
 
-# Properties
-@export var open_loop_gain: float = 100000.0
-@export var rail_saturation_voltage: float = 0.2
+func _ready():
+	hide_info()
 
+# --- Visual Feedback ---
+func show_info(results: Dictionary):
+	if not is_instance_valid(info_label): return
+	
+	var region_str = results.get("region", "N/A")
+	var vout_val = results.get("Vout", NAN)
+	var vdiff_val = results.get("Vp_minus_Vn", NAN)
+
+	var vout_str = "N/A"
+	if not is_nan(vout_val):
+		vout_str = "{v:.3f} V".format({"v": vout_val})
+
+	var vdiff_str = "N/A"
+	if not is_nan(vdiff_val):
+		vdiff_str = "{v:.3f} mV".format({"v": vdiff_val * 1000.0})
+
+	info_label.text = "Region: {r}\nVout: {vo}\nVp-Vn: {vd}".format({
+		"r": region_str,
+		"vo": vout_str,
+		"vd": vdiff_str
+	})
+	info_label.visible = true
+
+func hide_info():
+	if is_instance_valid(info_label):
+		info_label.visible = false
+
+func reset_visual_state():
+	hide_info()
+
+# --- Simulation Interface ---
 func update_nonlinear_state(
-	graph: CircuitGraph, 
-	comp_data: Dictionary, 
-	x: Array, 
-	node_map: Dictionary, 
-	vs_map: Dictionary, 
-	inductor_map: Dictionary
-) -> bool:
-	var term_vp = comp_data.terminals["Vp"]
-	var term_vn = comp_data.terminals["Vn"]
-	var term_vcc = comp_data.terminals["Vcc"]
-	var term_vee = comp_data.terminals["Vee"]
+		circuit: CircuitGraph,
+		comp_data: Dictionary,
+		solution_vector: Array,
+		node_map: Dictionary,
+		vs_map: Dictionary
+	) -> bool:
 	
-	var node_id_vp = graph.terminal_connections.get(term_vp.get_instance_id(), -1)
-	var node_id_vn = graph.terminal_connections.get(term_vn.get_instance_id(), -1)
-	var node_id_vcc = graph.terminal_connections.get(term_vcc.get_instance_id(), -1)
-	var node_id_vee = graph.terminal_connections.get(term_vee.get_instance_id(), -1)
+	var vp_node_id = circuit.terminal_connections.get(terminal_vp.get_instance_id(), -1)
+	var vn_node_id = circuit.terminal_connections.get(terminal_vn.get_instance_id(), -1)
+	var vcc_node_id = circuit.terminal_connections.get(terminal_vcc.get_instance_id(), -1)
+	var vee_node_id = circuit.terminal_connections.get(terminal_vee.get_instance_id(), -1)
 	
-	if node_id_vp == -1 or node_id_vn == -1 or node_id_vcc == -1 or node_id_vee == -1:
-		return false
+	var Vp = circuit.electrical_nodes.get(vp_node_id, {}).get("voltage", 0.0)
+	var Vn = circuit.electrical_nodes.get(vn_node_id, {}).get("voltage", 0.0)
+	var Vcc = circuit.electrical_nodes.get(vcc_node_id, {}).get("voltage", 15.0)
+	var Vee = circuit.electrical_nodes.get(vee_node_id, {}).get("voltage", -15.0)
 	
-	# Get voltages
-	var vcc = graph.electrical_nodes.get(node_id_vcc, {}).get("voltage", NAN)
-	var vee = graph.electrical_nodes.get(node_id_vee, {}).get("voltage", NAN)
-	var vp = graph.electrical_nodes.get(node_id_vp, {}).get("voltage", NAN)
-	var vn = graph.electrical_nodes.get(node_id_vn, {}).get("voltage", NAN)
+	if is_nan(Vcc): Vcc = 15.0
+	if is_nan(Vee): Vee = -15.0
+	if Vcc < Vee: # Swap if rails are inverted
+		var temp = Vcc
+		Vcc = Vee
+		Vee = temp
+
+	var ideal_vout = comp_data.properties.open_loop_gain * (Vp - Vn)
 	
-	# Check power validity
-	if is_nan(vcc) or is_nan(vee) or is_nan(vp) or is_nan(vn) or vcc - vee < 0.1:
-		comp_data.properties["operating_region"] = "OFF"
-		comp_data["_output_voltage"] = 0.0
-		return true
+	var high_rail = Vcc - comp_data.properties.rail_saturation_voltage
+	var low_rail = Vee + comp_data.properties.rail_saturation_voltage
 	
-	# Determine output state
-	var linear_out = open_loop_gain * (vp - vn)
-	var vout_high = vcc - rail_saturation_voltage
-	var vout_low = vee + rail_saturation_voltage
-	
-	var new_region: String
-	var new_vout: float
-	
-	if linear_out >= vout_high:
+	var new_region = ""
+	if ideal_vout > high_rail:
 		new_region = "SAT_HIGH"
-		new_vout = vout_high
-	elif linear_out <= vout_low:
+	elif ideal_vout < low_rail:
 		new_region = "SAT_LOW"
-		new_vout = vout_low
 	else:
 		new_region = "LINEAR"
-		new_vout = linear_out
+
+	var previous_region = comp_data.properties.get("operating_region", "OFF")
+	if new_region != previous_region:
+		comp_data.properties.operating_region = new_region
+		return true # State changed
 	
-	# Update state if changed
-	if new_region != comp_data.properties.get("operating_region") or \
-	   abs(new_vout - comp_data.get("_output_voltage", 0.0)) > 0.0001:
-		comp_data.properties["operating_region"] = new_region
-		comp_data["_output_voltage"] = new_vout
-		return true
-	
-	return false
+	return false # State did not change
 
 func stamp(
-	A: Array, 
-	b: Array, 
-	node_map: Dictionary, 
-	vs_map: Dictionary, 
-	inductor_map: Dictionary, 
-	terminal_connections: Dictionary,
-	comp_data: Dictionary,
-	delta_time: float
-) -> void:
-	var output_voltage = comp_data.get("_output_voltage", 0.0)
-	var term = terminal_vout
-	var term_id = term.get_instance_id()
+		A: Array,
+		b: Array,
+		node_map: Dictionary,
+		vs_map: Dictionary,
+		inductor_map: Dictionary,
+		terminal_connections: Dictionary,
+		comp_data: Dictionary,
+		delta_time: float
+	):
+	var vp_node_id = terminal_connections.get(terminal_vp.get_instance_id(), -1)
+	var vn_node_id = terminal_connections.get(terminal_vn.get_instance_id(), -1)
+	var vout_node_id = terminal_connections.get(terminal_vout.get_instance_id(), -1)
+	var vcc_node_id = terminal_connections.get(terminal_vcc.get_instance_id(), -1)
+	var vee_node_id = terminal_connections.get(terminal_vee.get_instance_id(), -1)
+
+	var vp_idx = node_map.get(vp_node_id, -1)
+	var vn_idx = node_map.get(vn_node_id, -1)
+	var vout_idx = node_map.get(vout_node_id, -1)
+	var vcc_idx = node_map.get(vcc_node_id, -1)
+	var vee_idx = node_map.get(vee_node_id, -1)
 	
-	# Get connected node for Vout
-	var node_id = terminal_connections.get(term_id, -1)
-	if node_id == -1: 
+	var vs_idx = vs_map.get(self.get_instance_id(), -1)
+	if vs_idx == -1:
+		printerr("OpAmp stamp error: component not found in vs_map.")
 		return
-	
-	# Get matrix indices
-	var n_nodes = node_map.size()
-	var vs_id = vs_map.get(get_instance_id(), -1)
-	if vs_id == -1: 
-		return
-	var idx_vout = node_map.get(node_id, -1)
-	if idx_vout == -1: 
-		return
-	
-	# Stamp as voltage source to ground
-	if not is_nan(output_voltage):
-		var col_idx = n_nodes + vs_id
-		var row_idx = n_nodes + vs_id
 		
-		if col_idx < A[0].size() and row_idx < A.size():
-			# KCL for Vout node
-			A[idx_vout][col_idx] += 1.0
-			# Voltage source equation
-			A[row_idx][idx_vout] = 1.0
-			b[row_idx] = output_voltage
+	# KCL: Current through OpAmp output terminal
+	if vout_idx != -1:
+		A[vout_idx][vs_idx] += 1.0
+		
+	# KVL: Equation for the controlled source
+	var region = comp_data.properties.operating_region
+	var sat_drop = comp_data.properties.rail_saturation_voltage
+	
+	if region == "LINEAR" or region == "OFF": # Treat OFF as linear for first iteration
+		var gain = comp_data.properties.open_loop_gain
+		# Vout = gain * (Vp - Vn)  =>  Vout - gain*Vp + gain*Vn = 0
+		if vout_idx != -1: A[vs_idx][vout_idx] = 1.0
+		if vp_idx != -1: A[vs_idx][vp_idx] = -gain
+		if vn_idx != -1: A[vs_idx][vn_idx] = gain
+		b[vs_idx] = 0.0
+	elif region == "SAT_HIGH":
+		# Vout = Vcc - sat_drop => Vout - Vcc = -sat_drop
+		if vout_idx != -1: A[vs_idx][vout_idx] = 1.0
+		if vcc_idx != -1: A[vs_idx][vcc_idx] = -1.0
+		b[vs_idx] = -sat_drop
+	elif region == "SAT_LOW":
+		# Vout = Vee + sat_drop => Vout - Vee = sat_drop
+		if vout_idx != -1: A[vs_idx][vout_idx] = 1.0
+		if vee_idx != -1: A[vs_idx][vee_idx] = -1.0
+		b[vs_idx] = sat_drop
 
 func gather_sim_results(
-	graph: CircuitGraph,
-	comp_data: Dictionary,
-	x: Array,
-	node_map: Dictionary,
-	vs_map: Dictionary,
-	inductor_map: Dictionary,
-	delta_time: float
-) -> void:
-	var results = {
-		"region": comp_data.properties.get("operating_region", "OFF"),
-		"Vout": comp_data.get("_output_voltage", 0.0)
-	}
-	graph.component_results[get_instance_id()] = results
+		circuit: CircuitGraph,
+		comp_data: Dictionary,
+		x: Array,
+		node_map: Dictionary,
+		vs_map: Dictionary,
+		inductor_map: Dictionary,
+		delta_time: float):
+		
+	var comp_id = self.get_instance_id()
+	if not circuit.component_results.has(comp_id):
+		circuit.component_results[comp_id] = {}
+		
+	var results = {}
+	
+	var vp_node_id = circuit.terminal_connections.get(terminal_vp.get_instance_id(), -1)
+	var vn_node_id = circuit.terminal_connections.get(terminal_vn.get_instance_id(), -1)
+	var vout_node_id = circuit.terminal_connections.get(terminal_vout.get_instance_id(), -1)
+	
+	var Vp = circuit.electrical_nodes.get(vp_node_id, {}).get("voltage", NAN)
+	var Vn = circuit.electrical_nodes.get(vn_node_id, {}).get("voltage", NAN)
+	var Vout = circuit.electrical_nodes.get(vout_node_id, {}).get("voltage", NAN)
+	
+	results["region"] = comp_data.properties.get("operating_region", "N/A")
+	results["Vout"] = Vout
+	
+	if not is_nan(Vp) and not is_nan(Vn):
+		results["Vp_minus_Vn"] = Vp - Vn
+	else:
+		results["Vp_minus_Vn"] = NAN
+		
+	circuit.component_results[comp_id] = results
