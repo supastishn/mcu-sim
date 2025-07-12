@@ -49,14 +49,14 @@ horizontal_scroll_mode = 2
 vertical_scroll_mode = 0
 
 [node name="ComponentGrid" type="GridContainer" parent="UI/ComponentBar"]
-columns = 4
+layout_mode = 2
 size_flags_horizontal = 3
+columns = 4
 
 [node name="SelectionBar" type="VBoxContainer" parent="UI"]
-anchors_preset = 15
+anchors_preset = -1
 anchor_left = 0.87
 anchor_right = 1.0
-anchor_top = 0.0
 anchor_bottom = 1.0
 grow_horizontal = 0
 mouse_filter = 0
@@ -66,6 +66,7 @@ layout_mode = 2
 text = "Delete"
 
 [node name="PropertyContainer" type="VBoxContainer" parent="UI/SelectionBar"]
+layout_mode = 2
 
 [node name="MoveJoystick" parent="UI" instance=ExtResource("5_u030x")]
 anchors_preset = 2
