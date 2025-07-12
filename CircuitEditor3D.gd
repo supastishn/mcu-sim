@@ -710,7 +710,7 @@ func _simulate_circuit():
 		
 		
 		
-		_hide_voltage_displays(true) 
+		_hide_voltage_displays() 
 		pass 
 
 
@@ -773,7 +773,7 @@ func _add_line_edit_property(label_text: String, initial_value, change_callable:
 	var hbox = HBoxContainer.new()
 	var label = Label.new()
 	label.text = label_text
-	label.size_flags_horizontal = SIZE_EXPAND_FILL
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var line_edit = LineEdit.new()
 	line_edit.text = str(initial_value)
 	line_edit.text_submitted.connect(func(new_text):
