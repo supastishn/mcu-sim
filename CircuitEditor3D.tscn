@@ -1,9 +1,13 @@
-[gd_scene load_steps=7 format=3 uid="uid://ccg8cvm43p62e"]
+[gd_scene load_steps=11 format=3 uid="uid://ccg8cvm43p62e"]
 
 [ext_resource type="Script" uid="uid://dr5dcel860ud7" path="res://CircuitEditor3D.gd" id="1_24jde"]
 [ext_resource type="Environment" uid="uid://cwsyqgy4w2g51" path="res://default_env.tres" id="2_4l16h"]
 [ext_resource type="Script" uid="uid://duafmjvwrw5ry" path="res://CircuitGraph.gd" id="2_07q78"]
 [ext_resource type="PackedScene" uid="uid://b0v77n133ah4q" path="res://ui/VirtualJoystick.tscn" id="5_u030x"]
+[ext_resource type="Theme" uid="uid://clj1wcnqj3gqb" path="res://ui/main_theme.tres" id="6_aekn8"]
+[ext_resource type="StyleBox" uid="uid://d3a4b5c6d7e8f" path="res://ui/delete_button_normal.tres" id="7_vqw8c"]
+[ext_resource type="StyleBox" uid="uid://e9f0g1h2i3j4k" path="res://ui/delete_button_hover.tres" id="8_n4j1e"]
+[ext_resource type="StyleBox" uid="uid://l5m6n7o8p9q0r" path="res://ui/delete_button_pressed.tres" id="9_m1g6t"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_t6gqm"]
 size = Vector2(100, 100)
@@ -38,6 +42,7 @@ transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 4, 
 size = 10.0
 
 [node name="UI" type="CanvasLayer" parent="."]
+theme = ExtResource("6_aekn8")
 
 [node name="ComponentBar" type="ScrollContainer" parent="UI"]
 anchors_preset = -1
@@ -63,6 +68,9 @@ mouse_filter = 0
 
 [node name="DeleteButton" type="Button" parent="UI/SelectionBar"]
 layout_mode = 2
+theme_override_styles/normal = ExtResource("7_vqw8c")
+theme_override_styles/hover = ExtResource("8_n4j1e")
+theme_override_styles/pressed = ExtResource("9_m1g6t")
 text = "Delete"
 
 [node name="PropertyContainer" type="VBoxContainer" parent="UI/SelectionBar"]

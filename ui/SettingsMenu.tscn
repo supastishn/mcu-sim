@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://xxvyvo1agkfa"]
+[gd_scene load_steps=3 format=3 uid="uid://xxvyvo1agkfa"]
 
 [ext_resource type="Script" uid="uid://dgmemphir8t0d" path="res://ui/SettingsMenu.gd" id="1_settings_gd"]
+[ext_resource type="Theme" uid="uid://clj1wcnqj3gqb" path="res://ui/main_theme.tres" id="2_y5r1v"]
 
 [node name="SettingsMenu" type="Control"]
 layout_mode = 3
@@ -9,6 +10,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("2_y5r1v")
 script = ExtResource("1_settings_gd")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="."]
