@@ -143,7 +143,7 @@ func stamp(
 		comp_data: Dictionary,
 		delta_time: float
 	):
-	# Numerically stable op-amp stamping using large conductance (high-value resistor model)
+	# Improved op-amp stamping for numerical stability and convergence
 	var region = comp_data.properties["operating_region"]
 
 	var vp_node_id = terminal_connections.get(terminal_vp.get_instance_id(), -1)
@@ -161,26 +161,33 @@ func stamp(
 	var Gbig = 1e12 # Very high conductance
 
 	if region == "LINEAR" or region == "OFF":
-		# Model as high-gain device with large resistor feedback
-		# Enforce Vout = G * (Vp - Vn) using large conductance
+		# Model as voltage follower with gain using feedback resistance
+		var Rf = 1e8  # Large feedback resistance for numerical stability
+		var Rin = 1e6  # Input resistance
+		var open_loop_gain = comp_data.properties["open_loop_gain"]
+
 		if vp_idx != -1 and vn_idx != -1 and vout_idx != -1:
-			# Vout = G * (Vp - Vn)
-			# Vout - G*(Vp - Vn) = 0
-			A[vout_idx][vout_idx] += 1.0
-			A[vout_idx][vp_idx] -= comp_data.properties["open_loop_gain"]
-			A[vout_idx][vn_idx] += comp_data.properties["open_loop_gain"]
-			b[vout_idx] += 0.0
+			# Gain equation approximated with resistors
+			A[vout_idx][vout_idx] += 1.0 / Rf + 1.0 / Rin
+			A[vout_idx][vn_idx] += open_loop_gain / (Rin * Rf)
+			A[vout_idx][vp_idx] += -1.0 / Rin
 	elif region == "SAT_HIGH":
 		var sat_drop = comp_data.properties["rail_saturation_voltage"]
 		if vout_idx != -1 and vcc_idx != -1:
 			A[vout_idx][vout_idx] += Gbig
 			A[vout_idx][vcc_idx] -= Gbig
 			b[vout_idx] += Gbig * ( -sat_drop )
+		elif vout_idx != -1:  # Vcc not connected, clamp to GND reference
+			A[vout_idx][vout_idx] += Gbig
+			b[vout_idx] += Gbig * ( -sat_drop )
 	elif region == "SAT_LOW":
 		var sat_drop = comp_data.properties["rail_saturation_voltage"]
 		if vout_idx != -1 and vee_idx != -1:
 			A[vout_idx][vout_idx] += Gbig
 			A[vout_idx][vee_idx] -= Gbig
+			b[vout_idx] += Gbig * sat_drop
+		elif vout_idx != -1:  # Vee not connected
+			A[vout_idx][vout_idx] += Gbig
 			b[vout_idx] += Gbig * sat_drop
 
 ## Extracts and stores simulation results for this component.
