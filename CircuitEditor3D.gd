@@ -103,6 +103,8 @@ var is_simulating_continuously: bool = false
 var show_voltage_labels: bool = false
 ## Reference to the button that toggles voltage label visibility.
 var display_voltage_button: Button = null
+## Reference to the button that toggles the simulation.
+var simulate_button: Button = null
 
 ## Movement speed for the fly-camera.
 @export var fly_speed: float = 5.0
@@ -633,7 +635,7 @@ func _perform_simulation_step():
 
 	if circuit_graph.solve_single_time_step(SIMULATION_TIME_STEP):
 		print("  Simulation step successful.")
-		_update_led_states()       
+		_update_component_visuals()       
 		_update_voltage_displays() 
 	else:
 		print("  Simulation step failed. Check console for errors and circuit configuration.")
@@ -701,7 +703,7 @@ func _simulate_circuit():
 
 
 	if circuit_graph.solve_single_time_step(SIMULATION_TIME_STEP):
-		_update_led_states()       
+		_update_component_visuals()       
 		_update_voltage_displays() 
 	else:
 		
@@ -941,3 +943,161 @@ func _deselect_component():
 	
 	_potential_drag_target = null
 	selection_bar.get_node("DeleteButton").visible = false
+
+# --- Signal Callbacks ---
+
+## Callback for joystick movement updates.
+func _on_move_joystick_updated(direction: Vector2, intensity: float):
+	move_vector = direction
+	move_intensity = intensity
+
+## Callback for joystick movement release.
+func _on_move_joystick_released():
+	move_vector = Vector2.ZERO
+	move_intensity = 0.0
+
+## Callback for joystick look updates.
+func _on_look_joystick_updated(direction: Vector2, intensity: float):
+	look_vector = direction
+	look_intensity = intensity
+
+## Callback for joystick look release.
+func _on_look_joystick_released():
+	look_vector = Vector2.ZERO
+	look_intensity = 0.0
+
+## Callback for when the "Delete" button is pressed for the selected component.
+func _on_delete_button_pressed():
+	if not is_instance_valid(selected_component):
+		return
+
+	var component_to_delete = selected_component
+	_deselect_component()
+
+	if component_to_delete is Wire3D:
+		component_to_delete.queue_free()
+		_rebuild_graph_from_scene()
+	else:
+		circuit_graph.remove_component(component_to_delete)
+		component_to_delete.queue_free()
+
+	_hide_voltage_displays()
+
+## Forces a full rebuild of the circuit graph based on the components and wires in the scene.
+func _rebuild_graph_from_scene():
+	var all_components = components_node.get_children()
+	var all_wires = wires_node.get_children()
+	var stored_ground_terminal = null
+	if circuit_graph.ground_node_id != -1:
+		if circuit_graph.electrical_nodes.has(circuit_graph.ground_node_id):
+			var ground_node = circuit_graph.electrical_nodes[circuit_graph.ground_node_id]
+			if not ground_node.terminals.is_empty():
+				stored_ground_terminal = ground_node.terminals[0]
+
+	# Reset graph
+	circuit_graph.components.clear()
+	circuit_graph.component_node_map.clear()
+	circuit_graph.electrical_nodes.clear()
+	circuit_graph.terminal_connections.clear()
+	circuit_graph.ground_node_id = -1
+	circuit_graph._next_node_id = 0
+	
+	# Re-add components
+	for comp in all_components:
+		if not comp is Wire3D:
+			circuit_graph.add_component(comp)
+	
+	# Re-connect wires
+	for wire in all_wires:
+		if wire is Wire3D and is_instance_valid(wire.terminal_start) and is_instance_valid(wire.terminal_end):
+			circuit_graph.connect_terminals(wire.terminal_start, wire.terminal_end)
+	
+	# Restore ground
+	if is_instance_valid(stored_ground_terminal):
+		circuit_graph.set_ground_node(stored_ground_terminal)
+	
+	circuit_graph._needs_rebuild = true
+	_hide_voltage_displays()
+
+## Callback for the "Display Voltages" button.
+func _on_display_voltage_button_pressed():
+	show_voltage_labels = display_voltage_button.button_pressed
+	if show_voltage_labels:
+		display_voltage_button.text = "Hide Voltages"
+		if not circuit_graph._is_solved:
+			_perform_simulation_step()
+		else:
+			_update_voltage_displays()
+	else:
+		display_voltage_button.text = "Display Voltages"
+		_hide_voltage_displays()
+
+## Generic callback for any component configuration change.
+func _on_any_component_config_changed(component_node: Node3D):
+	circuit_graph.component_config_changed(component_node)
+	_hide_voltage_displays()
+
+## Callback for switch state changes.
+func _on_switch_state_changed(switch_node: Node3D, _new_state: int):
+	_on_any_component_config_changed(switch_node)
+
+## Callback for potentiometer wiper changes.
+func _on_potentiometer_component_wiper_changed(pot_node: Node3D, new_position: float):
+	_on_any_component_config_changed(pot_node)
+	if selected_component == pot_node:
+		var slider = property_container.find_child("HSlider", true, false)
+		if slider and slider is HSlider:
+			_is_updating_pot_slider_programmatically = true
+			slider.value = new_position
+			_is_updating_pot_slider_programmatically = false
+
+func _on_battery_config_changed(node: Node3D): _on_any_component_config_changed(node)
+func _on_polarized_capacitor_config_changed(node: Node3D): _on_any_component_config_changed(node)
+func _on_non_polarized_capacitor_config_changed(node: Node3D): _on_any_component_config_changed(node)
+func _on_inductor_config_changed(node: Node3D): _on_any_component_config_changed(node)
+func _on_npn_bjt_config_changed(node: Node3D): _on_any_component_config_changed(node)
+func _on_pnp_bjt_config_changed(node: Node3D): _on_any_component_config_changed(node)
+func _on_zener_diode_config_changed(node: Node3D): _on_any_component_config_changed(node)
+func _on_relay_config_changed(node: Node3D): _on_any_component_config_changed(node)
+func _on_op_amp_config_changed(node: Node3D): _on_any_component_config_changed(node)
+
+# --- Visual Update Functions ---
+
+## Iterates through all components and updates their visual state based on simulation results.
+func _update_component_visuals():
+	if not circuit_graph._is_solved: return
+	for comp_data in circuit_graph.components:
+		var comp_node = comp_data.component_node
+		if not is_instance_valid(comp_node): continue
+		var results = circuit_graph.component_results.get(comp_node.get_instance_id(), {})
+		if results.is_empty() and comp_node.has_method("reset_visual_state"):
+			comp_node.reset_visual_state(); continue
+		if comp_node.has_method("show_info"):
+			if comp_node is PolarizedCapacitor3D: comp_node.show_info(results.get("current", NAN), results.get("voltage_across", NAN), results.get("is_exploded", false))
+			elif comp_node is NonPolarizedCapacitor3D or comp_node is Inductor3D: comp_node.show_info(results.get("current", NAN), results.get("voltage_across", NAN))
+			else: comp_node.show_info(results)
+		elif comp_node.has_method("show_current"):
+			if comp_node is PowerSource3D or comp_node is Battery3D: comp_node.show_current(results.get("current", NAN), results.get("voltage", NAN), results.get("operating_mode", "CV"))
+			elif comp_node is Potentiometer3D: comp_node.show_current(results.get("current_T1_W", NAN), results.get("current_W_T2", NAN))
+			else: comp_node.show_current(results.get("current", NAN))
+		if comp_node.has_method("update_visual_state") and comp_node is LED3D:
+			comp_node.update_visual_state(results.get("current", NAN), comp_data.get("is_burned", false))
+
+## Shows voltage labels on all terminals.
+func _update_voltage_displays():
+	if not show_voltage_labels or not circuit_graph._is_solved: return
+	for node_id in circuit_graph.electrical_nodes:
+		var node_data = circuit_graph.electrical_nodes[node_id]
+		var voltage = node_data.get("voltage", NAN)
+		if not is_nan(voltage):
+			for terminal in node_data.terminals:
+				if is_instance_valid(terminal) and terminal is TerminalFeedback:
+					terminal.show_voltage(voltage)
+
+## Hides all voltage labels on terminals.
+func _hide_voltage_displays():
+	for comp_data in circuit_graph.components:
+		for term_name in comp_data.terminals:
+			var terminal = comp_data.terminals[term_name]
+			if is_instance_valid(terminal) and terminal is TerminalFeedback and not terminal.is_selected:
+				terminal.hide_voltage()
