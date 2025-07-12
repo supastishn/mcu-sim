@@ -143,8 +143,9 @@ func stamp(
 		comp_data: Dictionary,
 		delta_time: float
 	):
-	print_debug("OpAmp3D({name}): ======= STAMP OPAMP =======".format({"name": self.name}))
-	
+	# Numerically stable op-amp stamping using large conductance (high-value resistor model)
+	var region = comp_data.properties["operating_region"]
+
 	var vp_node_id = terminal_connections.get(terminal_vp.get_instance_id(), -1)
 	var vn_node_id = terminal_connections.get(terminal_vn.get_instance_id(), -1)
 	var vout_node_id = terminal_connections.get(terminal_vout.get_instance_id(), -1)
@@ -156,66 +157,31 @@ func stamp(
 	var vout_idx = node_map.get(vout_node_id, -1)
 	var vcc_idx = node_map.get(vcc_node_id, -1)
 	var vee_idx = node_map.get(vee_node_id, -1)
-	
-	var vs_idx = vs_map.get(self.get_instance_id(), -1)
-	
-	print_debug("OpAmp3D({name}): indices - Vp:{vp}, Vn:{vn}, Vout:{vo}, Vcc:{vc}, Vee:{ve}, VS:{vs}"
-		.format({
-			"name": self.name,
-			"vp": vp_idx, "vn": vn_idx, "vo": vout_idx,
-			"vc": vcc_idx, "ve": vee_idx, "vs": vs_idx
-		}))
-	
-	print_debug("OpAmp3D({name}): Pre-stamp: b[idx_vs] = {val}".format({
-		"name": self.name, "val": b[vs_idx] if vs_idx != -1 else "invalid"
-	}))
-	var region = comp_data.properties["operating_region"]
-	if vs_idx == -1:
-		printerr("OpAmp stamp error: component not found in vs_map.")
-		return
 
-	# KCL: Current through OpAmp output terminal
-	if vout_idx != -1:
-		A[vout_idx][vs_idx] += 1.0
+	var Gbig = 1e12 # Very high conductance
 
-	# KVL: Equation for the controlled source
-
-	if region == "LINEAR" or region == "OFF": # Treat OFF as linear for first iteration
-		# Vout = G * (Vp - Vn)  =>  Vp - Vn - Vout/G = 0
-		# This form is more numerically stable than the one with large gain factors.
-		var gain = comp_data.properties["open_loop_gain"]
-		if vp_idx != -1:
-			A[vs_idx][vp_idx] = 1.0
-		if vn_idx != -1:
-			A[vs_idx][vn_idx] = -1.0
-		if vout_idx != -1:
-			A[vs_idx][vout_idx] = -1.0 / gain
-		b[vs_idx] = 0.0
+	if region == "LINEAR" or region == "OFF":
+		# Model as high-gain device with large resistor feedback
+		# Enforce Vout = G * (Vp - Vn) using large conductance
+		if vp_idx != -1 and vn_idx != -1 and vout_idx != -1:
+			# Vout = G * (Vp - Vn)
+			# Vout - G*(Vp - Vn) = 0
+			A[vout_idx][vout_idx] += 1.0
+			A[vout_idx][vp_idx] -= comp_data.properties["open_loop_gain"]
+			A[vout_idx][vn_idx] += comp_data.properties["open_loop_gain"]
+			b[vout_idx] += 0.0
 	elif region == "SAT_HIGH":
 		var sat_drop = comp_data.properties["rail_saturation_voltage"]
-		# Vout = Vcc - sat_drop => Vout - Vcc = -sat_drop
-		if vout_idx != -1: A[vs_idx][vout_idx] = 1.0
-		if vcc_idx != -1: A[vs_idx][vcc_idx] = -1.0
-		b[vs_idx] = -sat_drop
+		if vout_idx != -1 and vcc_idx != -1:
+			A[vout_idx][vout_idx] += Gbig
+			A[vout_idx][vcc_idx] -= Gbig
+			b[vout_idx] += Gbig * ( -sat_drop )
 	elif region == "SAT_LOW":
 		var sat_drop = comp_data.properties["rail_saturation_voltage"]
-		# Vout = Vee + sat_drop => Vout - Vee = sat_drop
-		if vout_idx != -1: A[vs_idx][vout_idx] = 1.0
-		if vee_idx != -1: A[vs_idx][vee_idx] = -1.0
-		b[vs_idx] = sat_drop
-
-	print_debug("OpAmp3D({name}): Post-stamp: b[idx_vs] = {val}".format({
-		"name": self.name, "val": b[vs_idx] if vs_idx != -1 else "invalid"
-	}))
-	
-	if vs_idx != -1:
-		var row_str = "A[{vs}] = [ ".format({"vs": vs_idx})
-		for j in range(A[vs_idx].size()):
-			row_str += "{val:.2f} ".format({"val": A[vs_idx][j]})
-		row_str += "]"
-		print_debug("OpAmp3D({name}): {row}".format({"name": self.name, "row": row_str}))
-	else:
-		printerr("OpAmp3D({name}): Invalid vs_idx!".format({"name": self.name}))
+		if vout_idx != -1 and vee_idx != -1:
+			A[vout_idx][vout_idx] += Gbig
+			A[vout_idx][vee_idx] -= Gbig
+			b[vout_idx] += Gbig * sat_drop
 
 ## Extracts and stores simulation results for this component.
 func gather_sim_results(

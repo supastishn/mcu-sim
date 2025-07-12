@@ -498,6 +498,11 @@ func solve_single_time_step(delta_time: float) -> bool:
 			x = [] 
 			pass 
 
+		# Regularization step for large voltages (numerical stability)
+		for j in range(b_iter.size()):
+			if is_nan(b_iter[j]) or abs(b_iter[j]) > 1e12:
+				b_iter[j] = clamp(b_iter[j], -1e12, 1e12)
+				A_iter[j][j] = max(A_iter[j][j], 1e-9)
 
 		var current_iter_x = LinearSolver.solve(A_iter, b_iter)
 
