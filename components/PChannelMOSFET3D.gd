@@ -5,9 +5,9 @@ class_name PChannelMOSFET3D
 signal configuration_changed(component_node : Node3D)
 
 ## The absolute gate-source threshold voltage |Vtp| required to turn the MOSFET on.
-@export var threshold_voltage : float = 2.0    : set = set_threshold_voltage
+@export var threshold_voltage : float = 2.0 : set = set_threshold_voltage
 ## The transconductance parameter (Kp), related to the MOSFET's current-carrying capability.
-@export var transconductance_parameter : float = 0.1 : set = set_kn
+@export var transconductance_parameter : float = 0.1 : set = set_transconductance_parameter
 
 ## Reference to the Drain terminal Area3D node.
 @onready var terminal_d : Area3D = $TerminalD
@@ -20,19 +20,31 @@ signal configuration_changed(component_node : Node3D)
 
 ## Called when the node enters the scene tree. Initializes the component.
 func _ready():
-	set_threshold_voltage(threshold_voltage)
-	set_kn(transconductance_parameter)
 	reset_visual_state()
+	set_threshold_voltage(threshold_voltage)
+	set_transconductance_parameter(transconductance_parameter)
 
 ## Sets the threshold voltage, validates it, and emits a signal.
-func set_threshold_voltage(v):
-	threshold_voltage = clampf(v,0.1,10.0)
-	if is_inside_tree(): emit_signal("configuration_changed", self)
+func set_threshold_voltage(value: float):
+	var new_vt = clampf(value, 0.1, 10.0)
+	if not is_equal_approx(threshold_voltage, new_vt):
+		threshold_voltage = new_vt
+		print("PChannelMOSFET3D {name} threshold_voltage set to: {vt_str} V".format({"name": name, "vt_str": String.num(threshold_voltage, 2)}))
+		if is_inside_tree():
+			emit_signal("configuration_changed", self)
+	elif threshold_voltage != new_vt:
+		threshold_voltage = new_vt
 
 ## Sets the transconductance parameter, validates it, and emits a signal.
-func set_kn(v):
-	transconductance_parameter = max(1e-6,v)
-	if is_inside_tree(): emit_signal("configuration_changed", self)
+func set_transconductance_parameter(value: float):
+	var new_kp = max(1e-6, value)
+	if not is_equal_approx(transconductance_parameter, new_kp):
+		transconductance_parameter = new_kp
+		print("PChannelMOSFET3D {name} transconductance_parameter set to: {kp_str} A/V^2".format({"name": name, "kp_str": String.num_scientific(transconductance_parameter)}))
+		if is_inside_tree():
+			emit_signal("configuration_changed", self)
+	elif transconductance_parameter != new_kp:
+		transconductance_parameter = new_kp
 
 ## Helper function to format a float current value into a human-readable string with units.
 func _format_current(current_value: float) -> String:

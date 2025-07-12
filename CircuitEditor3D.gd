@@ -543,6 +543,10 @@ func _add_component(scene: PackedScene, pos: Vector3):
 		component_instance.configuration_changed.connect(_on_pnp_bjt_config_changed)
 	elif component_instance is ZenerDiode3D: 
 		component_instance.configuration_changed.connect(_on_zener_diode_config_changed)
+	elif component_instance is NChannelMOSFET3D:
+		component_instance.configuration_changed.connect(_on_n_channel_mosfet_config_changed)
+	elif component_instance is PChannelMOSFET3D:
+		component_instance.configuration_changed.connect(_on_p_channel_mosfet_config_changed)
 	elif component_instance is Relay3D: 
 		component_instance.configuration_changed.connect(_on_relay_config_changed)
 	elif component_instance is OpAmp3D:
@@ -916,6 +920,11 @@ func _select_component(component: Node3D):
 		_add_line_edit_property("Vt (V):", selected_t.threshold_voltage, func(new_val): selected_t.threshold_voltage = new_val)
 		_add_line_edit_property("Kn (A/V^2):", selected_t.transconductance_parameter, func(new_val): selected_t.transconductance_parameter = new_val)
 
+	elif selected_component is PChannelMOSFET3D:
+		var selected_t : PChannelMOSFET3D = selected_component
+		_add_line_edit_property("|Vtp| (V):", selected_t.threshold_voltage, func(new_val): selected_t.threshold_voltage = new_val)
+		_add_line_edit_property("Kp (A/V^2):", selected_t.transconductance_parameter, func(new_val): selected_t.transconductance_parameter = new_val)
+
 	elif selected_component is Relay3D:
 		var selected_t : Relay3D = selected_component
 		_add_line_edit_property("Coil Threshold (V):", selected_t.signal_voltage_threshold, func(new_val): selected_t.signal_voltage_threshold = new_val)
@@ -1059,6 +1068,8 @@ func _on_npn_bjt_config_changed(node: Node3D): _on_any_component_config_changed(
 func _on_pnp_bjt_config_changed(node: Node3D): _on_any_component_config_changed(node)
 func _on_zener_diode_config_changed(node: Node3D): _on_any_component_config_changed(node)
 func _on_relay_config_changed(node: Node3D): _on_any_component_config_changed(node)
+func _on_n_channel_mosfet_config_changed(node: Node3D): _on_any_component_config_changed(node)
+func _on_p_channel_mosfet_config_changed(node: Node3D): _on_any_component_config_changed(node)
 func _on_op_amp_config_changed(node: Node3D): _on_any_component_config_changed(node)
 
 # --- Visual Update Functions ---
