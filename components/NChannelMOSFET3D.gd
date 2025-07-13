@@ -69,7 +69,7 @@ func show_info(results: Dictionary):
 
 	var id_str = "Id: N/A" 
 	if results.has("Id") and not is_nan(results.Id):
-		id_str = "Id: {val_str}".format({"val_str": _format_current(results.Id)})
+		id_str = "Id: " + StringUtils.format_current(results.Id)
 	
 	var vgs_str = "Vgs: N/A" 
 	if results.has("Vgs") and not is_nan(results.Vgs):
@@ -90,20 +90,6 @@ func show_info(results: Dictionary):
 		"vds": vds_str.replace("Vds: ", "")  
 		})
 	info_label.visible = true
-
-## Helper function to format a float current value into a human-readable string with units.
-func _format_current(current_value: float) -> String:
-	if abs(current_value) < 1e-9 and abs(current_value) > 1e-15 : 
-		return "{val_str} pA".format({"val_str": String.num(current_value * 1e12, 2)})
-	elif abs(current_value) < 1e-6 and abs(current_value) >= 1e-12 : 
-		return "{val_str} nA".format({"val_str": String.num(current_value * 1e9, 2)})
-	elif abs(current_value) < 1e-3: 
-		return "{val_str} µA".format({"val_str": String.num(current_value * 1e6, 2)})
-	elif abs(current_value) < 1.0: 
-		return "{val_str} mA".format({"val_str": String.num(current_value * 1e3, 2)})
-	else: 
-		return "{val_str} A".format({"val_str": String.num(current_value, 2)})
-
 
 ## Hides the information label.
 func hide_info():

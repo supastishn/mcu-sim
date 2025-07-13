@@ -58,19 +58,10 @@ func set_wiper_position(new_pos: float):
 ## Displays the calculated currents flowing through the two resistive segments of the potentiometer.
 func show_current(current_t1_w: float, current_w_t2: float):
 	if not current_label: return
-	
-	var str_t1_w = "N/A"
-	if not is_nan(current_t1_w):
-		if abs(current_t1_w) < 1e-3 and abs(current_t1_w) > 1e-12: str_t1_w = "{val_str}µA".format({"val_str": String.num(current_t1_w * 1e6, 2)})
-		elif abs(current_t1_w) < 1.0: str_t1_w = "{val_str}mA".format({"val_str": String.num(current_t1_w * 1e3, 2)})
-		else: str_t1_w = "{val_str}A".format({"val_str": String.num(current_t1_w, 2)})
 
-	var str_w_t2 = "N/A"
-	if not is_nan(current_w_t2):
-		if abs(current_w_t2) < 1e-3 and abs(current_w_t2) > 1e-12: str_w_t2 = "{val_str}µA".format({"val_str": String.num(current_w_t2 * 1e6, 2)})
-		elif abs(current_w_t2) < 1.0: str_w_t2 = "{val_str}mA".format({"val_str": String.num(current_w_t2 * 1e3, 2)})
-		else: str_w_t2 = "{val_str}A".format({"val_str": String.num(current_w_t2, 2)})
-		
+	var str_t1_w = StringUtils.format_current(current_t1_w).replace(" ", "")
+	var str_w_t2 = StringUtils.format_current(current_w_t2).replace(" ", "")
+
 	current_label.text = "I(T1-W): {val1}\nI(W-T2): {val2}".format({"val1": str_t1_w, "val2": str_w_t2})
 	current_label.visible = true
 

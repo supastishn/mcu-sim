@@ -90,14 +90,8 @@ func show_current(actual_current: float, actual_voltage: float):
 	var disp_current: float = NAN 
 
 	if not is_nan(actual_current):
-		disp_current = -actual_current 
-		
-		if abs(disp_current) < 1e-3 and abs(disp_current) > 1e-12: 
-			current_str = "{curr_val} µA".format({"curr_val": String.num(disp_current * 1e6, 2)})
-		elif abs(disp_current) < 1.0: 
-			current_str = "{curr_val} mA".format({"curr_val": String.num(disp_current * 1e3, 2)})
-		else:
-			current_str = "{curr_val} A".format({"curr_val": String.num(disp_current, 2)})
+		disp_current = -actual_current
+		current_str = StringUtils.format_current(disp_current)
 
 	var voltage_str = "N/A"
 	if not is_nan(actual_voltage):

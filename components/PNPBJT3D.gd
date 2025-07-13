@@ -79,15 +79,15 @@ func show_info(results: Dictionary):
 
 	var ic_str = "Ic: N/A" 
 	if results.has("Ic") and not is_nan(results.Ic):
-		ic_str = "Ic: {val_str}".format({"val_str": _format_current(results.Ic)})
+		ic_str = "Ic: " + StringUtils.format_current(results.Ic)
 	
 	var ib_str = "Ib: N/A" 
 	if results.has("Ib") and not is_nan(results.Ib):
-		ib_str = "Ib: {val_str}".format({"val_str": _format_current(results.Ib)})
+		ib_str = "Ib: " + StringUtils.format_current(results.Ib)
 
 	var ie_str = "Ie: N/A" 
 	if results.has("Ie") and not is_nan(results.Ie):
-		ie_str = "Ie: {val_str}".format({"val_str": _format_current(results.Ie)})
+		ie_str = "Ie: " + StringUtils.format_current(results.Ie)
 
 	var region_str = "Region: N/A"
 	if results.has("region"):
@@ -95,18 +95,6 @@ func show_info(results: Dictionary):
 		
 	info_label.text = "{r_str}\n{ic}\n{ib}\n{ie}".format({"r_str": region_str, "ic": ic_str, "ib": ib_str, "ie": ie_str})
 	info_label.visible = true
-
-## Helper function to format a float current value into a human-readable string with units.
-func _format_current(current_value: float) -> String:
-	if abs(current_value) < 1e-6 and abs(current_value) > 1e-15 : 
-		return "{val_str} nA".format({"val_str": String.num(current_value * 1e9, 2)})
-	elif abs(current_value) < 1e-3 and abs(current_value) >= 1e-12: 
-		return "{val_str} µA".format({"val_str": String.num(current_value * 1e6, 2)})
-	elif abs(current_value) < 1.0: 
-		return "{val_str} mA".format({"val_str": String.num(current_value * 1e3, 2)})
-	else: 
-		return "{val_str} A".format({"val_str": String.num(current_value, 2)})
-
 
 ## Hides the information label.
 func hide_info():

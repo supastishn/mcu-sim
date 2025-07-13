@@ -236,17 +236,6 @@ func stamp(
 		_inline_stamp_conductance.call(A, g_sw_open_val, idx_no_sw, idx_nc_sw)      
 	return          # or ‘pass’
 
-## Helper function to format a float current value into a human-readable string with units.
-func _format_current(current_value: float) -> String: 
-	if abs(current_value) < 1e-6 and abs(current_value) > 1e-15 : 
-		return "{val_str} nA".format({"val_str": String.num(current_value * 1e9, 2)})
-	elif abs(current_value) < 1e-3 and abs(current_value) >= 1e-12: 
-		return "{val_str} µA".format({"val_str": String.num(current_value * 1e6, 2)})
-	elif abs(current_value) < 1.0: 
-		return "{val_str} mA".format({"val_str": String.num(current_value * 1e3, 2)})
-	else: 
-		return "{val_str} A".format({"val_str": String.num(current_value, 2)})
-
 ## Hides the information label.
 func hide_info():
 	if not info_label: return

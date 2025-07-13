@@ -34,14 +34,8 @@ func show_current(actual_current: float, actual_voltage: float, operating_mode: 
 	var disp_current: float = NAN 
 
 	if not is_nan(actual_current):
-		disp_current = -actual_current 
-		
-		if abs(disp_current) < 1e-3 and abs(disp_current) > 1e-12: 
-			current_str = "{val_str} µA".format({"val_str": String.num(disp_current * 1e6, 2)})
-		elif abs(disp_current) < 1.0: 
-			current_str = "{val_str} mA".format({"val_str": String.num(disp_current * 1e3, 2)})
-		else:
-			current_str = "{val_str} A".format({"val_str": String.num(disp_current, 2)})
+		disp_current = -actual_current
+		current_str = StringUtils.format_current(disp_current)
 
 	var voltage_str = "N/A"
 	if not is_nan(actual_voltage):
@@ -51,13 +45,7 @@ func show_current(actual_current: float, actual_voltage: float, operating_mode: 
 	if operating_mode == "CV":
 		op_mode_str = "CV Mode"
 		if not is_nan(actual_current):
-			var disp_cv_current = -actual_current 
-			if abs(disp_cv_current) < 1e-3 and abs(disp_cv_current) > 1e-12:
-				current_str = "{val_str} µA".format({"val_str": String.num(disp_cv_current * 1e6, 2)})
-			elif abs(disp_cv_current) < 1.0:
-				current_str = "{val_str} mA".format({"val_str": String.num(disp_cv_current * 1e3, 2)})
-			else:
-				current_str = "{val_str} A".format({"val_str": String.num(disp_cv_current, 2)})
+			current_str = StringUtils.format_current(-actual_current)
 		if not is_nan(actual_voltage) and not is_nan(target_voltage) and \
 		   abs(actual_voltage - target_voltage) > 0.1 * abs(target_voltage) + 0.1 : 
 			if abs(actual_current) > target_current + 1e-9: 
@@ -67,13 +55,7 @@ func show_current(actual_current: float, actual_voltage: float, operating_mode: 
 	elif operating_mode == "CC":
 		op_mode_str = "CC Limiting"
 		if not is_nan(actual_current):
-			var disp_cc_current = actual_current 
-			if abs(disp_cc_current) < 1e-3 and abs(disp_cc_current) > 1e-12:
-				current_str = "{val_str} µA".format({"val_str": String.num(disp_cc_current * 1e6, 2)})
-			elif abs(disp_cc_current) < 1.0:
-				current_str = "{val_str} mA".format({"val_str": String.num(disp_cc_current * 1e3, 2)})
-			else:
-				current_str = "{val_str} A".format({"val_str": String.num(disp_cc_current, 2)})
+			current_str = StringUtils.format_current(actual_current)
 		current_str += " (Limit)"
 	else: 
 		op_mode_str = operating_mode 

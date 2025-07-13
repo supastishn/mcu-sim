@@ -72,13 +72,7 @@ func show_info(current_value: float, voltage_value: float, p_is_logically_explod
 	info_label.modulate = Color.WHITE
 
 	var current_str = "I: N/A"
-	if not is_nan(current_value):
-		if abs(current_value) < 1e-3 and abs(current_value) > 1e-12:
-			current_str = "I: {val_str} µA".format({"val_str": String.num(current_value * 1e6, 2)})
-		elif abs(current_value) < 1.0:
-			current_str = "I: {val_str} mA".format({"val_str": String.num(current_value * 1e3, 2)})
-		else:
-			current_str = "I: {val_str} A".format({"val_str": String.num(current_value, 2)})
+	if not is_nan(current_value): current_str = "I: " + StringUtils.format_current(current_value)
 	
 	var voltage_str = "V: N/A"
 	if not is_nan(voltage_value):

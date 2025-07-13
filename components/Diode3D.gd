@@ -28,12 +28,7 @@ func show_current(current_value: float):
 	if is_nan(current_value):
 		current_label.text = "I: N/A"
 	else:
-		if abs(current_value) < 1e-3 and abs(current_value) > 1e-12:
-			current_label.text = "I: {val_str} µA".format({"val_str": String.num(current_value * 1e6, 2)})
-		elif abs(current_value) < 1.0:
-			current_label.text = "I: {val_str} mA".format({"val_str": String.num(current_value * 1e3, 2)})
-		else:
-			current_label.text = "I: {val_str} A".format({"val_str": String.num(current_value, 2)})
+		current_label.text = "I: " + StringUtils.format_current(current_value)
 	current_label.visible = true
 
 ## Hides the current display label.

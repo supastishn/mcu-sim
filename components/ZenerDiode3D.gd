@@ -65,15 +65,7 @@ func show_info(results: Dictionary):
 	var state_val = results.get("state", "N/A")
 
 	var current_str = "I: N/A"
-	if not is_nan(current_val):
-		if abs(current_val) < 1e-6 and abs(current_val) > 1e-15 : 
-			current_str = "I: {val_str} nA".format({"val_str": String.num(current_val * 1e9, 2)})
-		elif abs(current_val) < 1e-3 and abs(current_val) > 1e-12: 
-			current_str = "I: {val_str} µA".format({"val_str": String.num(current_val * 1e6, 2)})
-		elif abs(current_val) < 1.0: 
-			current_str = "I: {val_str} mA".format({"val_str": String.num(current_val * 1e3, 2)})
-		else: 
-			current_str = "I: {val_str} A".format({"val_str": String.num(current_val, 2)})
+	if not is_nan(current_val): current_str = "I: " + StringUtils.format_current(current_val)
 
 	var voltage_str = "Vak: N/A" 
 	if not is_nan(voltage_ak_val):
