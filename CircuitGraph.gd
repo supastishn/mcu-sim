@@ -610,8 +610,7 @@ func _build_mna_system(delta_time: float) -> Dictionary:
 			active_voltage_sources.push_back(comp_data_item_vs)
 		elif comp_data_item_vs.type == "PowerSource" and comp_data_item_vs.properties.get("current_operating_mode") == "CV":
 			active_voltage_sources.push_back(comp_data_item_vs)
-		elif comp_data_item_vs.type == "OpAmp":
-			active_voltage_sources.push_back(comp_data_item_vs)
+		# OpAmp is NOT included as a voltage source here
 
 	var active_inductors: Array[Dictionary] = []
 	for comp_data_item_L in components: 
@@ -657,26 +656,7 @@ func _build_mna_system(delta_time: float) -> Dictionary:
 	
 	
 	
-	for cd_item_prep in components:
-		if cd_item_prep.type == "NChannelMOSFET":
-			var term_g_nmos_prep = cd_item_prep.terminals["G"]
-			var term_s_nmos_prep = cd_item_prep.terminals["S"]
-			var node_g_id_nmos_prep = terminal_connections.get(term_g_nmos_prep.get_instance_id(), -1) if is_instance_valid(term_g_nmos_prep) else -1
-			var node_s_id_nmos_prep = terminal_connections.get(term_s_nmos_prep.get_instance_id(), -1) if is_instance_valid(term_s_nmos_prep) else -1
-			
-			cd_item_prep.properties["_internal_Vg_stamp"] = electrical_nodes.get(node_g_id_nmos_prep, {}).get("voltage", 0.0)
-			cd_item_prep.properties["_internal_Vs_stamp"] = electrical_nodes.get(node_s_id_nmos_prep, {}).get("voltage", 0.0)
-		elif cd_item_prep.type == "PChannelMOSFET":
-			var term_g_pmos = cd_item_prep.terminals["G"]
-			var term_s_pmos = cd_item_prep.terminals["S"]
-			var node_g_id_pmos = terminal_connections.get(
-				term_g_pmos.get_instance_id(), -1) if is_instance_valid(term_g_pmos) else -1
-			var node_s_id_pmos = terminal_connections.get(
-				term_s_pmos.get_instance_id(), -1) if is_instance_valid(term_s_pmos) else -1
-			cd_item_prep.properties["_int_Vg"] = electrical_nodes.get(
-				node_g_id_pmos, {}).get("voltage", 0.0)
-			cd_item_prep.properties["_int_Vs"] = electrical_nodes.get(
-				node_s_id_pmos, {}).get("voltage", 0.0)
+	# (No MOSFET voltage preparation loop here)
 
 	for comp_data_item in components:
 		var component_node = comp_data_item.component_node
