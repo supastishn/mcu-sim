@@ -9,26 +9,6 @@ const OpAmpScene = preload("res://components/OpAmp3D.tscn")
 ## Emitted when all tests are completed, carrying the results dictionary.
 signal tests_completed(results: Dictionary)
 
-## Helper function to clean up all components and wires from the test rig between tests.
-func _cleanup_components_and_graph(editor_script: CircuitEditor3D, graph_script: CircuitGraph) -> void:
-	var nodes := []
-	for cd in graph_script.components:
-		nodes.append(cd.component_node)
-	for n in nodes:
-		graph_script.remove_component(n)
-	for child in editor_script.components_node.get_children():
-		child.queue_free()
-	for child in editor_script.wires_node.get_children():
-		child.queue_free()
-
-	graph_script.electrical_nodes.clear()
-	graph_script.terminal_connections.clear()
-	graph_script.component_results.clear()
-	graph_script.ground_node_id = -1
-	graph_script._next_node_id  = 0
-	graph_script._is_solved     = false
-	graph_script._needs_rebuild = true
-
 ## Godot's ready function.
 func _ready():
 	run_from_cli()
@@ -61,159 +41,35 @@ func run_all_tests() -> Dictionary:
 	var local_passed_tests = 0
 	var local_failed_test_names: Array[String] = []
 
-	var test1_name = "Test: Simple PowerSupply, Resistor, LED Circuit"
-	print_rich("\n[b]{name}[/b]".format({"name": test1_name}))
-	local_total_tests += 1
-	if await test_simple_powersupply_resistor_led_circuit():
-		local_passed_tests += 1
-	else:
-		local_failed_test_names.push_back(test1_name)
+	var all_tests = [
+		{"name": "Test: Simple PowerSupply, Resistor, LED Circuit", "func": test_simple_powersupply_resistor_led_circuit},
+		{"name": "Test: LED Burnout Scenario", "func": test_led_burnout},
+		{"name": "Test: LED Not Lighting (High Resistance)", "func": test_led_not_lighting},
+		{"name": "Test: Switch NC and NO Operation", "func": test_switch_behavior},
+		{"name": "Test: Diode Forward and Reverse Bias", "func": test_diode_behavior},
+		{"name": "Test: Potentiometer Wiper Voltage Division", "func": test_potentiometer_behavior},
+		{"name": "Test: Battery Voltage Output with Different Cell Counts", "func": test_battery_behavior},
+		{"name": "Test: Polarized Capacitor Charging and Explosion", "func": test_polarized_capacitor_behavior},
+		{"name": "Test: Non-Polarized Capacitor Charging", "func": test_non_polarized_capacitor_behavior},
+		{"name": "Test: Inductor Current Behavior", "func": test_inductor_behavior},
+		{"name": "Test: NPN BJT Operating Regions", "func": test_npn_bjt_regions},
+		{"name": "Test: PNP BJT Operating Regions", "func": test_pnp_bjt_regions},
+		{"name": "Test: Zener Diode Forward, Reverse, and Breakdown", "func": test_zener_diode_behavior},
+		{"name": "Test: N-Channel MOSFET Operating Regions", "func": test_nmosfet_regions},
+		{"name": "Test: P-Channel MOSFET Operating Regions", "func": test_pmosfet_regions},
+		{"name": "Test: Relay Energized and De-energized States", "func": test_relay_behavior},
+		{"name": "Test: Linear Regulator Normal Operation", "func": test_linear_regulator_normal},
+		{"name": "Test: Linear Regulator Dropout Scenario", "func": test_linear_regulator_dropout},
+		{"name": "Test: Op-Amp Inverting Amplifier", "func": test_op_amp_inverting_amplifier},
+	]
 
-	var test2_name = "Test: LED Burnout Scenario"
-	print_rich("\n[b]{name}[/b]".format({"name": test2_name}))
-	local_total_tests += 1
-	if await test_led_burnout():
-		local_passed_tests += 1
-	else:
-		local_failed_test_names.push_back(test2_name)
-		
-	var test3_name = "Test: LED Not Lighting (High Resistance)"
-	print_rich("\n[b]{name}[/b]".format({"name": test3_name}))
-	local_total_tests += 1
-	if await test_led_not_lighting():
-		local_passed_tests += 1
-	else:
-		local_failed_test_names.push_back(test3_name)
-
-	var test4_name = "Test: Switch NC and NO Operation"
-	print_rich("\n[b]{name}[/b]".format({"name": test4_name}))
-	local_total_tests += 1
-	if await test_switch_behavior():
-		local_passed_tests += 1
-	else:
-		local_failed_test_names.push_back(test4_name)
-
-	var test5_name = "Test: Diode Forward and Reverse Bias"
-	print_rich("\n[b]{name}[/b]".format({"name": test5_name}))
-	local_total_tests += 1
-	if await test_diode_behavior():
-		local_passed_tests += 1
-	else:
-		local_failed_test_names.push_back(test5_name)
-
-	var test6_name = "Test: Potentiometer Wiper Voltage Division"
-	print_rich("\n[b]{name}[/b]".format({"name": test6_name}))
-	local_total_tests += 1
-	if await test_potentiometer_behavior():
-		local_passed_tests += 1
-	else:
-		local_failed_test_names.push_back(test6_name)
-
-	var test7_name = "Test: Battery Voltage Output with Different Cell Counts"
-	print_rich("\n[b]{name}[/b]".format({"name": test7_name}))
-	local_total_tests += 1
-	if await test_battery_behavior():
-		local_passed_tests += 1
-	else:
-		local_failed_test_names.push_back(test7_name)
-		
-	var test8_name = "Test: Polarized Capacitor Charging and Explosion"
-	print_rich("\n[b]{name}[/b]".format({"name": test8_name}))
-	local_total_tests += 1
-	if await test_polarized_capacitor_behavior(): 
-		local_passed_tests += 1
-	else:
-		local_failed_test_names.push_back(test8_name)
-
-	var test9_name = "Test: Non-Polarized Capacitor Charging"
-	print_rich("\n[b]{name}[/b]".format({"name": test9_name}))
-	local_total_tests += 1
-	if await test_non_polarized_capacitor_behavior(): 
-		local_passed_tests += 1
-	else:
-		local_failed_test_names.push_back(test9_name)
-
-	var test10_name = "Test: Inductor Current Behavior"
-	print_rich("\n[b]{name}[/b]".format({"name": test10_name}))
-	local_total_tests += 1
-	if await test_inductor_behavior(): 
-		local_passed_tests += 1
-	else:
-		local_failed_test_names.push_back(test10_name)
-
-	var test11_name = "Test: NPN BJT Operating Regions"
-	print_rich("\n[b]{name}[/b]".format({"name": test11_name}))
-	local_total_tests += 1
-	if await test_npn_bjt_regions(): 
-		local_passed_tests += 1
-	else:
-		local_failed_test_names.push_back(test11_name)
-
-	var test12_name = "Test: PNP BJT Operating Regions"
-	print_rich("\n[b]{name}[/b]".format({"name": test12_name}))
-	local_total_tests += 1
-	if await test_pnp_bjt_regions():
-		local_passed_tests += 1
-	else:
-		local_failed_test_names.push_back(test12_name)
-
-	var test13_name = "Test: Zener Diode Forward, Reverse, and Breakdown"
-	print_rich("\n[b]{name}[/b]".format({"name": test13_name}))
-	local_total_tests += 1
-	if await test_zener_diode_behavior():
-		local_passed_tests += 1
-	else:
-		local_failed_test_names.push_back(test13_name)
-
-	var test_mos_name = "Test: N-Channel MOSFET Operating Regions"
-	print_rich("\n[b]{name}[/b]".format({"name": test_mos_name}))
-	local_total_tests += 1
-	if await test_nmosfet_regions():
-		local_passed_tests += 1
-	else:
-		local_failed_test_names.push_back(test_mos_name)
-
-	var test_pmos_name = "Test: P-Channel MOSFET Operating Regions"
-	print_rich("\n[b]{name}[/b]".format({"name": test_pmos_name}))
-	local_total_tests += 1
-	if await test_pmosfet_regions():
-		local_passed_tests += 1
-	else:
-		print('oop')
-		local_failed_test_names.push_back(test_pmos_name)
-
-	var test14_name = "Test: Relay Energized and De-energized States"
-	print_rich("\n[b]{name}[/b]".format({"name": test14_name}))
-	local_total_tests += 1
-	if await test_relay_behavior():
-		local_passed_tests += 1
-	else:
-		local_failed_test_names.push_back(test14_name)
-
-	# --- Linear Regulator tests ---
-	var test15_name = "Test: Linear Regulator Normal Operation"
-	print_rich("\n[b]{name}[/b]".format({"name": test15_name}))
-	local_total_tests += 1
-	if await test_linear_regulator_normal():
-		local_passed_tests += 1
-	else:
-		local_failed_test_names.push_back(test15_name)
-
-	var test16_name = "Test: Linear Regulator Dropout Scenario"
-	print_rich("\n[b]{name}[/b]".format({"name": test16_name}))
-	local_total_tests += 1
-	if await test_linear_regulator_dropout():
-		local_passed_tests += 1
-	else:
-		local_failed_test_names.push_back(test16_name)
-
-	var test17_name = "Test: Op-Amp Inverting Amplifier"
-	print_rich("\n[b]{name}[/b]".format({"name": test17_name}))
-	local_total_tests += 1
-	if await test_op_amp_inverting_amplifier():
-		local_passed_tests += 1
-	else:
-		local_failed_test_names.push_back(test17_name)
+	for test_case in all_tests:
+		print_rich("\n[b]{name}[/b]".format({"name": test_case.name}))
+		local_total_tests += 1
+		if await test_case.func.call():
+			local_passed_tests += 1
+		else:
+			local_failed_test_names.push_back(test_case.name)
 
 	return { "total": local_total_tests, "passed": local_passed_tests, "failed_names": local_failed_test_names }
 
@@ -362,227 +218,136 @@ func test_op_amp_inverting_amplifier() -> bool:
 
 ## Tests the Switch component's behavior in both Normally Closed (NC) and Normally Open (NO) states.
 func test_switch_behavior() -> bool:
-	var overall_test_passed = true
-	var editor_instance: Node3D = CircuitEditorScene.instantiate()
-	add_child(editor_instance)
-	await get_tree().process_frame
+	var ok := true
+	var rig := TestRig.new()
+	add_child(rig)
+	await rig.init()
+	var ed = rig.editor
 
-	var editor_script: CircuitEditor3D = editor_instance as CircuitEditor3D
-	var graph_script: CircuitGraph = editor_instance.circuit_graph
-	if not is_instance_valid(editor_script) or not is_instance_valid(graph_script):
-		printerr("  SETUP FAIL: Switch Test - Editor/Graph script invalid.")
-		if is_instance_valid(editor_instance): editor_instance.queue_free()
-		return false
-
-	var ps_node: PowerSource3D = editor_script._add_component(editor_script.PowerSourceScene, Vector3.ZERO) as PowerSource3D
-	var switch_node: Switch3D = editor_script._add_component(editor_script.SwitchScene, Vector3(1,0,0)) as Switch3D
-	var res_node: Resistor3D = editor_script._add_component(editor_script.ResistorScene, Vector3(2,0,0)) as Resistor3D
-	var led_node: LED3D = editor_script._add_component(editor_script.LEDScene, Vector3(3,0,0)) as LED3D 
-
-	if not TestUtils.assert_true(is_instance_valid(ps_node) and is_instance_valid(switch_node) and is_instance_valid(res_node) and is_instance_valid(led_node), "Switch Test: All components instantiated"):
-		if is_instance_valid(editor_instance): editor_instance.queue_free()
-		return false
-		
-	ps_node.target_voltage = 5.0
-	graph_script.component_config_changed(ps_node)
-	res_node.resistance = 220.0
-	graph_script.component_config_changed(res_node)
-	led_node.forward_voltage = 2.0
-	led_node.min_current_to_light = 0.001 
-	led_node.max_current_before_burn = 0.050 
-	graph_script.component_config_changed(led_node)
-	
+	# --- NC Test ---
 	print("  Switch Test: Testing NC operation (default state).")
-	graph_script.connect_terminals(ps_node.terminal_pos, switch_node.terminal_com)
-	graph_script.connect_terminals(switch_node.terminal_nc, res_node.terminal1) 
-	graph_script.connect_terminals(res_node.terminal2, led_node.terminal_anode)
-	graph_script.connect_terminals(led_node.terminal_kathode, ps_node.terminal_neg)
-	graph_script.set_ground_node(ps_node.terminal_neg)
+	var ps_node: PowerSource3D = rig.add(ed.PowerSourceScene)
+	var switch_node: Switch3D = rig.add(ed.SwitchScene, Vector3(1,0,0))
+	var res_node: Resistor3D = rig.add(ed.ResistorScene, Vector3(2,0,0))
+	var led_node: LED3D = rig.add(ed.LEDScene, Vector3(3,0,0))
 
-	var solve_nc_success = graph_script.solve_single_time_step(0.01)
-	if not TestUtils.assert_true(solve_nc_success, "Switch Test (NC): Simulation solve successful"): overall_test_passed = false
-	
-	var expected_current_on = (5.0 - 2.0) / 220.0 
-	if solve_nc_success:
-		var led_results_nc = graph_script.component_results.get(led_node.get_instance_id(), {})
-		var led_current_nc = led_results_nc.get("current", NAN)
-		if not TestUtils.assert_approx_equals(led_current_nc, expected_current_on, 0.001, "Switch Test (NC): LED current indicates circuit is ON"): overall_test_passed = false
-		var led_data_nc = null
-		for d in graph_script.components:
-			if d.component_node == led_node:
-				led_data_nc = d
-				break
-		if not TestUtils.assert_false(led_data_nc.get("is_burned", true), "Switch Test (NC): LED is not burned"): overall_test_passed = false
+	ps_node.target_voltage = 5.0; rig.cfg(ps_node)
+	res_node.resistance = 220.0; rig.cfg(res_node)
+	led_node.forward_voltage = 2.0; led_node.min_current_to_light = 0.001; led_node.max_current_before_burn = 0.050; rig.cfg(led_node)
 
+	rig.wire(ps_node.terminal_pos, switch_node.terminal_com)
+	rig.wire(switch_node.terminal_nc, res_node.terminal1)
+	rig.wire(res_node.terminal2, led_node.terminal_anode)
+	rig.wire(led_node.terminal_kathode, ps_node.terminal_neg)
+	rig.ground(ps_node.terminal_neg)
 
-	var all_component_nodes = []
-	for comp_data_item in graph_script.components: all_component_nodes.append(comp_data_item.component_node)
-	for comp_n in all_component_nodes: graph_script.remove_component(comp_n) 
-	for child in editor_script.components_node.get_children(): child.queue_free()
-	for child in editor_script.wires_node.get_children(): child.queue_free()
-	graph_script.electrical_nodes.clear()
-	graph_script.terminal_connections.clear()
-	graph_script.ground_node_id = -1
-	graph_script._next_node_id = 0
-	await get_tree().process_frame 
+	if not rig.solve(): ok = false
+	if ok:
+		var expected_current_on = (5.0 - 2.0) / 220.0
+		var led_results = rig.results(led_node)
+		if not TestUtils.assert_approx_equals(led_results.get("current", NAN), expected_current_on, 0.001, "Switch Test (NC): LED current indicates circuit is ON"): ok = false
 
-	ps_node = editor_script._add_component(editor_script.PowerSourceScene, Vector3.ZERO) as PowerSource3D
-	switch_node = editor_script._add_component(editor_script.SwitchScene, Vector3(1,0,0)) as Switch3D
-	res_node = editor_script._add_component(editor_script.ResistorScene, Vector3(2,0,0)) as Resistor3D
-	led_node = editor_script._add_component(editor_script.LEDScene, Vector3(3,0,0)) as LED3D
-	ps_node.target_voltage = 5.0; graph_script.component_config_changed(ps_node)
-	res_node.resistance = 220.0; graph_script.component_config_changed(res_node)
-	led_node.forward_voltage = 2.0; led_node.min_current_to_light = 0.001; led_node.max_current_before_burn = 0.050; graph_script.component_config_changed(led_node)
-
+	# --- NO Test ---
 	print("  Switch Test: Testing NO operation.")
-	switch_node.set_state(Switch3D.State.CONNECTED_NO) 
-	graph_script.component_config_changed(switch_node) 
+	rig.reset_graph()
+	ps_node = rig.add(ed.PowerSourceScene)
+	switch_node = rig.add(ed.SwitchScene, Vector3(1,0,0))
+	res_node = rig.add(ed.ResistorScene, Vector3(2,0,0))
+	led_node = rig.add(ed.LEDScene, Vector3(3,0,0))
 
-	graph_script.connect_terminals(ps_node.terminal_pos, switch_node.terminal_com)
-	graph_script.connect_terminals(switch_node.terminal_no, res_node.terminal1) 
-	graph_script.connect_terminals(res_node.terminal2, led_node.terminal_anode)
-	graph_script.connect_terminals(led_node.terminal_kathode, ps_node.terminal_neg)
-	graph_script.set_ground_node(ps_node.terminal_neg)
+	ps_node.target_voltage = 5.0; rig.cfg(ps_node)
+	res_node.resistance = 220.0; rig.cfg(res_node)
+	led_node.forward_voltage = 2.0; led_node.min_current_to_light = 0.001; led_node.max_current_before_burn = 0.050; rig.cfg(led_node)
+	switch_node.set_state(Switch3D.State.CONNECTED_NO); rig.cfg(switch_node)
 
-	var solve_no_success = graph_script.solve_single_time_step(0.01)
-	if not TestUtils.assert_true(solve_no_success, "Switch Test (NO): Simulation solve successful"): overall_test_passed = false
+	rig.wire(ps_node.terminal_pos, switch_node.terminal_com)
+	rig.wire(switch_node.terminal_no, res_node.terminal1)
+	rig.wire(res_node.terminal2, led_node.terminal_anode)
+	rig.wire(led_node.terminal_kathode, ps_node.terminal_neg)
+	rig.ground(ps_node.terminal_neg)
 	
-	if solve_no_success:
-		var led_results_no = graph_script.component_results.get(led_node.get_instance_id(), {})
-		var led_current_no = led_results_no.get("current", NAN)
-		if not TestUtils.assert_approx_equals(led_current_no, expected_current_on, 0.001, "Switch Test (NO): LED current indicates circuit is ON"): overall_test_passed = false
-		var led_data_no = null
-		for d in graph_script.components:
-			if d.component_node == led_node:
-				led_data_no = d
-				break
-		if not TestUtils.assert_false(led_data_no.get("is_burned", true), "Switch Test (NO): LED is not burned"): overall_test_passed = false
+	if not rig.solve(): ok = false
+	if ok:
+		var expected_current_on = (5.0 - 2.0) / 220.0
+		var led_results = rig.results(led_node)
+		if not TestUtils.assert_approx_equals(led_results.get("current", NAN), expected_current_on, 0.001, "Switch Test (NO): LED current indicates circuit is ON"): ok = false
 
-
-	editor_instance.queue_free()
-	return overall_test_passed
+	rig.cleanup()
+	return ok
 
 
 ## Tests the Diode component in both forward-biased (conducting) and reverse-biased (non-conducting) states.
 func test_diode_behavior() -> bool:
-	var overall_test_passed = true
-	var editor_instance: Node3D = CircuitEditorScene.instantiate()
-	add_child(editor_instance)
-	await get_tree().process_frame
+	var ok := true
+	var rig := TestRig.new()
+	add_child(rig)
+	await rig.init()
+	var ed = rig.editor
 
-	var editor_script: CircuitEditor3D = editor_instance as CircuitEditor3D
-	var graph_script: CircuitGraph = editor_instance.circuit_graph
-	if not is_instance_valid(editor_script) or not is_instance_valid(graph_script):
-		printerr("  SETUP FAIL: Diode Test - Editor/Graph script invalid.")
-		if is_instance_valid(editor_instance): editor_instance.queue_free()
-		return false
-
-	var ps_node: PowerSource3D = editor_script._add_component(editor_script.PowerSourceScene, Vector3.ZERO) as PowerSource3D
-	var res_node: Resistor3D = editor_script._add_component(editor_script.ResistorScene, Vector3(1,0,0)) as Resistor3D
-	var diode_node: Diode3D = editor_script._add_component(editor_script.DiodeScene, Vector3(2,0,0)) as Diode3D
-
-	if not TestUtils.assert_true(is_instance_valid(ps_node) and is_instance_valid(res_node) and is_instance_valid(diode_node), "Diode Test: All components instantiated"):
-		if is_instance_valid(editor_instance): editor_instance.queue_free()
-		return false
-
-	ps_node.target_voltage = 5.0
-	graph_script.component_config_changed(ps_node)
-	res_node.resistance = 220.0
-	graph_script.component_config_changed(res_node)
-	diode_node.forward_voltage = 0.7
-	graph_script.component_config_changed(diode_node)
-
+	# --- Forward Bias ---
 	print("  Diode Test: Testing Forward Bias.")
-	graph_script.connect_terminals(ps_node.terminal_pos, res_node.terminal1)
-	graph_script.connect_terminals(res_node.terminal2, diode_node.terminal_anode)
-	graph_script.connect_terminals(diode_node.terminal_kathode, ps_node.terminal_neg)
-	graph_script.set_ground_node(ps_node.terminal_neg)
+	var ps_node: PowerSource3D = rig.add(ed.PowerSourceScene)
+	var res_node: Resistor3D = rig.add(ed.ResistorScene, Vector3(1,0,0))
+	var diode_node: Diode3D = rig.add(ed.DiodeScene, Vector3(2,0,0))
 
-	var solve_fwd_success = graph_script.solve_single_time_step(0.01)
-	if not TestUtils.assert_true(solve_fwd_success, "Diode Test (Fwd): Simulation solve successful"): overall_test_passed = false
+	ps_node.target_voltage = 5.0; rig.cfg(ps_node)
+	res_node.resistance = 220.0; rig.cfg(res_node)
+	diode_node.forward_voltage = 0.7; rig.cfg(diode_node)
 	
-	if solve_fwd_success:
-		var diode_results_fwd = graph_script.component_results.get(diode_node.get_instance_id(), {})
-		var diode_current_fwd = diode_results_fwd.get("current", NAN)
-		var expected_current_fwd = (5.0 - 0.7) / 220.0
-		if not TestUtils.assert_approx_equals(diode_current_fwd, expected_current_fwd, 0.001, "Diode Test (Fwd): Current matches expected"): overall_test_passed = false
-		var diode_data_fwd = null
-		for d in graph_script.components:
-			if d.component_node == diode_node:
-				diode_data_fwd = d
-				break
-		if not TestUtils.assert_true(diode_data_fwd.get("conducting", false), "Diode Test (Fwd): Diode is conducting"): overall_test_passed = false
+	rig.wire(ps_node.terminal_pos, res_node.terminal1)
+	rig.wire(res_node.terminal2, diode_node.terminal_anode)
+	rig.wire(diode_node.terminal_kathode, ps_node.terminal_neg)
+	rig.ground(ps_node.terminal_neg)
 
-	var all_component_nodes_fwd = []
-	for comp_data_item_fwd in graph_script.components: all_component_nodes_fwd.append(comp_data_item_fwd.component_node)
-	for comp_n_fwd in all_component_nodes_fwd: graph_script.remove_component(comp_n_fwd)
-	for child in editor_script.components_node.get_children(): child.queue_free()
-	for child in editor_script.wires_node.get_children(): child.queue_free()
-	graph_script.electrical_nodes.clear(); graph_script.terminal_connections.clear(); graph_script.ground_node_id = -1; graph_script._next_node_id = 0
-	await get_tree().process_frame
+	if not rig.solve(): ok = false
+	if ok:
+		var diode_results = rig.results(diode_node)
+		var expected_current = (5.0 - 0.7) / 220.0
+		if not TestUtils.assert_approx_equals(diode_results.get("current", NAN), expected_current, 0.001, "Diode Test (Fwd): Current matches expected"): ok = false
 
-	ps_node = editor_script._add_component(editor_script.PowerSourceScene, Vector3.ZERO) as PowerSource3D
-	res_node = editor_script._add_component(editor_script.ResistorScene, Vector3(1,0,0)) as Resistor3D
-	diode_node = editor_script._add_component(editor_script.DiodeScene, Vector3(2,0,0)) as Diode3D
-	ps_node.target_voltage = 5.0; graph_script.component_config_changed(ps_node)
-	res_node.resistance = 220.0; graph_script.component_config_changed(res_node)
-	diode_node.forward_voltage = 0.7; graph_script.component_config_changed(diode_node)
-
+	# --- Reverse Bias ---
 	print("  Diode Test: Testing Reverse Bias.")
-	graph_script.connect_terminals(ps_node.terminal_pos, res_node.terminal1)
-	graph_script.connect_terminals(res_node.terminal2, diode_node.terminal_kathode) 
-	graph_script.connect_terminals(diode_node.terminal_anode, ps_node.terminal_neg)   
-	graph_script.set_ground_node(ps_node.terminal_neg)
+	rig.reset_graph()
+	ps_node = rig.add(ed.PowerSourceScene)
+	res_node = rig.add(ed.ResistorScene, Vector3(1,0,0))
+	diode_node = rig.add(ed.DiodeScene, Vector3(2,0,0))
 
-	var solve_rev_success = graph_script.solve_single_time_step(0.01)
-	if not TestUtils.assert_true(solve_rev_success, "Diode Test (Rev): Simulation solve successful"): overall_test_passed = false
+	ps_node.target_voltage = 5.0; rig.cfg(ps_node)
+	res_node.resistance = 220.0; rig.cfg(res_node)
+	diode_node.forward_voltage = 0.7; rig.cfg(diode_node)
+
+	rig.wire(ps_node.terminal_pos, res_node.terminal1)
+	rig.wire(res_node.terminal2, diode_node.terminal_kathode)
+	rig.wire(diode_node.terminal_anode, ps_node.terminal_neg)
+	rig.ground(ps_node.terminal_neg)
 	
-	if solve_rev_success:
-		var diode_results_rev = graph_script.component_results.get(diode_node.get_instance_id(), {})
-		var diode_current_rev = diode_results_rev.get("current", NAN)
-		if not TestUtils.assert_approx_equals(diode_current_rev, 0.0, 1e-6, "Diode Test (Rev): Current is near zero"): overall_test_passed = false
-		var diode_data_rev = null
-		for d in graph_script.components:
-			if d.component_node == diode_node:
-				diode_data_rev = d
-				break
-		if not TestUtils.assert_false(diode_data_rev.get("conducting", true), "Diode Test (Rev): Diode is NOT conducting"): overall_test_passed = false
-
-	editor_instance.queue_free()
-	return overall_test_passed
+	if not rig.solve(): ok = false
+	if ok:
+		var diode_results = rig.results(diode_node)
+		if not TestUtils.assert_approx_equals(diode_results.get("current", NAN), 0.0, 1e-6, "Diode Test (Rev): Current is near zero"): ok = false
+	
+	rig.cleanup()
+	return ok
 
 
 ## Tests the Potentiometer as a voltage divider, checking the wiper voltage at various positions.
 func test_potentiometer_behavior() -> bool:
-	var overall_test_passed = true
-	var editor_instance: Node3D = CircuitEditorScene.instantiate()
-	add_child(editor_instance)
-	await get_tree().process_frame
-
-	var editor_script: CircuitEditor3D = editor_instance as CircuitEditor3D
-	var graph_script: CircuitGraph = editor_instance.circuit_graph
-	if not is_instance_valid(editor_script) or not is_instance_valid(graph_script):
-		printerr("  SETUP FAIL: Potentiometer Test - Editor/Graph script invalid.")
-		if is_instance_valid(editor_instance): editor_instance.queue_free()
-		return false
-
-	var ps_node: PowerSource3D = editor_script._add_component(editor_script.PowerSourceScene, Vector3.ZERO) as PowerSource3D
-	var pot_node: Potentiometer3D = editor_script._add_component(editor_script.PotentiometerScene, Vector3(1,0,0)) as Potentiometer3D
+	var ok := true
+	var rig := TestRig.new()
+	add_child(rig)
+	await rig.init()
+	var g = rig.graph
+	var ed = rig.editor
 	
-	if not TestUtils.assert_true(is_instance_valid(ps_node) and is_instance_valid(pot_node), "Potentiometer Test: All components instantiated"):
-		if is_instance_valid(editor_instance): editor_instance.queue_free()
-		return false
-
-	ps_node.target_voltage = 10.0 
-	graph_script.component_config_changed(ps_node)
-	pot_node.total_resistance = 1000.0
-	graph_script.component_config_changed(pot_node)
-
-	graph_script.connect_terminals(ps_node.terminal_pos, pot_node.terminal1)
-	graph_script.connect_terminals(pot_node.terminal2, ps_node.terminal_neg) 
-	graph_script.set_ground_node(ps_node.terminal_neg)
+	var ps_node: PowerSource3D = rig.add(ed.PowerSourceScene)
+	var pot_node: Potentiometer3D = rig.add(ed.PotentiometerScene, Vector3(1,0,0))
 	
-	var wiper_terminal = pot_node.terminal_wiper
+	ps_node.target_voltage = 10.0; rig.cfg(ps_node)
+	pot_node.total_resistance = 1000.0; rig.cfg(pot_node)
+
+	rig.wire(ps_node.terminal_pos, pot_node.terminal1)
+	rig.wire(pot_node.terminal2, ps_node.terminal_neg)
+	rig.ground(ps_node.terminal_neg)
 	
 	var test_cases = [
 		{"pos": 0.0, "expected_v": 10.0},
@@ -594,23 +359,21 @@ func test_potentiometer_behavior() -> bool:
 
 	for case in test_cases:
 		print("  Potentiometer Test: Wiper at {p}".format({"p": case.pos}))
-		pot_node.set_wiper_position(case.pos) 
+		pot_node.set_wiper_position(case.pos)
 		
-		var solve_pot_success = graph_script.solve_single_time_step(0.01)
-		if not TestUtils.assert_true(solve_pot_success, "Potentiometer Test (Wiper {p}): Solve successful".format({"p": case.pos})): overall_test_passed = false; continue
+		if not rig.solve(): ok = false; continue
 		
-		var current_wiper_node_id = graph_script.terminal_connections.get(wiper_terminal.get_instance_id(), -1)
+		var wiper_node_id = g.terminal_connections.get(pot_node.terminal_wiper.get_instance_id(), -1)
+		if wiper_node_id == -1:
+			printerr("  Potentiometer Test: Wiper terminal's node_id not found.")
+			ok = false; continue
 		
-		if solve_pot_success and current_wiper_node_id != -1:
-			var wiper_voltage = graph_script.electrical_nodes.get(current_wiper_node_id, {}).get("voltage", NAN)
-			if not TestUtils.assert_approx_equals(wiper_voltage, case.expected_v, 0.01, "Potentiometer Test (Wiper {p}): Voltage matches expected".format({"p": case.pos})): overall_test_passed = false
-		elif current_wiper_node_id == -1:
-			printerr("  Potentiometer Test: Wiper terminal's node_id not found in graph_script.terminal_connections map.")
-			overall_test_passed = false
+		var wiper_voltage = g.electrical_nodes.get(wiper_node_id, {}).get("voltage", NAN)
+		var msg = "Potentiometer Test (Wiper {p}): Voltage matches expected".format({"p": case.pos})
+		if not TestUtils.assert_approx_equals(wiper_voltage, case.expected_v, 0.01, msg): ok = false
 
-
-	editor_instance.queue_free()
-	return overall_test_passed
+	rig.cleanup()
+	return ok
 
 
 ## Tests the Battery component, ensuring its output voltage and supplied current are correct for different cell counts.
@@ -1449,124 +1212,71 @@ func test_relay_behavior() -> bool:
 
 ## Tests that an LED correctly enters the "burned" state when subjected to excessive current.
 func test_led_burnout() -> bool:
-	var overall_test_passed = true
-	var editor_instance: Node3D = CircuitEditorScene.instantiate()
-	add_child(editor_instance)
-	await get_tree().process_frame
+	var ok := true
+	var rig := TestRig.new()
+	add_child(rig)
+	await rig.init()
+	var g = rig.graph
+	var ed = rig.editor
 
-	var editor_script: CircuitEditor3D = editor_instance as CircuitEditor3D
-	var graph_script: CircuitGraph = editor_instance.circuit_graph
-	if not is_instance_valid(editor_script) or not is_instance_valid(graph_script):
-		printerr("  SETUP FAIL: Could not get editor or graph script for LED burnout test.")
-		if is_instance_valid(editor_instance): editor_instance.queue_free()
-		return false
+	var ps_node: PowerSource3D = rig.add(ed.PowerSourceScene)
+	var res_node: Resistor3D = rig.add(ed.ResistorScene, Vector3(1,0,0))
+	var led_node: LED3D = rig.add(ed.LEDScene, Vector3(2,0,0))
 
-	var ps_node: PowerSource3D = editor_script._add_component(editor_script.PowerSourceScene, Vector3.ZERO) as PowerSource3D
-	var res_node: Resistor3D = editor_script._add_component(editor_script.ResistorScene, Vector3(1,0,0)) as Resistor3D
-	var led_node: LED3D = editor_script._add_component(editor_script.LEDScene, Vector3(2,0,0)) as LED3D
+	ps_node.target_voltage = 5.0; ps_node.target_current = 0.5; rig.cfg(ps_node)
+	res_node.resistance = 10.0; rig.cfg(res_node)
+	led_node.forward_voltage = 2.0; led_node.max_current_before_burn = 0.020; rig.cfg(led_node)
 
-	ps_node.target_voltage = 5.0
-	ps_node.target_current = 0.5 
-	graph_script.component_config_changed(ps_node)
-
-	res_node.resistance = 10.0 
-	graph_script.component_config_changed(res_node)
+	rig.wire(ps_node.terminal_pos, res_node.terminal1)
+	rig.wire(res_node.terminal2, led_node.terminal_anode)
+	rig.wire(led_node.terminal_kathode, ps_node.terminal_neg)
+	rig.ground(ps_node.terminal_neg)
 	
-	led_node.forward_voltage = 2.0
-	led_node.max_current_before_burn = 0.020 
-	graph_script.component_config_changed(led_node)
-
-	graph_script.connect_terminals(ps_node.terminal_pos, res_node.terminal1)
-	graph_script.connect_terminals(res_node.terminal2, led_node.terminal_anode)
-	graph_script.connect_terminals(led_node.terminal_kathode, ps_node.terminal_neg)
-	graph_script.set_ground_node(ps_node.terminal_neg)
-
-	var solve_success: bool = graph_script.solve_single_time_step(0.01)
-	if not TestUtils.assert_true(solve_success, "Burnout Test: Simulation solve successful"): overall_test_passed = false
-	
-	if solve_success:
-		var led_graph_data
-		for comp_data in graph_script.components:
-			if comp_data.component_node == led_node:
-				led_graph_data = comp_data
-				break
-		
+	if not rig.solve(): ok = false
+	if ok:
+		var led_graph_data = g.component_node_map.get(led_node)
 		if led_graph_data:
-			if not TestUtils.assert_true(led_graph_data.get("is_burned", false), "LED is burned"): overall_test_passed = false
-			var led_results = graph_script.component_results.get(led_node.get_instance_id(), {})
-			var led_current_after_burn = led_results.get("current", NAN)
-			if not TestUtils.assert_not_nan(led_current_after_burn, "Burned LED current is not NaN"): overall_test_passed = false
-			if not TestUtils.assert_approx_equals(led_current_after_burn, 0.0, 1e-6, "Burned LED current is zero"): overall_test_passed = false
+			if not TestUtils.assert_true(led_graph_data.get("is_burned", false), "LED is burned"): ok = false
 		else:
 			printerr("  ASSERT FAIL: Could not find LED graph data for burnout test.")
-			overall_test_passed = false
+			ok = false
 	
-	editor_instance.queue_free()
-	return overall_test_passed
+	rig.cleanup()
+	return ok
 
 ## Tests that an LED does not visibly light up when the current is below its minimum threshold.
 func test_led_not_lighting() -> bool:
-	var overall_test_passed = true
-	var editor_instance: Node3D = CircuitEditorScene.instantiate()
-	add_child(editor_instance)
-	await get_tree().process_frame
+	var ok := true
+	var rig := TestRig.new()
+	add_child(rig)
+	await rig.init()
+	var g = rig.graph
+	var ed = rig.editor
 
-	var editor_script: CircuitEditor3D = editor_instance as CircuitEditor3D
-	var graph_script: CircuitGraph = editor_instance.circuit_graph
-	if not is_instance_valid(editor_script) or not is_instance_valid(graph_script):
-		printerr("  SETUP FAIL: Could not get editor or graph script for LED not lighting test.")
-		if is_instance_valid(editor_instance): editor_instance.queue_free()
-		return false
+	var ps_node: PowerSource3D = rig.add(ed.PowerSourceScene)
+	var res_node: Resistor3D = rig.add(ed.ResistorScene, Vector3(1,0,0))
+	var led_node: LED3D = rig.add(ed.LEDScene, Vector3(2,0,0))
 
-	var ps_node: PowerSource3D = editor_script._add_component(editor_script.PowerSourceScene, Vector3.ZERO) as PowerSource3D
-	var res_node: Resistor3D = editor_script._add_component(editor_script.ResistorScene, Vector3(1,0,0)) as Resistor3D
-	var led_node: LED3D = editor_script._add_component(editor_script.LEDScene, Vector3(2,0,0)) as LED3D
+	ps_node.target_voltage = 5.0; rig.cfg(ps_node)
+	res_node.resistance = 10000.0; rig.cfg(res_node)
+	led_node.forward_voltage = 2.0; led_node.min_current_to_light = 0.005; rig.cfg(led_node)
 
-	ps_node.target_voltage = 5.0
-	graph_script.component_config_changed(ps_node)
+	rig.wire(ps_node.terminal_pos, res_node.terminal1)
+	rig.wire(res_node.terminal2, led_node.terminal_anode)
+	rig.wire(led_node.terminal_kathode, ps_node.terminal_neg)
+	rig.ground(ps_node.terminal_neg)
 
-	res_node.resistance = 10000.0 
-	graph_script.component_config_changed(res_node)
+	if not rig.solve(): ok = false
+	if ok:
+		var led_results = rig.results(led_node)
+		var led_current = led_results.get("current", NAN)
+		if not TestUtils.assert_approx_equals(led_current, (5.0-2.0)/10000.0, 0.0001, "LED current (low) matches expected"): ok = false
+		if not led_current < led_node.min_current_to_light:
+			TestUtils.assert_false(true, "LED current should be below min_current_to_light")
+			ok = false
 	
-	led_node.forward_voltage = 2.0
-	led_node.min_current_to_light = 0.005 
-	graph_script.component_config_changed(led_node)
-
-	graph_script.connect_terminals(ps_node.terminal_pos, res_node.terminal1)
-	graph_script.connect_terminals(res_node.terminal2, led_node.terminal_anode)
-	graph_script.connect_terminals(led_node.terminal_kathode, ps_node.terminal_neg)
-	graph_script.set_ground_node(ps_node.terminal_neg)
-
-	var solve_success: bool = graph_script.solve_single_time_step(0.01)
-	if not TestUtils.assert_true(solve_success, "Not Lighting Test: Simulation solve successful"): overall_test_passed = false
-	
-	if solve_success:
-		var led_graph_data
-		for comp_data in graph_script.components:
-			if comp_data.component_node == led_node:
-				led_graph_data = comp_data
-				break
-		
-		var led_results = graph_script.component_results.get(led_node.get_instance_id(), {})
-		var led_current_calc = led_results.get("current", NAN)
-
-		if not TestUtils.assert_not_nan(led_current_calc, "LED current (low) is not NaN"): overall_test_passed = false
-		if not TestUtils.assert_approx_equals(led_current_calc, 0.0003, 0.0001, "LED current (low) matches expected"): overall_test_passed = false
-		
-		if led_graph_data:
-			if not TestUtils.assert_false(led_graph_data.get("is_burned", true), "LED is NOT burned (low current)"): overall_test_passed = false
-			if led_current_calc < led_node.min_current_to_light:
-				TestUtils.assert_true(true, "Calculated LED current ({c_calc}) is below min_current_to_light ({c_min}), so it should not be visibly lit.".format({"c_calc":led_current_calc, "c_min":led_node.min_current_to_light}))
-			else:
-				TestUtils.assert_false(true, "Calculated LED current ({c_calc}) is NOT below min_current_to_light ({c_min}), it might be lit.".format({"c_calc":led_current_calc, "c_min":led_node.min_current_to_light}))
-				overall_test_passed = false
-
-		else:
-			printerr("  ASSERT FAIL: Could not find LED graph data for not-lighting test.")
-			overall_test_passed = false
-	
-	editor_instance.queue_free()
-	return overall_test_passed
+	rig.cleanup()
+	return ok
 
 
 ## Tests the N-Channel MOSFET model in its three main operating regions: OFF, TRIODE, and SATURATION.
