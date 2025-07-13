@@ -73,6 +73,31 @@ func run_all_tests() -> Dictionary:
 
 	return { "total": local_total_tests, "passed": local_passed_tests, "failed_names": local_failed_test_names }
 
+
+func _cleanup_components_and_graph(editor_script: CircuitEditor3D, graph_script: CircuitGraph):
+	if not is_instance_valid(editor_script) or not is_instance_valid(graph_script):
+		printerr("  CLEANUP FAIL: Invalid editor or graph script.")
+		return
+		
+	for cd in graph_script.components.duplicate():
+		graph_script.remove_component(cd.component_node)
+	
+	for child in editor_script.components_node.get_children(): 
+		child.queue_free()
+	for child in editor_script.wires_node.get_children():      
+		child.queue_free()
+
+	graph_script.electrical_nodes.clear()
+	graph_script.terminal_connections.clear()
+	graph_script.component_results.clear()
+	graph_script.ground_node_id = -1
+	graph_script._next_node_id  = 0
+	graph_script._is_solved     = false
+	graph_script._needs_rebuild = true
+	
+	await get_tree().process_frame
+
+
 ## Tests a basic circuit with a power supply, resistor, and LED to verify fundamental calculations.
 func test_simple_powersupply_resistor_led_circuit() -> bool:
 	var overall_test_passed = true
@@ -725,7 +750,7 @@ func test_npn_bjt_regions() -> bool:
 		if not TestUtils.assert_equals(region_cutoff, "OFF", "NPN BJT Test (Cutoff): Region is OFF"): overall_test_passed = false
 		if not TestUtils.assert_approx_equals(ic_cutoff, 0.0, 1e-6, "NPN BJT Test (Cutoff): Collector current is near zero"): overall_test_passed = false
 
-	_cleanup_components_and_graph(editor_script, graph_script) 
+	await _cleanup_components_and_graph(editor_script, graph_script) 
 
 	print("  NPN BJT Test: Active Region.")
 	var ps_active_vcc: PowerSource3D = editor_script._add_component(editor_script.PowerSourceScene, Vector3.ZERO) as PowerSource3D
@@ -771,7 +796,7 @@ func test_npn_bjt_regions() -> bool:
 		if not TestUtils.assert_approx_equals(ic_active, bjt_active.beta_dc * ib_active, 5e-4, "NPN BJT Test (Active): Collector current is beta * Ib"): overall_test_passed = false
 
 
-	_cleanup_components_and_graph(editor_script, graph_script)
+	await _cleanup_components_and_graph(editor_script, graph_script)
 
 	print("  NPN BJT Test: Saturation Region.")
 	var ps_sat_vcc: PowerSource3D = editor_script._add_component(editor_script.PowerSourceScene, Vector3.ZERO) as PowerSource3D
@@ -817,7 +842,7 @@ func test_npn_bjt_regions() -> bool:
 		if not TestUtils.assert_approx_equals(ib_sat, (ps_sat_vbb.target_voltage - bjt_sat.vbe_on) / rb_sat.resistance, 5e-5, "NPN BJT Test (Saturation): Ib is approximately (Vbb-Vbe_on)/Rb"): overall_test_passed = false
 
 
-	_cleanup_components_and_graph(editor_script, graph_script) 
+	await _cleanup_components_and_graph(editor_script, graph_script) 
 	editor_instance.queue_free()
 	return overall_test_passed
 
@@ -864,7 +889,7 @@ func test_pnp_bjt_regions() -> bool:
 		if not TestUtils.assert_equals(region_pnp_cutoff, "OFF", "PNP BJT Test (Cutoff): Region is OFF"): overall_test_passed = false
 		if not TestUtils.assert_approx_equals(ic_pnp_cutoff, 0.0, 1e-6, "PNP BJT Test (Cutoff): Collector current is near zero"): overall_test_passed = false
 	
-	_cleanup_components_and_graph(editor_script, graph_script)
+	await _cleanup_components_and_graph(editor_script, graph_script)
 
 	print("  PNP BJT Test: Active Region.")
 	var ps_pnp_active_vcc: PowerSource3D = editor_script._add_component(editor_script.PowerSourceScene, Vector3.ZERO) as PowerSource3D
@@ -903,7 +928,7 @@ func test_pnp_bjt_regions() -> bool:
 		if not TestUtils.assert_approx_equals(ib_pnp_active, 1.3/27000.0, 5e-6, "PNP BJT Test (Active): Base current matches expected"): overall_test_passed = false
 		if not TestUtils.assert_approx_equals(ic_pnp_active, bjt_pnp_active.beta_dc * ib_pnp_active, 5e-4, "PNP BJT Test (Active): Collector current is beta * Ib"): overall_test_passed = false
 
-	_cleanup_components_and_graph(editor_script, graph_script)
+	await _cleanup_components_and_graph(editor_script, graph_script)
 
 	print("  PNP BJT Test: Saturation Region.")
 	var ps_pnp_sat_vcc: PowerSource3D = editor_script._add_component(editor_script.PowerSourceScene, Vector3.ZERO) as PowerSource3D
@@ -949,7 +974,7 @@ func test_pnp_bjt_regions() -> bool:
 		var expected_ic_sat_pnp = (ps_pnp_sat_vcc.target_voltage - Vec_actual_pnp_sat - 0.0) / rc_pnp_sat.resistance 
 		if not TestUtils.assert_approx_equals(ic_pnp_sat, expected_ic_sat_pnp, 1e-3, "PNP BJT Test (Saturation): Ic is limited by Rc and Vec_sat"): overall_test_passed = false
 
-	_cleanup_components_and_graph(editor_script, graph_script)
+	await _cleanup_components_and_graph(editor_script, graph_script)
 	editor_instance.queue_free()
 	return overall_test_passed
 
@@ -1000,7 +1025,7 @@ func test_zener_diode_behavior() -> bool:
 		if not TestUtils.assert_approx_equals(current_fwd, expected_current_fwd, 0.001, "Zener Test (Fwd): Current matches expected"): overall_test_passed = false
 		if not TestUtils.assert_equals(state_fwd, "FORWARD", "Zener Test (Fwd): State is FORWARD"): overall_test_passed = false
 	
-	_cleanup_components_and_graph(editor_script, graph_script)
+	await _cleanup_components_and_graph(editor_script, graph_script)
 
 	print("  Zener Diode Test: Reverse Bias (OFF).")
 	var ps_rev_off: PowerSource3D = editor_script._add_component(editor_script.PowerSourceScene, Vector3.ZERO) as PowerSource3D
@@ -1029,7 +1054,7 @@ func test_zener_diode_behavior() -> bool:
 		if not TestUtils.assert_approx_equals(current_rev_off, 0.0, 1e-6, "Zener Test (Rev OFF): Current is near zero"): overall_test_passed = false
 		if not TestUtils.assert_equals(state_rev_off, "OFF", "Zener Test (Rev OFF): State is OFF"): overall_test_passed = false
 	
-	_cleanup_components_and_graph(editor_script, graph_script)
+	await _cleanup_components_and_graph(editor_script, graph_script)
 
 	print("  Zener Diode Test: Reverse Bias (ZENER Breakdown).")
 	var ps_breakdown: PowerSource3D = editor_script._add_component(editor_script.PowerSourceScene, Vector3.ZERO) as PowerSource3D
@@ -1063,7 +1088,7 @@ func test_zener_diode_behavior() -> bool:
 		if not TestUtils.assert_approx_equals(current_breakdown, expected_current_breakdown, 0.001, "Zener Test (Breakdown): Current matches expected"): overall_test_passed = false
 		if not TestUtils.assert_equals(state_breakdown, "ZENER", "Zener Test (Breakdown): State is ZENER"): overall_test_passed = false
 
-	_cleanup_components_and_graph(editor_script, graph_script)
+	await _cleanup_components_and_graph(editor_script, graph_script)
 	editor_instance.queue_free()
 	return overall_test_passed
 
@@ -1148,7 +1173,7 @@ func test_relay_behavior() -> bool:
 		var led_no_current_off = led_no_results_off.get("current", NAN)
 		if not TestUtils.assert_approx_equals(led_no_current_off, 0.0, 1e-6, "Relay Test (De-energized): NO LED current is OFF"): overall_test_passed = false
 
-	_cleanup_components_and_graph(editor_script, graph_script)
+	await _cleanup_components_and_graph(editor_script, graph_script)
 
 	print("  Relay Test: Energized (NO path active).")
 	var ps_signal_supply_on: PowerSource3D = editor_script._add_component(editor_script.PowerSourceScene, Vector3(0,0,-1)) as PowerSource3D 
@@ -1205,7 +1230,7 @@ func test_relay_behavior() -> bool:
 		var led_nc_current_on = led_nc_results_on.get("current", NAN)
 		if not TestUtils.assert_approx_equals(led_nc_current_on, 0.0, 1e-6, "Relay Test (Energized): NC LED current is OFF"): overall_test_passed = false
 
-	_cleanup_components_and_graph(editor_script, graph_script)
+	await _cleanup_components_and_graph(editor_script, graph_script)
 	editor_instance.queue_free()
 	return overall_test_passed
 
@@ -1317,7 +1342,7 @@ func test_nmosfet_regions() -> bool:
 		if not TestUtils.assert_equals(res.get("region",""), "OFF", "NMOS Test (OFF): Region is OFF"): ok = false
 		if not TestUtils.assert_approx_equals(res.get("Id", NAN), 0.0, 1e-6, "NMOS Test (OFF): Id ~ 0"): ok = false
 
-	_cleanup_components_and_graph(ed, g)
+	await _cleanup_components_and_graph(ed, g)
 
 	# ---------- TRIODE ----------
 	print("  N-MOSFET Test: TRIODE region.")
@@ -1351,7 +1376,7 @@ func test_nmosfet_regions() -> bool:
 		if Id_expect < 0: Id_expect = 0
 		if not TestUtils.assert_approx_equals(Id_tri, Id_expect, 0.01, "NMOS Test (TRI): Id matches expected"): ok = false
 
-	_cleanup_components_and_graph(ed, g)
+	await _cleanup_components_and_graph(ed, g)
 
 	# ---------- SATURATION ----------
 	print("  N-MOSFET Test: SATURATION region.")
@@ -1377,7 +1402,7 @@ func test_nmosfet_regions() -> bool:
 		var Id_expected_sat := 0.5 * mos_sat.transconductance_parameter * pow(ps_g_sat.target_voltage - mos_sat.threshold_voltage, 2)
 		if not TestUtils.assert_approx_equals(Id_sat, Id_expected_sat, 0.01, "NMOS Test (SAT): Id matches expected"): ok = false
 
-	_cleanup_components_and_graph(ed, g)
+	await _cleanup_components_and_graph(ed, g)
 	ed_inst.queue_free()
 	return ok
 
