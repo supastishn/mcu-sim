@@ -83,8 +83,6 @@ func gather_sim_results(
 		_inductor_map: Dictionary,
 		_delta_time  : float) -> void:
 	var comp_id = self.get_instance_id()
-	if not comp_id in circuit.component_results:
-		circuit.component_results[comp_id] = {}
 
 	var n1_id = circuit.terminal_connections.get(terminal1.get_instance_id(), -1)
 	var n2_id = circuit.terminal_connections.get(terminal2.get_instance_id(), -1)

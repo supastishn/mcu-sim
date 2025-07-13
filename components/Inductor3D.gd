@@ -29,14 +29,15 @@ func _ready():
 
 ## Sets the inductance value, validates it, and emits the configuration_changed signal.
 func set_inductance(value: float):
-	var new_L = max(1e-9, value) 
-	if not is_equal_approx(inductance, new_L):
+	var new_L = max(1e-9, value)
+	if is_equal_approx(inductance, new_L):
 		inductance = new_L
-		print("Inductor3D {ind_name} inductance set to: {l_str} H".format({"ind_name": name, "l_str": String.num_scientific(inductance)}))
-		if is_inside_tree():
-			emit_signal("configuration_changed", self)
-	elif inductance != new_L: 
-		inductance = new_L
+		return
+
+	inductance = new_L
+	print("Inductor3D {ind_name} inductance set to: {l_str} H".format({"ind_name": name, "l_str": String.num_scientific(inductance)}))
+	if is_inside_tree():
+		emit_signal("configuration_changed", self)
 
 
 
@@ -146,7 +147,6 @@ func gather_sim_results(
 	var comp_node = comp_data.component_node
 	var comp_id = comp_node.get_instance_id()
 	var solved_current_L : float = NAN        # holds I_L for later reuse
-	if not comp_id in circuit.component_results: circuit.component_results[comp_id] = {}
 
 	if inductor_map.has(comp_id): 
 		var matrix_idx_curr_L_final = inductor_map[comp_id]

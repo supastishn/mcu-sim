@@ -182,7 +182,6 @@ func gather_sim_results(
 	#region LEGACY_RESULT_CODE
 	var comp_node = comp_data.component_node
 	var comp_id = comp_node.get_instance_id()
-	if not comp_id in circuit.component_results: circuit.component_results[comp_id] = {}
 
 	var ps_op_mode = comp_data.properties.get("current_operating_mode", "CV")
 	if ps_op_mode == "CV":

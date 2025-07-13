@@ -155,7 +155,6 @@ func gather_sim_results(
 	#region LEGACY_RESULT_CODE
 	var comp_node = comp_data.component_node
 	var comp_id = comp_node.get_instance_id()
-	if not comp_id in circuit.component_results: circuit.component_results[comp_id] = {}
 
 	var state: Switch3D.State = comp_data.state 
 	var R_closed = CircuitGraph.R_SWITCH_CLOSED

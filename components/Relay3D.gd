@@ -49,25 +49,27 @@ func _ready():
 
 ## Sets the signal voltage threshold, validates it, and emits a signal.
 func set_signal_voltage_threshold(value: float):
-	var new_threshold = max(0.1, value) 
-	if not is_equal_approx(signal_voltage_threshold, new_threshold):
+	var new_threshold = max(0.1, value)
+	if is_equal_approx(signal_voltage_threshold, new_threshold):
 		signal_voltage_threshold = new_threshold
-		print("Relay3D {r_name} signal_voltage_threshold set to: {th_val} V".format({"r_name": name, "th_val": String.num(signal_voltage_threshold, 2)}))
-		if is_inside_tree():
-			emit_signal("configuration_changed", self)
-	elif signal_voltage_threshold != new_threshold: 
-		signal_voltage_threshold = new_threshold
+		return
+
+	signal_voltage_threshold = new_threshold
+	print("Relay3D {r_name} signal_voltage_threshold set to: {th_val} V".format({"r_name": name, "th_val": String.num(signal_voltage_threshold, 2)}))
+	if is_inside_tree():
+		emit_signal("configuration_changed", self)
 
 ## Sets the coil resistance, validates it, and emits a signal.
 func set_coil_resistance(value: float):
-	var new_resistance = max(1.0, value) 
-	if not is_equal_approx(coil_resistance, new_resistance):
+	var new_resistance = max(1.0, value)
+	if is_equal_approx(coil_resistance, new_resistance):
 		coil_resistance = new_resistance
-		print("Relay3D {r_name} coil_resistance set to: {cr_val} Ω".format({"r_name": name, "cr_val": String.num(coil_resistance, 1)}))
-		if is_inside_tree():
-			emit_signal("configuration_changed", self)
-	elif coil_resistance != new_resistance: 
-		coil_resistance = new_resistance
+		return
+
+	coil_resistance = new_resistance
+	print("Relay3D {r_name} coil_resistance set to: {cr_val} Ω".format({"r_name": name, "cr_val": String.num(coil_resistance, 1)}))
+	if is_inside_tree():
+		emit_signal("configuration_changed", self)
 
 
 
@@ -174,18 +176,6 @@ func stamp(
 	var idx_gnd = node_map.get(node_gnd_lookup, -1)
 
 	
-	var _inline_stamp_conductance = func(matrix_A, g_val, idx1, idx2):
-		if idx1 != -1 and idx2 != -1:
-			matrix_A[idx1][idx1] += g_val
-			matrix_A[idx2][idx2] += g_val
-			matrix_A[idx1][idx2] -= g_val
-			matrix_A[idx2][idx1] -= g_val
-		elif idx1 != -1:
-			matrix_A[idx1][idx1] += g_val
-		elif idx2 != -1:
-			matrix_A[idx2][idx2] += g_val
-
-	
 	
 	
 	
@@ -195,7 +185,7 @@ func stamp(
 	else:
 		R_coil_path_val = CircuitGraph.R_SWITCH_OPEN 
 	g_coil_path_val = 1.0 / R_coil_path_val
-	_inline_stamp_conductance.call(A, g_coil_path_val, idx_vcc, idx_gnd)
+	CircuitGraph.stamp_conductance(A, g_coil_path_val, idx_vcc, idx_gnd)
 
 	
 	
@@ -206,7 +196,7 @@ func stamp(
 	var sig_id = terminal_signal.get_instance_id()
 	var node_sig_lookup = terminal_connections.get(sig_id, -1)
 	var idx_sig = node_map.get(node_sig_lookup, -1)
-	_inline_stamp_conductance.call(A, g_signal_in_val, idx_sig, idx_gnd) 
+	CircuitGraph.stamp_conductance(A, g_signal_in_val, idx_sig, idx_gnd)
 
 	
 	var R_sw_closed_const = CircuitGraph.R_SWITCH_CLOSED
@@ -227,13 +217,13 @@ func stamp(
 	var idx_nc_sw = node_map.get(node_nc_lookup_sw, -1)
 
 	if comp_data.properties["is_energized"]: 
-		_inline_stamp_conductance.call(A, g_sw_closed_val, idx_com_sw, idx_no_sw) 
-		_inline_stamp_conductance.call(A, g_sw_open_val, idx_com_sw, idx_nc_sw)   
-		_inline_stamp_conductance.call(A, g_sw_open_val, idx_no_sw, idx_nc_sw)    
+		CircuitGraph.stamp_conductance(A, g_sw_closed_val, idx_com_sw, idx_no_sw)
+		CircuitGraph.stamp_conductance(A, g_sw_open_val, idx_com_sw, idx_nc_sw)
+		CircuitGraph.stamp_conductance(A, g_sw_open_val, idx_no_sw, idx_nc_sw)
 	else: 
-		_inline_stamp_conductance.call(A, g_sw_open_val, idx_com_sw, idx_no_sw)     
-		_inline_stamp_conductance.call(A, g_sw_closed_val, idx_com_sw, idx_nc_sw)   
-		_inline_stamp_conductance.call(A, g_sw_open_val, idx_no_sw, idx_nc_sw)      
+		CircuitGraph.stamp_conductance(A, g_sw_open_val, idx_com_sw, idx_no_sw)
+		CircuitGraph.stamp_conductance(A, g_sw_closed_val, idx_com_sw, idx_nc_sw)
+		CircuitGraph.stamp_conductance(A, g_sw_open_val, idx_no_sw, idx_nc_sw)
 	return          # or ‘pass’
 
 ## Hides the information label.
@@ -268,7 +258,6 @@ func gather_sim_results(
 	#region LEGACY_RESULT_CODE
 	var comp_node = comp_data.component_node
 	var comp_id = comp_node.get_instance_id()
-	if not comp_id in circuit.component_results: circuit.component_results[comp_id] = {}
 
 	var term_vcc_res = comp_data.terminals["VCC"]
 	var term_gnd_res = comp_data.terminals["GND"]

@@ -27,24 +27,26 @@ func _ready():
 ## Sets the threshold voltage, validates it, and emits a signal.
 func set_threshold_voltage(value: float):
 	var new_vt = clampf(value, 0.1, 10.0)
-	if not is_equal_approx(threshold_voltage, new_vt):
+	if is_equal_approx(threshold_voltage, new_vt):
 		threshold_voltage = new_vt
-		print("PChannelMOSFET3D {name} threshold_voltage set to: {vt_str} V".format({"name": name, "vt_str": String.num(threshold_voltage, 2)}))
-		if is_inside_tree():
-			emit_signal("configuration_changed", self)
-	elif threshold_voltage != new_vt:
-		threshold_voltage = new_vt
+		return
+
+	threshold_voltage = new_vt
+	print("PChannelMOSFET3D {name} threshold_voltage set to: {vt_str} V".format({"name": name, "vt_str": String.num(threshold_voltage, 2)}))
+	if is_inside_tree():
+		emit_signal("configuration_changed", self)
 
 ## Sets the transconductance parameter, validates it, and emits a signal.
 func set_transconductance_parameter(value: float):
 	var new_kp = max(1e-6, value)
-	if not is_equal_approx(transconductance_parameter, new_kp):
+	if is_equal_approx(transconductance_parameter, new_kp):
 		transconductance_parameter = new_kp
-		print("PChannelMOSFET3D {name} transconductance_parameter set to: {kp_str} A/V^2".format({"name": name, "kp_str": String.num_scientific(transconductance_parameter)}))
-		if is_inside_tree():
-			emit_signal("configuration_changed", self)
-	elif transconductance_parameter != new_kp:
-		transconductance_parameter = new_kp
+		return
+
+	transconductance_parameter = new_kp
+	print("PChannelMOSFET3D {name} transconductance_parameter set to: {kp_str} A/V^2".format({"name": name, "kp_str": String.num_scientific(transconductance_parameter)}))
+	if is_inside_tree():
+		emit_signal("configuration_changed", self)
 
 ## Displays the calculated operating region and characteristics on the component's 3D label.
 func show_info(results: Dictionary):
@@ -122,20 +124,6 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 		return true
 	return false
 
-# --------------------------------------------------------------
-# generic G-stamp helper (same style as other component scripts)
-## Stamps a conductance value `g` between two nodes into the MNA matrix `A`.
-func _stamp_conductance(A: Array, g: float, idx1: int, idx2: int) -> void:
-	if idx1 != -1 and idx2 != -1:
-		A[idx1][idx1] += g
-		A[idx2][idx2] += g
-		A[idx1][idx2] -= g
-		A[idx2][idx1] -= g
-	elif idx1 != -1:
-		A[idx1][idx1] += g
-	elif idx2 != -1:
-		A[idx2][idx2] += g
-
 # ---------- STAMP ----------
 ## Applies the MOSFET's contribution to the MNA matrices based on its current operating region.
 func stamp(A,b,node_map,vs_map,inductor_map,term_conn,comp_data,dt):
@@ -149,16 +137,16 @@ func stamp(A,b,node_map,vs_map,inductor_map,term_conn,comp_data,dt):
 
 	var G_gate_leak = 1e-12
 
-	_stamp_conductance(A, G_gate_leak, idx_g, idx_s)
-	_stamp_conductance(A, G_gate_leak, idx_g, idx_d)
+	CircuitGraph.stamp_conductance(A, G_gate_leak, idx_g, idx_s)
+	CircuitGraph.stamp_conductance(A, G_gate_leak, idx_g, idx_d)
 
 	if reg=="OFF":
-		_stamp_conductance(A, 1e-9, idx_s, idx_d)
+		CircuitGraph.stamp_conductance(A, 1e-9, idx_s, idx_d)
 	elif reg=="TRIODE":
 		var Vsg = comp_data.properties.get("_int_Vs",0.0) - comp_data.properties.get("_int_Vg",0.0)
 		var cond = kp * max(0.01, Vsg - vt)
 		cond = clamp(cond,1e-3,1e9)
-		_stamp_conductance(A, cond, idx_s, idx_d)
+		CircuitGraph.stamp_conductance(A, cond, idx_s, idx_d)
 	else: # SATURATION
 		var Vsg = comp_data.properties.get("_int_Vs",0.0) - comp_data.properties.get("_int_Vg",0.0)
 		var Id_sat = 0.0
@@ -168,13 +156,12 @@ func stamp(A,b,node_map,vs_map,inductor_map,term_conn,comp_data,dt):
 		if idx_s!=-1: b[idx_s] += Id_sat
 		# add a tiny output-resistance so the matrix is well-conditioned
 		var Gds_sat := 1e-6      #  ≈ 1 MΩ
-		_stamp_conductance(A, Gds_sat, idx_s, idx_d)
+		CircuitGraph.stamp_conductance(A, Gds_sat, idx_s, idx_d)
 
 # ---------- gather_sim_results ----------
 ## Extracts and stores simulation results (currents, voltages, region) for this component.
 func gather_sim_results(circuit,comp_data,x,node_map,vs_map,inductor_map,dt):
 	var cid = comp_data.component_node.get_instance_id()
-	if not cid in circuit.component_results: circuit.component_results[cid] = {}
 	var Vs = circuit.electrical_nodes.get(circuit.terminal_connections.get(terminal_s.get_instance_id(),-1), {}).get("voltage", NAN)
 	var Vg = circuit.electrical_nodes.get(circuit.terminal_connections.get(terminal_g.get_instance_id(),-1), {}).get("voltage", NAN)
 	var Vd = circuit.electrical_nodes.get(circuit.terminal_connections.get(terminal_d.get_instance_id(),-1), {}).get("voltage", NAN)

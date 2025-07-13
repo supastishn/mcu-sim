@@ -50,7 +50,6 @@ func gather_sim_results(
 	#region LEGACY_RESULT_CODE
 	var comp_node = comp_data.component_node
 	var comp_id = comp_node.get_instance_id()
-	if not comp_id in circuit.component_results: circuit.component_results[comp_id] = {}
 
 	var R_diode_on_model = circuit.R_DIODE_ON
 	var Vf_diode_calc = comp_data.properties["forward_voltage"]

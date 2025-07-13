@@ -42,13 +42,14 @@ func _ready():
 ## Sets the wiper position, clamps it between 0.0 and 1.0, and emits a signal.
 func set_wiper_position(new_pos: float):
 	var clamped_pos = clampf(new_pos, 0.0, 1.0)
-	if not is_equal_approx(wiper_position, clamped_pos): 
+	if is_equal_approx(wiper_position, clamped_pos):
 		wiper_position = clamped_pos
-		print("Potentiometer {pot_name} wiper position set to: {pos_str}".format({"pot_name": name, "pos_str": String.num(wiper_position, 2)}))
-		if is_inside_tree(): 
-			emit_signal("wiper_position_changed", self, wiper_position)
-	elif wiper_position != clamped_pos: 
-		wiper_position = clamped_pos
+		return
+
+	wiper_position = clamped_pos
+	print("Potentiometer {pot_name} wiper position set to: {pos_str}".format({"pot_name": name, "pos_str": String.num(wiper_position, 2)}))
+	if is_inside_tree():
+		emit_signal("wiper_position_changed", self, wiper_position)
 
 
 
@@ -134,7 +135,6 @@ func gather_sim_results(
 	#region LEGACY_RESULT_CODE
 	var comp_node = comp_data.component_node
 	var comp_id = comp_node.get_instance_id()
-	if not comp_id in circuit.component_results: circuit.component_results[comp_id] = {}
 
 	var total_R = comp_data.properties["total_resistance"]
 	var wiper_pos = comp_data.properties["wiper_position"]

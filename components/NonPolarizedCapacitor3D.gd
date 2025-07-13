@@ -33,26 +33,28 @@ func _ready():
 
 ## Sets the capacitance value, validates it, and emits the configuration_changed signal.
 func set_capacitance(value: float):
-	var new_cap = max(1e-12, value) 
-	if not is_equal_approx(capacitance, new_cap):
+	var new_cap = max(1e-12, value)
+	if is_equal_approx(capacitance, new_cap):
 		capacitance = new_cap
-		print("NonPolarizedCapacitor {cap_name} capacitance set to: {cap_str} F".format({"cap_name": name, "cap_str": String.num_scientific(capacitance)}))
-		if is_inside_tree():
-			emit_signal("configuration_changed", self)
-	elif capacitance != new_cap: 
-		capacitance = new_cap
+		return
+
+	capacitance = new_cap
+	print("NonPolarizedCapacitor {cap_name} capacitance set to: {cap_str} F".format({"cap_name": name, "cap_str": String.num_scientific(capacitance)}))
+	if is_inside_tree():
+		emit_signal("configuration_changed", self)
 
 
 ## Sets the maximum voltage rating, validates it, and emits the configuration_changed signal.
 func set_max_voltage(value: float):
-	var new_max_v = max(0.1, value) 
-	if not is_equal_approx(max_voltage, new_max_v):
+	var new_max_v = max(0.1, value)
+	if is_equal_approx(max_voltage, new_max_v):
 		max_voltage = new_max_v
-		print("NonPolarizedCapacitor {cap_name} max_voltage set to: {max_v_str} V".format({"cap_name": name, "max_v_str": String.num(max_voltage, 2)}))
-		if is_inside_tree():
-			emit_signal("configuration_changed", self)
-	elif max_voltage != new_max_v: 
-		max_voltage = new_max_v
+		return
+
+	max_voltage = new_max_v
+	print("NonPolarizedCapacitor {cap_name} max_voltage set to: {max_v_str} V".format({"cap_name": name, "max_v_str": String.num(max_voltage, 2)}))
+	if is_inside_tree():
+		emit_signal("configuration_changed", self)
 
 
 
@@ -149,7 +151,6 @@ func gather_sim_results(
 	#region LEGACY_RESULT_CODE
 	var comp_node = comp_data.component_node
 	var comp_id = comp_node.get_instance_id()
-	if not comp_id in circuit.component_results: circuit.component_results[comp_id] = {}
 
 	var C_np_val = comp_data.properties["capacitance"]
 	var max_V_np_cap = comp_data.properties["max_voltage"] 

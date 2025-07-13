@@ -150,6 +150,7 @@ func stamp(
 
 ## Extracts simulation results and updates the info label.
 func gather_sim_results(circuit, comp_data, x, node_map, vs_map, inductor_map, delta_time):
+	var comp_id = self.get_instance_id()
 	var vout_id = terminal_vout.get_instance_id()
 	var vout_node_id = circuit.terminal_connections.get(vout_id, -1)
 	var v_vout = circuit.electrical_nodes.get(vout_node_id, {}).get("voltage", NAN)
@@ -160,8 +161,5 @@ func gather_sim_results(circuit, comp_data, x, node_map, vs_map, inductor_map, d
 		hide_info()
 	
 	# Store results in circuit graph for test access
-	var comp_id = self.get_instance_id()
-	circuit.component_results[comp_id] = {
-		"status": comp_data.properties.get("status", "UNKNOWN"),
-		"voltage": v_vout
-	}
+	circuit.component_results[comp_id]["status"] = comp_data.properties.get("status", "UNKNOWN")
+	circuit.component_results[comp_id]["voltage"] = v_vout

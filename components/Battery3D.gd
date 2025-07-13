@@ -50,15 +50,14 @@ func _recalculate_voltage():
 ## Sets the number of cells, validates the value, and updates visuals and voltage.
 func set_num_cells(value: int):
 	var new_val = clamp(value, 1, 4)
-	if num_cells != new_val:
-		num_cells = new_val
-		_recalculate_voltage()
-		_update_cell_visuals()
-		if is_inside_tree(): 
-			emit_signal("configuration_changed", self)
-	elif not is_inside_tree(): 
-		num_cells = new_val
-		_recalculate_voltage()
+	if num_cells == new_val:
+		return
+
+	num_cells = new_val
+	_recalculate_voltage()
+	_update_cell_visuals()
+	if is_inside_tree():
+		emit_signal("configuration_changed", self)
 
 
 ## Updates the visibility and position of the cell meshes to match `num_cells`.
@@ -155,7 +154,6 @@ func gather_sim_results(
 	#region LEGACY_RESULT_CODE
 	var comp_node = comp_data.component_node
 	var comp_id = comp_node.get_instance_id()
-	if not comp_id in circuit.component_results: circuit.component_results[comp_id] = {}
 
 	if vs_map.has(comp_id): 
 		var matrix_idx_curr_final = vs_map[comp_id]

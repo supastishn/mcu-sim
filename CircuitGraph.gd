@@ -40,6 +40,17 @@ var component_node_map: Dictionary = {}
 
 ## The ID of the node designated as ground (0V reference).
 var ground_node_id: int = -1 
+
+
+## Stamps a conductance `g_val` between two nodes into the MNA matrix `A`.
+static func stamp_conductance(matrix_A: Array, g_val: float, idx1: int, idx2: int) -> void:
+	if idx1 != -1:
+		matrix_A[idx1][idx1] += g_val
+	if idx2 != -1:
+		matrix_A[idx2][idx2] += g_val
+	if idx1 != -1 and idx2 != -1:
+		matrix_A[idx1][idx2] -= g_val
+		matrix_A[idx2][idx1] -= g_val
 ## Flag indicating if the circuit has a valid solution from the last simulation step.
 var _is_solved: bool = false 
 ## Flag indicating if the MNA system needs to be rebuilt due to circuit changes.
@@ -580,6 +591,9 @@ func solve_single_time_step(delta_time: float) -> bool:
 
 	for comp_data_item in components:
 		var node = comp_data_item.component_node
+		var comp_id = node.get_instance_id()
+		if not comp_id in component_results: component_results[comp_id] = {}
+		
 		if is_instance_valid(node) \
 		   and node.has_method("gather_sim_results"):
 			node.gather_sim_results(

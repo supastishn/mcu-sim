@@ -40,25 +40,27 @@ func _ready():
 
 ## Sets the threshold voltage, validates it, and emits a signal.
 func set_threshold_voltage(value: float):
-	var new_vt = clampf(value, 0.1, 10.0) 
-	if not is_equal_approx(threshold_voltage, new_vt):
+	var new_vt = clampf(value, 0.1, 10.0)
+	if is_equal_approx(threshold_voltage, new_vt):
 		threshold_voltage = new_vt
-		print("NChannelMOSFET3D {name} threshold_voltage set to: {vt_str} V".format({"name": name, "vt_str": String.num(threshold_voltage, 2)}))
-		if is_inside_tree():
-			emit_signal("configuration_changed", self)
-	elif threshold_voltage != new_vt: 
-		threshold_voltage = new_vt
+		return
+
+	threshold_voltage = new_vt
+	print("NChannelMOSFET3D {name} threshold_voltage set to: {vt_str} V".format({"name": name, "vt_str": String.num(threshold_voltage, 2)}))
+	if is_inside_tree():
+		emit_signal("configuration_changed", self)
 
 ## Sets the transconductance parameter, validates it, and emits a signal.
 func set_transconductance_parameter(value: float):
-	var new_kn = max(1e-6, value) 
-	if not is_equal_approx(transconductance_parameter, new_kn):
+	var new_kn = max(1e-6, value)
+	if is_equal_approx(transconductance_parameter, new_kn):
 		transconductance_parameter = new_kn
-		print("NChannelMOSFET3D {name} transconductance_parameter set to: {kn_str} A/V^2".format({"name": name, "kn_str": String.num_scientific(transconductance_parameter)}))
-		if is_inside_tree():
-			emit_signal("configuration_changed", self)
-	elif transconductance_parameter != new_kn: 
-		transconductance_parameter = new_kn
+		return
+
+	transconductance_parameter = new_kn
+	print("NChannelMOSFET3D {name} transconductance_parameter set to: {kn_str} A/V^2".format({"name": name, "kn_str": String.num_scientific(transconductance_parameter)}))
+	if is_inside_tree():
+		emit_signal("configuration_changed", self)
 
 
 
@@ -118,7 +120,6 @@ func gather_sim_results(
 	#region LEGACY_RESULT_CODE
 	var comp_node = comp_data.component_node
 	var comp_id = comp_node.get_instance_id()
-	if not comp_id in circuit.component_results: circuit.component_results[comp_id] = {}
 
 	var Vd_nmos_calc = circuit.electrical_nodes.get(circuit.terminal_connections.get(comp_data.terminals["D"].get_instance_id(), -1), {}).get("voltage", NAN)
 	var Vg_nmos_calc = circuit.electrical_nodes.get(circuit.terminal_connections.get(comp_data.terminals["G"].get_instance_id(), -1), {}).get("voltage", NAN)
@@ -223,23 +224,12 @@ func stamp(
 	
 	var G_gate_leakage_const = 1e-12 
 	
-	var _inline_stamp_conductance = func(matrix_A, g_val, idx1, idx2):
-		if idx1 != -1 and idx2 != -1:
-			matrix_A[idx1][idx1] += g_val
-			matrix_A[idx2][idx2] += g_val
-			matrix_A[idx1][idx2] -= g_val
-			matrix_A[idx2][idx1] -= g_val
-		elif idx1 != -1:
-			matrix_A[idx1][idx1] += g_val
-		elif idx2 != -1:
-			matrix_A[idx2][idx2] += g_val
-	
-	_inline_stamp_conductance.call(A, G_gate_leakage_const, idx_g, idx_d)
-	_inline_stamp_conductance.call(A, G_gate_leakage_const, idx_g, idx_s)
+	CircuitGraph.stamp_conductance(A, G_gate_leakage_const, idx_g, idx_d)
+	CircuitGraph.stamp_conductance(A, G_gate_leakage_const, idx_g, idx_s)
 
 	if region_nmos_mna_val == "OFF":
 		var G_ds_off_const = 1e-9 
-		_inline_stamp_conductance.call(A, G_ds_off_const, idx_d, idx_s)
+		CircuitGraph.stamp_conductance(A, G_ds_off_const, idx_d, idx_s)
 	else:
 		
 		
@@ -260,12 +250,12 @@ func stamp(
 			if R_ds_triode_approx_val > 1e9: R_ds_triode_approx_val = 1e9
 			if R_ds_triode_approx_val < 1e-3: R_ds_triode_approx_val = 1e-3 
 			var G_ds_triode_val = 1.0 / R_ds_triode_approx_val
-			_inline_stamp_conductance.call(A, G_ds_triode_val, idx_d, idx_s)
+			CircuitGraph.stamp_conductance(A, G_ds_triode_val, idx_d, idx_s)
 			
 		elif region_nmos_mna_val == "SATURATION":
 			# Add small output conductance for matrix stability (Gds_sat)
 			var Gds_sat := 1e-6  # ~1 MΩ
-			_inline_stamp_conductance.call(A, Gds_sat, idx_d, idx_s)
+			CircuitGraph.stamp_conductance(A, Gds_sat, idx_d, idx_s)
 			
 			var Id_sat_calc_val = 0.0
 			if Vgs_for_model_val > vt_nmos_mna_prop:

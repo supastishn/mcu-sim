@@ -202,8 +202,6 @@ func gather_sim_results(
 	print_debug("OpAmp3D({name}): ======= GATHER RESULTS =======".format({"name": self.name}))
 		
 	var comp_id = self.get_instance_id()
-	if not circuit.component_results.has(comp_id):
-		circuit.component_results[comp_id] = {}
 		
 	var results = {}
 	

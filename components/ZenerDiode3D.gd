@@ -33,25 +33,27 @@ func _ready():
 
 ## Sets the forward voltage, validates it, and emits the configuration_changed signal.
 func set_forward_voltage(value: float):
-	var new_vf = max(0.1, value) 
-	if not is_equal_approx(forward_voltage, new_vf):
+	var new_vf = max(0.1, value)
+	if is_equal_approx(forward_voltage, new_vf):
 		forward_voltage = new_vf
-		print("ZenerDiode3D {name} forward_voltage set to: {vf_str} V".format({"name": name, "vf_str": String.num(forward_voltage, 2)}))
-		if is_inside_tree():
-			emit_signal("configuration_changed", self)
-	elif forward_voltage != new_vf: 
-		forward_voltage = new_vf
+		return
+
+	forward_voltage = new_vf
+	print("ZenerDiode3D {name} forward_voltage set to: {vf_str} V".format({"name": name, "vf_str": String.num(forward_voltage, 2)}))
+	if is_inside_tree():
+		emit_signal("configuration_changed", self)
 
 ## Sets the Zener voltage, validates it, and emits the configuration_changed signal.
 func set_zener_voltage(value: float):
-	var new_vz = max(0.1, value) 
-	if not is_equal_approx(zener_voltage, new_vz):
+	var new_vz = max(0.1, value)
+	if is_equal_approx(zener_voltage, new_vz):
 		zener_voltage = new_vz
-		print("ZenerDiode3D {name} zener_voltage set to: {vz_str} V".format({"name": name, "vz_str": String.num(zener_voltage, 2)}))
-		if is_inside_tree():
-			emit_signal("configuration_changed", self)
-	elif zener_voltage != new_vz: 
-		zener_voltage = new_vz
+		return
+
+	zener_voltage = new_vz
+	print("ZenerDiode3D {name} zener_voltage set to: {vz_str} V".format({"name": name, "vz_str": String.num(zener_voltage, 2)}))
+	if is_inside_tree():
+		emit_signal("configuration_changed", self)
 
 
 
@@ -98,7 +100,6 @@ func gather_sim_results(
 	#region LEGACY_RESULT_CODE
 	var comp_node = comp_data.component_node
 	var comp_id = comp_node.get_instance_id()
-	if not comp_id in circuit.component_results: circuit.component_results[comp_id] = {}
 
 	var state_z = comp_data.properties["operating_state"]
 	var Vf_z_calc = comp_data.properties["forward_voltage"]
@@ -205,24 +206,12 @@ func stamp(
 	var R_off_model_const = 1.0e9 
 	var G_off_model_val = 1.0 / R_off_model_const
 
-	
-	var _inline_stamp_conductance = func(matrix_A, g_val, idx1, idx2):
-		if idx1 != -1 and idx2 != -1:
-			matrix_A[idx1][idx1] += g_val
-			matrix_A[idx2][idx2] += g_val
-			matrix_A[idx1][idx2] -= g_val
-			matrix_A[idx2][idx1] -= g_val
-		elif idx1 != -1:
-			matrix_A[idx1][idx1] += g_val
-		elif idx2 != -1:
-			matrix_A[idx2][idx2] += g_val
-
 	if state_zener_val == "OFF":
-		_inline_stamp_conductance.call(A, G_off_model_val, idx_a, idx_k)
+		CircuitGraph.stamp_conductance(A, G_off_model_val, idx_a, idx_k)
 	elif state_zener_val == "FORWARD":
 		
 		
-		_inline_stamp_conductance.call(A, G_on_model_val, idx_a, idx_k)
+		CircuitGraph.stamp_conductance(A, G_on_model_val, idx_a, idx_k)
 		var current_offset_fwd_val = G_on_model_val * Vf_zener_model_prop
 		
 		if idx_a != -1: b[idx_a] += current_offset_fwd_val 
@@ -233,7 +222,7 @@ func stamp(
 		
 		
 		
-		_inline_stamp_conductance.call(A, G_on_model_val, idx_a, idx_k) 
+		CircuitGraph.stamp_conductance(A, G_on_model_val, idx_a, idx_k)
 		var current_offset_zener_val = G_on_model_val * Vz_zener_model_prop
 		
 		

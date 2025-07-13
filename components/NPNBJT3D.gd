@@ -39,36 +39,39 @@ func _ready():
 
 ## Sets the DC current gain (beta), validates it, and emits a signal.
 func set_beta_dc(value: float):
-	var new_beta = max(1.0, value) 
-	if not is_equal_approx(beta_dc, new_beta):
+	var new_beta = max(1.0, value)
+	if is_equal_approx(beta_dc, new_beta):
 		beta_dc = new_beta
-		print("NPNBJT {bjt_name} beta_dc set to: {beta_str}".format({"bjt_name": name, "beta_str": String.num(beta_dc, 1)}))
-		if is_inside_tree():
-			emit_signal("configuration_changed", self)
-	elif beta_dc != new_beta: 
-		beta_dc = new_beta
+		return
+
+	beta_dc = new_beta
+	print("NPNBJT {bjt_name} beta_dc set to: {beta_str}".format({"bjt_name": name, "beta_str": String.num(beta_dc, 1)}))
+	if is_inside_tree():
+		emit_signal("configuration_changed", self)
 
 ## Sets the base-emitter turn-on voltage, validates it, and emits a signal.
 func set_vbe_on(value: float):
-	var new_vbe = max(0.1, value) 
-	if not is_equal_approx(vbe_on, new_vbe):
+	var new_vbe = max(0.1, value)
+	if is_equal_approx(vbe_on, new_vbe):
 		vbe_on = new_vbe
-		print("NPNBJT {bjt_name} vbe_on set to: {vbe_str} V".format({"bjt_name": name, "vbe_str": String.num(vbe_on, 2)}))
-		if is_inside_tree():
-			emit_signal("configuration_changed", self)
-	elif vbe_on != new_vbe: 
-		vbe_on = new_vbe
+		return
+
+	vbe_on = new_vbe
+	print("NPNBJT {bjt_name} vbe_on set to: {vbe_str} V".format({"bjt_name": name, "vbe_str": String.num(vbe_on, 2)}))
+	if is_inside_tree():
+		emit_signal("configuration_changed", self)
 
 ## Sets the collector-emitter saturation voltage, validates it, and emits a signal.
 func set_vce_sat(value: float):
-	var new_vce_sat = max(0.0, value) 
-	if not is_equal_approx(vce_sat, new_vce_sat):
+	var new_vce_sat = max(0.0, value)
+	if is_equal_approx(vce_sat, new_vce_sat):
 		vce_sat = new_vce_sat
-		print("NPNBJT {bjt_name} vce_sat set to: {vce_str} V".format({"bjt_name": name, "vce_str": String.num(vce_sat, 2)}))
-		if is_inside_tree():
-			emit_signal("configuration_changed", self)
-	elif vce_sat != new_vce_sat: 
-		vce_sat = new_vce_sat
+		return
+	
+	vce_sat = new_vce_sat
+	print("NPNBJT {bjt_name} vce_sat set to: {vce_str} V".format({"bjt_name": name, "vce_str": String.num(vce_sat, 2)}))
+	if is_inside_tree():
+		emit_signal("configuration_changed", self)
 
 
 
@@ -121,7 +124,6 @@ func gather_sim_results(
 	#region LEGACY_RESULT_CODE
 	var comp_node = comp_data.component_node
 	var comp_id = comp_node.get_instance_id()
-	if not comp_id in circuit.component_results: circuit.component_results[comp_id] = {}
 
 	var Vc = circuit.electrical_nodes.get(circuit.terminal_connections.get(comp_data.terminals["C"].get_instance_id(), -1), {}).get("voltage", NAN)
 	var Vb = circuit.electrical_nodes.get(circuit.terminal_connections.get(comp_data.terminals["B"].get_instance_id(), -1), {}).get("voltage", NAN)
@@ -252,23 +254,11 @@ func stamp(
 	var R_ce_sat_model_const = 5.0    
 	var R_bjt_off_model_const = 1.0e9 
 
-	
-	var _inline_stamp_conductance = func(matrix_A, g_val, idx1, idx2):
-		if idx1 != -1 and idx2 != -1:
-			matrix_A[idx1][idx1] += g_val
-			matrix_A[idx2][idx2] += g_val
-			matrix_A[idx1][idx2] -= g_val
-			matrix_A[idx2][idx1] -= g_val
-		elif idx1 != -1:
-			matrix_A[idx1][idx1] += g_val
-		elif idx2 != -1:
-			matrix_A[idx2][idx2] += g_val
-
 	if region == "OFF":
 		var g_off = 1.0 / R_bjt_off_model_const
-		_inline_stamp_conductance.call(A, g_off, idx_b, idx_e) 
-		_inline_stamp_conductance.call(A, g_off, idx_c, idx_e) 
-		_inline_stamp_conductance.call(A, g_off, idx_c, idx_b) 
+		CircuitGraph.stamp_conductance(A, g_off, idx_b, idx_e)
+		CircuitGraph.stamp_conductance(A, g_off, idx_c, idx_e)
+		CircuitGraph.stamp_conductance(A, g_off, idx_c, idx_b)
 		
 	elif region == "ACTIVE":
 		
