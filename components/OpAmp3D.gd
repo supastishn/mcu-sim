@@ -6,9 +6,9 @@ signal configuration_changed(component_node: Node3D)
 
 # Properties for the ideal op-amp simulation model
 ## The open-loop voltage gain of the op-amp.
-@export var open_loop_gain: float = 200000.0
+@export var open_loop_gain: float = 200000.0 : set = set_open_loop_gain
 ## The voltage drop from the supply rails for output saturation.
-@export var rail_saturation_voltage: float = 1.5 # Voltage drop from the supply rails
+@export var rail_saturation_voltage: float = 1.5 : set = set_rail_saturation_voltage # Voltage drop from the supply rails
 
 # UI and component node references
 ## Reference to the non-inverting input terminal (+) Area3D node.
@@ -27,6 +27,20 @@ signal configuration_changed(component_node: Node3D)
 ## Called when the node enters the scene tree. Initializes the component.
 func _ready():
 	hide_info()
+
+## Sets the open-loop gain and emits the configuration_changed signal.
+func set_open_loop_gain(value: float):
+	if not is_equal_approx(open_loop_gain, value):
+		open_loop_gain = value
+		if is_inside_tree():
+			emit_signal("configuration_changed", self)
+
+## Sets the rail saturation voltage and emits the configuration_changed signal.
+func set_rail_saturation_voltage(value: float):
+	if not is_equal_approx(rail_saturation_voltage, value):
+		rail_saturation_voltage = value
+		if is_inside_tree():
+			emit_signal("configuration_changed", self)
 
 # --- Visual Feedback ---
 ## Displays the calculated operating region and voltages on the component's 3D label.

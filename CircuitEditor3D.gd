@@ -169,8 +169,6 @@ func _ready():
 	_deselect_component()
 	_hide_voltage_displays() 
 	
-	# Handle beta components visibility
-	var enable_beta = ProjectSettings.get_setting("mcu_sim/features/enable_beta_components", false)
 	# The op-amp button will be handled in _populate_component_bar now.
 
 ## Handles all input events, including mouse clicks for selecting/wiring/dragging and keyboard controls for camera flight.

@@ -501,8 +501,6 @@ func test_polarized_capacitor_behavior() -> bool:
 	var num_steps = 5
 	var dt = 0.02 
 
-	var exploded_during_charge = false
-
 	for i in range(num_steps):
 		if not graph_script.solve_single_time_step(dt):
 			solve_charge_success = false
@@ -516,7 +514,6 @@ func test_polarized_capacitor_behavior() -> bool:
 				cap_graph_data_charge = d
 				break
 		if cap_graph_data_charge and cap_graph_data_charge.get("is_exploded", false):
-			exploded_during_charge = true
 
 	if not solve_charge_success:
 		if exploded_during_charge:
@@ -1111,7 +1108,6 @@ func test_relay_behavior() -> bool:
 	var load_ps_v = 5.0 
 	var signal_supply_v_off = 3.0 
 	var signal_supply_v_on = 6.0  
-	var relay_module_vcc_v = load_ps_v 
 
 	print("  Relay Test: De-energized (NC path active).")
 	var ps_signal_supply_off: PowerSource3D = editor_script._add_component(editor_script.PowerSourceScene, Vector3(0,0,-1)) as PowerSource3D 
@@ -1270,7 +1266,6 @@ func test_led_not_lighting() -> bool:
 	var rig := TestRig.new()
 	add_child(rig)
 	await rig.init()
-	var g = rig.graph
 	var ed = rig.editor
 
 	var ps_node: PowerSource3D = rig.add(ed.PowerSourceScene)
@@ -1491,7 +1486,6 @@ func test_linear_regulator_normal() -> bool:
 	var rig := TestRig.new()
 	add_child(rig)
 	await rig.init()
-	var g = rig.graph
 	var ed = rig.editor
 
 	# Setup components

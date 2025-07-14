@@ -77,20 +77,11 @@ func set_coil_resistance(value: float):
 ## Displays the calculated state and voltages on the component's 3D label and updates the visual color.
 func show_info(results: Dictionary):
 	if not info_label: return
-	var sig_v_str = "Sig V: N/A"
-	if results.has("signal_voltage") and not is_nan(results.signal_voltage):
-		sig_v_str = "Sig V: {val_str} V".format({"val_str": String.num(results.signal_voltage, 2)})
 
-	var vcc_v_str = "VCC: N/A"
-	if results.has("vcc_voltage") and not is_nan(results.vcc_voltage):
-		vcc_v_str = "VCC: {val_str} V".format({"val_str": String.num(results.vcc_voltage, 2)})
-
-	var state_str = "State: N/A"
 	var energized_state_from_results = results.get("is_energized", false)
 	self.is_energized = energized_state_from_results
 
 	if energized_state_from_results:
-		state_str = "State: Energized (COM-NO)"
 		if is_instance_valid(mesh_instance) and mesh_instance.material_override:
 			mesh_instance.material_override.albedo_color = Color.DARK_GREEN
 		elif is_instance_valid(mesh_instance):
@@ -98,7 +89,6 @@ func show_info(results: Dictionary):
 			mat.albedo_color = Color.DARK_GREEN
 			mesh_instance.material_override = mat
 	else:
-		state_str = "State: De-energized (COM-NC)"
 		if is_instance_valid(mesh_instance) and mesh_instance.material_override:
 			mesh_instance.material_override.albedo_color = Color(0.4, 0.4, 0.5, 1)
 		elif is_instance_valid(mesh_instance):
