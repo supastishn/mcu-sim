@@ -2,6 +2,7 @@ extends Node
 
 const CircuitEditorScene = preload("res://CircuitEditor3D.tscn")  # legacy tests need it
 const OpAmpScene = preload("res://components/OpAmp3D.tscn")
+const TestInteractions = preload("res://tests/test_interactions.gd")
 
 ## Emitted when all tests are completed, carrying the results dictionary.
 signal tests_completed(results: Dictionary)
@@ -58,8 +59,11 @@ func run_all_tests() -> Dictionary:
 		{"name": "Test: Linear Regulator Normal Operation", "func": test_linear_regulator_normal},
 		{"name": "Test: Linear Regulator Dropout Scenario", "func": test_linear_regulator_dropout},
 		{"name": "Test: Op-Amp Inverting Amplifier", "func": test_op_amp_inverting_amplifier},
-		{"name": "Test: ComponentInteractionUtils get_closest_terminal", "func": test_get_closest_terminal},
 	]
+
+	var interactions_test_runner = TestInteractions.new()
+	add_child(interactions_test_runner)
+	all_tests.append_array(interactions_test_runner.get_tests())
 
 	for test_case in all_tests:
 		print_rich("\n[b]{name}[/b]".format({"name": test_case.name}))
@@ -69,6 +73,7 @@ func run_all_tests() -> Dictionary:
 		else:
 			local_failed_test_names.push_back(test_case.name)
 
+	interactions_test_runner.queue_free()
 	return { "total": local_total_tests, "passed": local_passed_tests, "failed_names": local_failed_test_names }
 
 
@@ -235,63 +240,6 @@ func test_op_amp_inverting_amplifier() -> bool:
 		if not TestUtils.assert_approx_equals(results_sat_high.get("Vout", NAN), expected_sat_high_volt, 0.1, "Op-Amp Vout is saturated high"): ok = false
 
 	rig.cleanup()
-	return ok
-
-
-## Tests the ComponentInteractionUtils's get_closest_terminal function.
-func test_get_closest_terminal() -> bool:
-	var ok := true
-	var ResistorScene = preload("res://components/Resistor3D.tscn")
-	var resistor = ResistorScene.instantiate()
-	add_child(resistor)
-	resistor.global_position = Vector3(10, 2, -5)
-
-	await get_tree().process_frame
-
-	var terminal1 = resistor.terminal1
-	var terminal2 = resistor.terminal2
-
-	if not is_instance_valid(terminal1) or not is_instance_valid(terminal2):
-		printerr("  FAILED: Terminals are not valid instances.")
-		resistor.queue_free()
-		return false
-
-	# Test 1: Hit position exactly on terminal 1
-	var hit_pos_1 = terminal1.global_position
-	var closest_1 = ComponentInteractionUtils.get_closest_terminal(resistor, hit_pos_1)
-	if not TestUtils.assert_equals(closest_1, terminal1, "get_closest_terminal: Hit on Terminal 1"):
-		ok = false
-
-	# Test 2: Hit position exactly on terminal 2
-	var hit_pos_2 = terminal2.global_position
-	var closest_2 = ComponentInteractionUtils.get_closest_terminal(resistor, hit_pos_2)
-	if not TestUtils.assert_equals(closest_2, terminal2, "get_closest_terminal: Hit on Terminal 2"):
-		ok = false
-
-	# Test 3: Hit position close to terminal 1 (inside radius)
-	var hit_pos_3 = terminal1.global_position + Vector3(0.1, 0, 0) # INTERACTION_RADIUS is 0.15
-	var closest_3 = ComponentInteractionUtils.get_closest_terminal(resistor, hit_pos_3)
-	if not TestUtils.assert_equals(closest_3, terminal1, "get_closest_terminal: Hit near Terminal 1"):
-		ok = false
-
-	# Test 4: Hit position far from any terminal
-	var hit_pos_4 = resistor.global_position
-	var closest_4 = ComponentInteractionUtils.get_closest_terminal(resistor, hit_pos_4)
-	if not TestUtils.assert_equals(closest_4, null, "get_closest_terminal: Hit far from terminals"):
-		ok = false
-
-	# Test 5: Hit position just outside terminal 1's radius
-	var hit_pos_5 = terminal1.global_position + Vector3(ComponentInteractionUtils.INTERACTION_RADIUS + 0.01, 0, 0)
-	var closest_5 = ComponentInteractionUtils.get_closest_terminal(resistor, hit_pos_5)
-	if not TestUtils.assert_equals(closest_5, null, "get_closest_terminal: Hit outside Terminal 1 radius"):
-		ok = false
-
-	# Test 6: Invalid component node
-	var closest_6 = ComponentInteractionUtils.get_closest_terminal(null, Vector3.ZERO)
-	if not TestUtils.assert_equals(closest_6, null, "get_closest_terminal: Null component returns null"):
-		ok = false
-
-	resistor.queue_free()
 	return ok
 
 
