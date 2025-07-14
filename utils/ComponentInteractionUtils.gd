@@ -4,7 +4,7 @@ extends Node
 const INTERACTION_RADIUS: float = 0.15
 
 ## Finds the closest terminal on a component to a given world position.
-static func get_closest_terminal(component_node: Node3D, world_hit_position: Vector3) -> Area3D:
+func get_closest_terminal(component_node: Node3D, world_hit_position: Vector3) -> Area3D:
 	if not is_instance_valid(component_node) or not component_node.has_method("get_terminal_info"):
 		return null
 

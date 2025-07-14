@@ -1,7 +1,7 @@
 extends Node
 
 ## Formats a float current value into a human-readable string with appropriate units (A, mA, µA, nA, pA).
-static func format_current(current_value: float) -> String:
+func format_current(current_value: float) -> String:
 	if is_nan(current_value):
 		return "N/A"
 	
