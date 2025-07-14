@@ -1,7 +1,5 @@
 extends Node
 
-class_name ComponentInteractionUtils
-
 ## The maximum distance from a terminal's center to register a click.
 const INTERACTION_RADIUS: float = 0.15
 
