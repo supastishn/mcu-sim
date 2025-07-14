@@ -10,16 +10,16 @@ config_version=5
 
 auto_accept_quit=false
 
-[autoload]
-
-StringUtils="*res://utils/StringUtils.gd"
-
 [application]
 
 config/name="MCU-Sim"
 run/main_scene="res://ui/MainMenu.tscn"
 config/features=PackedStringArray("4.4", "Forward Plus")
 config/icon="res://icon.svg"
+
+[autoload]
+
+StringUtils="*res://utils/StringUtils.gd"
 
 [input_devices]
 
@@ -29,13 +29,13 @@ pointing/android/enable_long_press_as_right_click=true
 
 3d_physics/layer_16="Wires"
 
+[mcu_sim]
+
+features/enable_beta_components=false
+
 [rendering]
 
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
 lights_and_shadows/directional_shadow/size=8192
 lights_and_shadows/directional_shadow/size.mobile=4096
-
-[mcu_sim]
-
-features/enable_beta_components=false
