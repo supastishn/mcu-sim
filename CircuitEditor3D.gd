@@ -1047,7 +1047,7 @@ func _on_potentiometer_component_wiper_changed(pot_node: Node3D, _new_position: 
 		var slider = property_container.find_child("HSlider", true, false)
 		if slider and slider is HSlider:
 			_is_updating_pot_slider_programmatically = true
-			slider.value = new_position
+			slider.value = _new_position
 			_is_updating_pot_slider_programmatically = false
 
 func _on_battery_config_changed(node: Node3D): _on_any_component_config_changed(node)
