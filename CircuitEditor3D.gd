@@ -1,12 +1,6 @@
 extends Node3D
 class_name CircuitEditor3D
 
-## Collision layer for component bodies.
-const COMPONENT_BODY_COLLISION_LAYER = 4
-## Collision layer for wires.
-const WIRE_COLLISION_LAYER = 16 
-## Collision layer for the ground plane.
-const GROUND_COLLISION_LAYER = 8 
 ## The size of the grid to which components snap.
 const GRID_SIZE: float = 0.05 
 ## Default distance from the camera to place a new component if raycast fails.
@@ -236,53 +230,34 @@ func _input(event):
 						return 
 
 					var mouse_pos = event.position
-					var result = _raycast_from_camera(mouse_pos)
+					var hit = ComponentInteractionUtils.get_interactive_object_at(camera, mouse_pos)
 					_potential_drag_target = null 
 
-					if result:
-						var collider = result.collider
-						
-						if collider is Area3D and collider.collision_layer == COMPONENT_BODY_COLLISION_LAYER:
+					match hit.type:
+						"terminal":
 							is_flying = false
-							var component_node = collider.get_parent()
-							var closest_terminal = ComponentInteractionUtils.get_closest_terminal(component_node, result.position)
-							
-							if is_instance_valid(closest_terminal) and not is_dragging_component:
-								_hide_voltage_displays() 
-								_deselect_component() 
-								print("  Raycast resolved to terminal: {coll_name}".format({"coll_name": closest_terminal.name}))
-								_handle_terminal_click(closest_terminal)
-							else:
-								print("  Raycast hit component body: {parent_name}".format({"parent_name": component_node.name}))
-								_select_component(component_node)
-								_potential_drag_target = component_node 
-								_drag_start_position = event.position
-						
-						elif collider is CSGPolygon3D and collider.collision_layer == WIRE_COLLISION_LAYER:
-							is_flying = false
-							var wire_node = collider.get_parent() 
-							if wire_node is Wire3D:
-								print("  Raycast hit wire: {wire_name}".format({"wire_name": wire_node.name}))
-								
-								_select_component(wire_node)
-								
-							else:
-								print("  Raycast hit wire collision shape, but parent is not Wire3D?")
-								_hide_voltage_displays()
-								_deselect_component()
-						
-						else: 
 							_hide_voltage_displays()
-							print("  Raycast hit ground or other object. Resetting selection/wiring.")
+							_deselect_component()
+							print("  Hit terminal: {coll_name}".format({"coll_name": hit.node.name}))
+							_handle_terminal_click(hit.node)
+
+						"component_body":
+							is_flying = false
+							print("  Hit component body: {parent_name}".format({"parent_name": hit.node.name}))
+							_select_component(hit.node)
+							_potential_drag_target = hit.node
+							_drag_start_position = event.position
+
+						"wire":
+							is_flying = false
+							print("  Hit wire: {wire_name}".format({"wire_name": hit.node.name}))
+							_select_component(hit.node)
+
+						"ground", "none":
+							_hide_voltage_displays()
+							print("  Hit ground or nothing. Resetting selection/wiring.")
 							_deselect_component()
 							_reset_wiring_state()
-
-					else: 
-						print("!!! Raycast missed in _input, deselecting component !!!") 
-						print("  Raycast missed. Resetting selection/wiring.")
-						_hide_voltage_displays()
-						_deselect_component()
-						_reset_wiring_state() 
 
 
 				elif not event.pressed: 
@@ -380,22 +355,6 @@ func _process(delta):
 		
 		camera.rotation.x = clamp(camera.rotation.x, -deg_to_rad(89.0), deg_to_rad(89.0))
 
-## Performs a 3D raycast from the camera through the given screen position to detect objects in the world.
-func _raycast_from_camera(screen_pos: Vector2):
-	var space_state = get_world_3d().direct_space_state
-	var origin = camera.project_ray_origin(screen_pos)
-	var direction = camera.project_ray_normal(screen_pos) * 1000 
-	var query = PhysicsRayQueryParameters3D.create(origin, origin + direction)
-
-	
-	
-	
-	query.collision_mask = COMPONENT_BODY_COLLISION_LAYER | GROUND_COLLISION_LAYER | WIRE_COLLISION_LAYER
-	query.collide_with_areas = true 
-	query.collide_with_bodies = true 
-
-	var result = space_state.intersect_ray(query)
-	return result
 
 ## Manages the logic for wiring when a component terminal is clicked.
 func _handle_terminal_click(terminal: Area3D):
@@ -478,7 +437,7 @@ func _update_dragged_component_position(screen_pos: Vector2):
 	var origin = camera.project_ray_origin(screen_pos)
 	var direction = camera.project_ray_normal(screen_pos) * 1000
 	var query = PhysicsRayQueryParameters3D.create(origin, origin + direction)
-	query.collision_mask = GROUND_COLLISION_LAYER 
+	query.collision_mask = ComponentInteractionUtils.GROUND_COLLISION_LAYER 
 	query.collide_with_bodies = true
 	query.collide_with_areas = false
 
@@ -576,7 +535,7 @@ func _on_add_component_button_pressed(scene_to_add: PackedScene):
 	var ray_origin = cam_transform.origin
 	var ray_direction = -cam_transform.basis.z 
 	var ray_query = PhysicsRayQueryParameters3D.create(ray_origin, ray_origin + ray_direction * 1000) 
-	ray_query.collision_mask = GROUND_COLLISION_LAYER 
+	ray_query.collision_mask = ComponentInteractionUtils.GROUND_COLLISION_LAYER 
 	ray_query.collide_with_bodies = true
 	ray_query.collide_with_areas = false
 
