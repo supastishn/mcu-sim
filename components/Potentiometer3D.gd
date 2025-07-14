@@ -84,13 +84,13 @@ func get_terminal_info() -> Dictionary:
 ## Stamps the two resistances of the potentiometer model into the MNA matrix.
 func stamp(
 	A: Array,
-	b: Array, # Unused by Potentiometer
+	_b: Array, # Unused by Potentiometer
 	node_map: Dictionary,
-	vs_map: Dictionary, # Unused by Potentiometer
-	inductor_map: Dictionary, # Unused by Potentiometer
+	_vs_map: Dictionary, # Unused by Potentiometer
+	_inductor_map: Dictionary, # Unused by Potentiometer
 	terminal_connections: Dictionary,
 	comp_data: Dictionary, # Used for total_resistance and wiper_position from comp_data.properties
-	delta_time: float # Unused by Potentiometer
+	_delta_time: float # Unused by Potentiometer
 ):
 	var total_R_val = comp_data.properties["total_resistance"] # Accessing via comp_data as per original _stamp_potentiometer
 	var wiper_pos_val = comp_data.properties["wiper_position"] # Accessing via comp_data
@@ -135,11 +135,11 @@ func stamp(
 func gather_sim_results(
 		circuit      : CircuitGraph,
 		comp_data    : Dictionary,
-		x            : Array,
-		node_map     : Dictionary,
-		vs_map       : Dictionary,
-		inductor_map : Dictionary,
-		delta_time   : float) -> void:
+		_x            : Array,
+		_node_map     : Dictionary,
+		_vs_map       : Dictionary,
+		_inductor_map : Dictionary,
+		_delta_time   : float) -> void:
 	#region LEGACY_RESULT_CODE
 	var comp_node = comp_data.component_node
 	var comp_id = comp_node.get_instance_id()

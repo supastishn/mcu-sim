@@ -19,8 +19,6 @@ signal joystick_released()
 
 ## The touch event index currently controlling this joystick.
 var _touch_index: int = -1
-## The starting position of the joystick control.
-var _start_position: Vector2 = Vector2.ZERO
 ## The current direction vector of the joystick.
 var _current_direction: Vector2 = Vector2.ZERO
 ## The current intensity (magnitude) of the joystick input.
@@ -29,7 +27,6 @@ var _current_intensity: float = 0.0
 ## Called when the node enters the scene tree. Initializes the joystick.
 func _ready():
 	_reset_knob()
-	_start_position = global_position + size / 2
 	knob.pivot_offset = knob.size / 2
 
 ## Resets the joystick knob to its center position and emits the released signal.

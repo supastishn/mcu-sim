@@ -44,13 +44,13 @@ func get_terminal_info() -> Dictionary:
 ## Stamps the resistor's conductance value into the MNA matrix.
 func stamp(
 	A: Array,
-	b: Array,
+	_b: Array,
 	node_map: Dictionary,
-	vs_map: Dictionary, 
-	inductor_map: Dictionary, 
+	_vs_map: Dictionary,
+	_inductor_map: Dictionary,
 	terminal_connections: Dictionary,
-	comp_data: Dictionary, 
-	delta_time: float 
+	_comp_data: Dictionary,
+	_delta_time: float
 ):
 	
 	var R = resistance 
@@ -81,7 +81,7 @@ func stamp(
 ## Extracts and stores the current flowing through the resistor.
 func gather_sim_results(
 		circuit      : CircuitGraph,
-		comp_data    : Dictionary,
+		_comp_data    : Dictionary,
 		_x           : Array,
 		_node_map    : Dictionary,
 		_vs_map      : Dictionary,

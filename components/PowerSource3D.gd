@@ -82,8 +82,7 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 	# vs_map_iter is the current iteration's voltage source map (circuit._current_iteration_vs_map)
 	# These would need to be set by CircuitGraph.solve_single_time_step before calling this.
 
-	var ps_node = comp_data.component_node
-	var ps_id = ps_node.get_instance_id()
+	var ps_id = comp_data.component_node.get_instance_id()
 	var I_limit = comp_data.properties.target_current 
 	var V_target_ps = comp_data.properties.target_voltage
 	var previous_op_mode = comp_data.properties.current_operating_mode
@@ -132,11 +131,11 @@ func stamp(
 	A: Array,
 	b: Array,
 	node_map: Dictionary,
-	vs_map: Dictionary, 
-	inductor_map: Dictionary, 
+	vs_map: Dictionary,
+	_inductor_map: Dictionary,
 	terminal_connections: Dictionary,
-	comp_data: Dictionary, 
-	delta_time: float 
+	comp_data: Dictionary,
+	_delta_time: float
 ):
 	var ps_op_mode = comp_data.properties.get("current_operating_mode", "CV")
 	
@@ -182,10 +181,10 @@ func gather_sim_results(
 		circuit      : CircuitGraph,
 		comp_data    : Dictionary,
 		x            : Array,
-		node_map     : Dictionary,
+		_node_map     : Dictionary,
 		vs_map       : Dictionary,
-		inductor_map : Dictionary,
-		delta_time   : float) -> void:
+		_inductor_map : Dictionary,
+		_delta_time   : float) -> void:
 	#region LEGACY_RESULT_CODE
 	var comp_node = comp_data.component_node
 	var comp_id = comp_node.get_instance_id()

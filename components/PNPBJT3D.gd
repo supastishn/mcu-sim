@@ -124,11 +124,11 @@ func get_terminal_info() -> Dictionary:
 func gather_sim_results(
 		circuit      : CircuitGraph,
 		comp_data    : Dictionary,
-		x            : Array,
-		node_map     : Dictionary,
-		vs_map       : Dictionary,
-		inductor_map : Dictionary,
-		delta_time   : float) -> void:
+		_x            : Array,
+		_node_map     : Dictionary,
+		_vs_map       : Dictionary,
+		_inductor_map : Dictionary,
+		_delta_time   : float) -> void:
 	#region LEGACY_RESULT_CODE
 	var comp_node = comp_data.component_node
 	var comp_id = comp_node.get_instance_id()
@@ -234,11 +234,11 @@ func stamp(
 	A: Array,
 	b: Array,
 	node_map: Dictionary,
-	vs_map: Dictionary, 
-	inductor_map: Dictionary, 
+	_vs_map: Dictionary,
+	_inductor_map: Dictionary,
 	terminal_connections: Dictionary,
-	comp_data: Dictionary, 
-	delta_time: float 
+	comp_data: Dictionary,
+	_delta_time: float
 ):
 	var region_pnp_val = comp_data.properties["operating_region"]
 	var beta_pnp_prop = beta_dc 

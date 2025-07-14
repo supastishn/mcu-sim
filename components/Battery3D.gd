@@ -66,8 +66,7 @@ func _update_cell_visuals():
 		return
 
 	var cell_length = 0.18 
-	var spacing = 0.02   
-	var total_stack_length = 0.0
+	var spacing = 0.02
 	
 	for i in range(cell_meshes.size()):
 		if is_instance_valid(cell_meshes[i]):
@@ -75,7 +74,6 @@ func _update_cell_visuals():
 				cell_meshes[i].visible = true
 				var x_pos = (float(i) * (cell_length + spacing)) - (float(num_cells - 1) * (cell_length + spacing) / 2.0)
 				cell_meshes[i].position = Vector3(x_pos, 0, 0)
-				total_stack_length += cell_length + (spacing if i < num_cells -1 else 0.0)
 			else:
 				cell_meshes[i].visible = false
 	
@@ -117,10 +115,10 @@ func stamp(
 	b: Array,
 	node_map: Dictionary,
 	vs_map: Dictionary,
-	inductor_map: Dictionary,
+	_inductor_map: Dictionary,
 	terminal_connections: Dictionary,
 	comp_data: Dictionary,
-	delta_time: float
+	_delta_time: float
 ):
 	var pos_term_instance_id = terminal_pos.get_instance_id() if is_instance_valid(terminal_pos) else -1
 	var neg_term_instance_id = terminal_neg.get_instance_id() if is_instance_valid(terminal_neg) else -1
@@ -154,10 +152,10 @@ func gather_sim_results(
 		circuit      : CircuitGraph,
 		comp_data    : Dictionary,
 		x            : Array,
-		node_map     : Dictionary,
+		_node_map     : Dictionary,
 		vs_map       : Dictionary,
-		inductor_map : Dictionary,
-		delta_time   : float) -> void:
+		_inductor_map : Dictionary,
+		_delta_time   : float) -> void:
 	#region LEGACY_RESULT_CODE
 	var comp_node = comp_data.component_node
 	var comp_id = comp_node.get_instance_id()

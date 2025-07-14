@@ -168,11 +168,11 @@ func get_terminal_info() -> Dictionary:
 func gather_sim_results(
 		circuit      : CircuitGraph,
 		comp_data    : Dictionary,
-		x            : Array,
-		node_map     : Dictionary,
-		vs_map       : Dictionary,
-		inductor_map : Dictionary,
-		delta_time   : float) -> void:
+		_x            : Array,
+		_node_map     : Dictionary,
+		_vs_map       : Dictionary,
+		_inductor_map : Dictionary,
+		_delta_time   : float) -> void:
 	#region LEGACY_RESULT_CODE
 	var comp_node = comp_data.component_node
 	var comp_id = comp_node.get_instance_id()
@@ -186,12 +186,10 @@ func gather_sim_results(
 	var Vk = circuit.electrical_nodes.get(node_k_id, {}).get("voltage", NAN)
 	var Vf_led = comp_data.properties["forward_voltage"]
 	var current = 0.0
-	var log_msg_suffix = ""
 	var is_logically_burned = comp_data.get("is_burned", false)
 
 	if is_logically_burned:
 		current = 0.0
-		log_msg_suffix = "Burned (Current is 0)"
 	elif comp_data.get("conducting", false) and not is_nan(Va) and not is_nan(Vk):
 		var effective_voltage_across_Rd_on = (Va - Vk) - Vf_led
 		if effective_voltage_across_Rd_on > 0:
@@ -199,15 +197,12 @@ func gather_sim_results(
 		else:
 			current = 0.0 
 
-		log_msg_suffix = "Conducting"
 		if current > comp_data.properties["max_current"]:
 			comp_data.is_burned = true
 			comp_data.conducting = false 
-			current = 0.0 
-			log_msg_suffix = "JUST BURNED! (Current is 0)"
+			current = 0.0
 	else: 
 		current = 0.0
-		log_msg_suffix = "Not Conducting (Below Vf or error)"
 	
 	circuit.component_results[comp_id]["current"] = current
 	#endregion
@@ -217,11 +212,11 @@ func stamp(
 	A: Array,
 	b: Array,
 	node_map: Dictionary,
-	vs_map: Dictionary, 
-	inductor_map: Dictionary, 
+	_vs_map: Dictionary,
+	_inductor_map: Dictionary,
 	terminal_connections: Dictionary,
-	comp_data: Dictionary, 
-	delta_time: float 
+	comp_data: Dictionary,
+	_delta_time: float
 ):
 	var burned = comp_data.get("is_burned", false)
 	var on = comp_data.get("conducting", false) and not burned

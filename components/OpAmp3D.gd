@@ -78,7 +78,7 @@ func update_nonlinear_state(
 		comp_data: Dictionary,
 		solution_vector: Array,
 		node_map: Dictionary,
-		vs_map: Dictionary
+		_vs_map: Dictionary
 	) -> bool:
 
 	if solution_vector.is_empty():
@@ -135,11 +135,11 @@ func stamp(
 		A: Array,
 		b: Array,
 		node_map: Dictionary,
-		vs_map: Dictionary,
-		inductor_map: Dictionary,
+		_vs_map: Dictionary,
+		_inductor_map: Dictionary,
 		terminal_connections: Dictionary,
 		comp_data: Dictionary,
-		delta_time: float
+		_delta_time: float
 	):
 	var region = comp_data.properties["operating_region"]
 
@@ -198,11 +198,11 @@ func stamp(
 func gather_sim_results(
 		circuit: CircuitGraph,
 		comp_data: Dictionary,
-		x: Array,
-		node_map: Dictionary,
-		vs_map: Dictionary,
-		inductor_map: Dictionary,
-		delta_time: float):
+		_x: Array,
+		_node_map: Dictionary,
+		_vs_map: Dictionary,
+		_inductor_map: Dictionary,
+		_delta_time: float):
 	var comp_id = self.get_instance_id()
 	var results = {}
 	

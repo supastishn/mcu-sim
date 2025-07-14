@@ -82,7 +82,7 @@ func stamp(
 	A: Array,
 	b: Array,
 	node_map: Dictionary,
-	vs_map: Dictionary, # Unused by Inductor
+	_vs_map: Dictionary, # Unused by Inductor
 	inductor_map: Dictionary, # This is inductor_id_to_matrix_index
 	terminal_connections: Dictionary,
 	comp_data: Dictionary, # Used for inductance, current_through_L_prev_dt
@@ -146,10 +146,10 @@ func gather_sim_results(
 		circuit      : CircuitGraph,
 		comp_data    : Dictionary,
 		x            : Array,
-		node_map     : Dictionary,
-		vs_map       : Dictionary,
+		_node_map     : Dictionary,
+		_vs_map       : Dictionary,
 		inductor_map : Dictionary,
-		delta_time   : float) -> void:
+		_delta_time   : float) -> void:
 	#region LEGACY_RESULT_CODE
 	var comp_node = comp_data.component_node
 	var comp_id = comp_node.get_instance_id()

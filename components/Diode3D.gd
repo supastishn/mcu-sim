@@ -49,11 +49,11 @@ func get_terminal_info() -> Dictionary:
 func gather_sim_results(
 		circuit      : CircuitGraph,
 		comp_data    : Dictionary,
-		x            : Array,
-		node_map     : Dictionary,
-		vs_map       : Dictionary,
-		inductor_map : Dictionary,
-		delta_time   : float) -> void:
+		_x            : Array,
+		_node_map     : Dictionary,
+		_vs_map       : Dictionary,
+		_inductor_map : Dictionary,
+		_delta_time   : float) -> void:
 	#region LEGACY_RESULT_CODE
 	var comp_node = comp_data.component_node
 	var comp_id = comp_node.get_instance_id()
@@ -67,19 +67,15 @@ func gather_sim_results(
 	var Va = circuit.electrical_nodes.get(node_a_id, {}).get("voltage", NAN)
 	var Vk = circuit.electrical_nodes.get(node_k_id, {}).get("voltage", NAN)
 	var current = 0.0
-	var log_msg_suffix = "Not Conducting"
 
 	if comp_data.get("conducting", false) and not is_nan(Va) and not is_nan(Vk):
 		var V_ak_calc = Va - Vk
-		if V_ak_calc > Vf_diode_calc: 
+		if V_ak_calc > Vf_diode_calc:
 			current = (V_ak_calc - Vf_diode_calc) / R_diode_on_model
 		else:
-			current = 0.0 
-		log_msg_suffix = "Conducting (flag was true)"
-	else: 
+			current = 0.0
+	else:
 		current = 0.0
-		if is_nan(Va) or is_nan(Vk):
-			log_msg_suffix = "Not Conducting (NaN voltages)"
 
 	circuit.component_results[comp_id]["current"] = current
 	#endregion
@@ -114,11 +110,11 @@ func stamp(
 	A: Array,
 	b: Array,
 	node_map: Dictionary,
-	vs_map: Dictionary, 
-	inductor_map: Dictionary, 
+	_vs_map: Dictionary,
+	_inductor_map: Dictionary,
 	terminal_connections: Dictionary,
-	comp_data: Dictionary, 
-	delta_time: float 
+	comp_data: Dictionary,
+	_delta_time: float
 ):
 	var on = comp_data.get("conducting", false)
 	var R_on = CircuitGraph.R_DIODE_ON 

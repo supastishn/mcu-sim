@@ -102,13 +102,13 @@ func get_terminal_info() -> Dictionary:
 ## Stamps the switch's conductances into the MNA matrix based on its current state.
 func stamp(
 	A: Array,
-	b: Array, # Unused by Switch
+	_b: Array, # Unused by Switch
 	node_map: Dictionary,
-	vs_map: Dictionary, # Unused by Switch
-	inductor_map: Dictionary, # Unused by Switch
+	_vs_map: Dictionary, # Unused by Switch
+	_inductor_map: Dictionary, # Unused by Switch
 	terminal_connections: Dictionary,
 	comp_data: Dictionary, # Used for 'state' (current_state of switch)
-	delta_time: float # Unused by Switch
+	_delta_time: float # Unused by Switch
 ):
 	var state_from_comp_data: Switch3D.State = comp_data.state # current_state is stored in comp_data by CircuitGraph
 	var R_closed = CircuitGraph.R_SWITCH_CLOSED
@@ -155,11 +155,11 @@ func stamp(
 func gather_sim_results(
 		circuit      : CircuitGraph,
 		comp_data    : Dictionary,
-		x            : Array,
-		node_map     : Dictionary,
-		vs_map       : Dictionary,
-		inductor_map : Dictionary,
-		delta_time   : float) -> void:
+		_x            : Array,
+		_node_map     : Dictionary,
+		_vs_map       : Dictionary,
+		_inductor_map : Dictionary,
+		_delta_time   : float) -> void:
 	#region LEGACY_RESULT_CODE
 	var comp_node = comp_data.component_node
 	var comp_id = comp_node.get_instance_id()

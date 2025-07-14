@@ -117,7 +117,7 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 
 ## Stamps the regulator's voltage-enforcing contribution to the MNA matrices.
 func stamp(
-	A, b, node_map, vs_map, inductor_map, terminal_connections, comp_data, delta_time
+	A, b, node_map, _vs_map, _inductor_map, terminal_connections, comp_data, _delta_time
 ):
 	# Use a large conductance to enforce Vout = regulated_voltage or Vout = Vin - dropout_voltage
 	# This preserves KCL and circuit topology, similar to a SPICE voltage source with large G
@@ -157,10 +157,9 @@ func stamp(
 			A[idx_vout][idx_vout] += 1e-9
 
 ## Extracts simulation results and updates the info label.
-func gather_sim_results(circuit, comp_data, x, node_map, vs_map, inductor_map, delta_time):
+func gather_sim_results(circuit, comp_data, _x, node_map, _vs_map, _inductor_map, _delta_time):
 	var comp_id = self.get_instance_id()
-	var vout_id = terminal_vout.get_instance_id()
-	var vout_node_id = circuit.terminal_connections.get(vout_id, -1)
+	var vout_node_id = circuit.terminal_connections.get(terminal_vout.get_instance_id(), -1)
 	var v_vout = circuit.electrical_nodes.get(vout_node_id, {}).get("voltage", NAN)
 	
 	if not is_nan(v_vout):

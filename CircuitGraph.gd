@@ -135,9 +135,6 @@ func add_component(component: Node3D):
 		component_data.terminals["T2"] = t2_node if is_instance_valid(t2_node) else null
 		component_data.terminals["W"] = tw_node if is_instance_valid(tw_node) else null
 
-		var t1_name_str = t1_node.name if is_instance_valid(t1_node) else "INVALID"
-		var t2_name_str = t2_node.name if is_instance_valid(t2_node) else "INVALID"
-		var w_name_str = tw_node.name if is_instance_valid(tw_node) else "INVALID"
 	elif component is PolarizedCapacitor3D:
 		component_data.type = "PolarizedCapacitor"
 		component_data.properties["capacitance"] = component.capacitance
@@ -518,18 +515,7 @@ func solve_single_time_step(delta_time: float) -> bool:
 		var current_iter_x = LinearSolver.solve(A_iter, b_iter)
 
 		if current_iter_x.is_empty():
-			x = [] 
-			for comp_data_diag in components:
-				if comp_data_diag.type == "NPNBJT" or comp_data_diag.type == "PNPBJT":
-					pass
-				elif comp_data_diag.type == "NChannelMOSFET":
-					pass
-				elif comp_data_diag.type == "LED" or comp_data_diag.type == "Diode":
-					pass
-				elif comp_data_diag.type == "ZenerDiode":
-					pass
-				elif comp_data_diag.type == "PowerSource":
-					pass
+			x = []
 		else:
 			x = current_iter_x
 			for node_id_key in node_map_iter:
@@ -577,16 +563,7 @@ func solve_single_time_step(delta_time: float) -> bool:
 		if not converged: 
 			pass
 		
-		var final_node_map_print = result_iter.get("node_map", {}) 
-		if final_node_map_print: 
-			for node_id_key_print in final_node_map_print:
-				if electrical_nodes.has(node_id_key_print): 
-					pass
-
-		var final_active_vs_map = result_iter.get("vs_map", {}) 
-		var final_inductor_map = result_iter.get("inductor_map", {})
-
-	else: 
+	else:
 		_is_solved = false
 
 	for comp_data_item in components:

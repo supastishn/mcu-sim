@@ -343,7 +343,7 @@ func _input(event):
 
 
 ## Godot's process function. Handles continuous simulation steps and camera movement.
-func _process(delta):
+func _process(_delta):
 	if is_simulating_continuously:
 		_simulate_circuit()
 	
@@ -776,9 +776,8 @@ func _add_line_edit_property(label_text: String, initial_value, change_callable:
 	var line_edit = LineEdit.new()
 	line_edit.text = str(initial_value)
 	line_edit.text_submitted.connect(func(new_text):
-		var new_value: float = NAN
 		if new_text.is_valid_float():
-			new_value = float(new_text)
+			var new_value = float(new_text)
 			change_callable.call(new_value)
 		else:
 			# On invalid input, just revert the text
@@ -1046,7 +1045,7 @@ func _on_switch_state_changed(switch_node: Node3D, _new_state: int):
 	_on_any_component_config_changed(switch_node)
 
 ## Callback for potentiometer wiper changes.
-func _on_potentiometer_component_wiper_changed(pot_node: Node3D, new_position: float):
+func _on_potentiometer_component_wiper_changed(pot_node: Node3D, _new_position: float):
 	_on_any_component_config_changed(pot_node)
 	if selected_component == pot_node:
 		var slider = property_container.find_child("HSlider", true, false)

@@ -134,7 +134,7 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 
 # ---------- STAMP ----------
 ## Applies the MOSFET's contribution to the MNA matrices based on its current operating region.
-func stamp(A,b,node_map,vs_map,inductor_map,term_conn,comp_data,dt):
+func stamp(A,_b,node_map,_vs_map,_inductor_map,term_conn,comp_data,_dt):
 	var reg = comp_data.properties["operating_region"]
 	var vt  = threshold_voltage
 	var kp  = transconductance_parameter
@@ -168,7 +168,7 @@ func stamp(A,b,node_map,vs_map,inductor_map,term_conn,comp_data,dt):
 
 # ---------- gather_sim_results ----------
 ## Extracts and stores simulation results (currents, voltages, region) for this component.
-func gather_sim_results(circuit,comp_data,x,node_map,vs_map,inductor_map,dt):
+func gather_sim_results(circuit,comp_data,_x,_node_map,_vs_map,_inductor_map,_dt):
 	var cid = comp_data.component_node.get_instance_id()
 	var Vs = circuit.electrical_nodes.get(circuit.terminal_connections.get(terminal_s.get_instance_id(),-1), {}).get("voltage", NAN)
 	var Vg = circuit.electrical_nodes.get(circuit.terminal_connections.get(terminal_g.get_instance_id(),-1), {}).get("voltage", NAN)

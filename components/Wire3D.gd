@@ -39,7 +39,7 @@ func set_endpoints(start_pos: Vector3, end_pos: Vector3, start_terminal: Area3D,
 	curve.add_point(end_pos)
 
 ## Called every frame. Updates the wire's end positions to follow the terminals if they move.
-func _process(delta):
+func _process(_delta):
 	if is_instance_valid(terminal_start) and is_instance_valid(terminal_end):
 		var start_pos = terminal_start.global_position
 		var end_pos = terminal_end.global_position

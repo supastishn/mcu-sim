@@ -111,8 +111,8 @@ func stamp(
 	A: Array,
 	b: Array,
 	node_map: Dictionary,
-	vs_map: Dictionary, # Unused by PolarizedCapacitor
-	inductor_map: Dictionary, # Unused by PolarizedCapacitor
+	_vs_map: Dictionary, # Unused by PolarizedCapacitor
+	_inductor_map: Dictionary, # Unused by PolarizedCapacitor
 	terminal_connections: Dictionary,
 	comp_data: Dictionary, # Used for is_exploded, capacitance, voltage_across_cap_prev_dt
 	delta_time: float
@@ -164,10 +164,10 @@ func stamp(
 func gather_sim_results(
 	circuit      : CircuitGraph,
 	comp_data    : Dictionary,
-	x            : Array,
-	node_map     : Dictionary,
-	vs_map       : Dictionary,
-	inductor_map : Dictionary,
+	_x            : Array,
+	_node_map     : Dictionary,
+	_vs_map       : Dictionary,
+	_inductor_map : Dictionary,
 	delta_time   : float) -> void:
 	#region LEGACY_RESULT_CODE
 	var comp_node = comp_data.component_node

@@ -154,13 +154,13 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 ## Applies the relay's contribution to the MNA matrices based on its state.
 func stamp(
 	A: Array,
-	b: Array, 
+	_b: Array,
 	node_map: Dictionary,
-	vs_map: Dictionary, 
-	inductor_map: Dictionary, 
+	_vs_map: Dictionary,
+	_inductor_map: Dictionary,
 	terminal_connections: Dictionary,
-	comp_data: Dictionary, 
-	delta_time: float 
+	comp_data: Dictionary,
+	_delta_time: float
 ):
 	
 	var R_coil_path_val: float
@@ -261,11 +261,11 @@ func get_terminal_info() -> Dictionary:
 func gather_sim_results(
 		circuit      : CircuitGraph,
 		comp_data    : Dictionary,
-		x            : Array,
-		node_map     : Dictionary,
-		vs_map       : Dictionary,
-		inductor_map : Dictionary,
-		delta_time   : float) -> void:
+		_x            : Array,
+		_node_map     : Dictionary,
+		_vs_map       : Dictionary,
+		_inductor_map : Dictionary,
+		_delta_time   : float) -> void:
 	#region LEGACY_RESULT_CODE
 	var comp_node = comp_data.component_node
 	var comp_id = comp_node.get_instance_id()
@@ -304,20 +304,4 @@ func gather_sim_results(
 	circuit.component_results[comp_id]["coil_current"] = actual_coil_current
 	circuit.component_results[comp_id]["is_energized"] = is_energized_res
 	circuit.component_results[comp_id]["signal_threshold"] = comp_data.properties["signal_voltage_threshold"]
-
-	var R_sw_closed_calc = CircuitGraph.R_SWITCH_CLOSED
-	var com_term_calc = comp_data.terminals["COM"]
-	var no_term_calc = comp_data.terminals["NO"]
-	var nc_term_calc = comp_data.terminals["NC"]
-	var V_com_calc = circuit.electrical_nodes.get(circuit.terminal_connections.get(com_term_calc.get_instance_id(), -1), {}).get("voltage", NAN)
-	var V_no_calc = circuit.electrical_nodes.get(circuit.terminal_connections.get(no_term_calc.get_instance_id(), -1), {}).get("voltage", NAN)
-	var V_nc_calc = circuit.electrical_nodes.get(circuit.terminal_connections.get(nc_term_calc.get_instance_id(), -1), {}).get("voltage", NAN)
-	
-	var contact_current_str = ""
-	if is_energized_res and not is_nan(V_com_calc) and not is_nan(V_no_calc):
-		var i_no = (V_com_calc - V_no_calc) / R_sw_closed_calc
-		contact_current_str = ", I_NO={ino_s}A".format({"ino_s": String.num(i_no,3)})
-	elif not is_energized_res and not is_nan(V_com_calc) and not is_nan(V_nc_calc):
-		var i_nc = (V_com_calc - V_nc_calc) / R_sw_closed_calc
-		contact_current_str = ", I_NC={inc_s}A".format({"inc_s": String.num(i_nc,3)})
 	#endregion

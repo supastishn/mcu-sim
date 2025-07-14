@@ -63,8 +63,8 @@ static func solve(A: Array, b: Array) -> Array:
 
 
 ## Utility function to print a matrix to the console for debugging.
-static func print_matrix(M: Array, name: String = "Matrix"):
-	print("--- {matrix_name} ---".format({"matrix_name": name}))
+static func print_matrix(M: Array, p_name: String = "Matrix"):
+	print("--- {matrix_name} ---".format({"matrix_name": p_name}))
 	if M.is_empty() or not M[0] is Array:
 		print(M)
 		return
@@ -81,8 +81,8 @@ static func print_matrix(M: Array, name: String = "Matrix"):
 
 
 ## Utility function to print a vector to the console for debugging.
-static func print_vector(V: Array, name: String = "Vector"):
-	print("--- {vector_name} ---".format({"vector_name": name}))
+static func print_vector(V: Array, p_name: String = "Vector"):
+	print("--- {vector_name} ---".format({"vector_name": p_name}))
 	var vec_str = "[ "
 	for val in V:
 		if typeof(val) == TYPE_FLOAT:

@@ -961,7 +961,6 @@ func test_pnp_bjt_regions() -> bool:
 	if solve_pnp_sat:
 		var bjt_results_pnp_sat = graph_script.component_results.get(bjt_pnp_sat.get_instance_id(), {})
 		var ic_pnp_sat = bjt_results_pnp_sat.get("Ic", NAN)
-		var ib_pnp_sat = bjt_results_pnp_sat.get("Ib", NAN)
 		var region_pnp_sat = bjt_results_pnp_sat.get("region", "ERROR")
 
 		var Ve_pnp_sat_node = graph_script.electrical_nodes.get(graph_script.terminal_connections.get(bjt_pnp_sat.terminal_e.get_instance_id()), {}).get("voltage", NAN)
