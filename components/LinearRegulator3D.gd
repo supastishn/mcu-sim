@@ -157,7 +157,7 @@ func stamp(
 			A[idx_vout][idx_vout] += 1e-9
 
 ## Extracts simulation results and updates the info label.
-func gather_sim_results(circuit, comp_data, _x, node_map, _vs_map, _inductor_map, _delta_time):
+func gather_sim_results(circuit, comp_data, _x, _node_map, _vs_map, _inductor_map, _delta_time):
 	var comp_id = self.get_instance_id()
 	var vout_node_id = circuit.terminal_connections.get(terminal_vout.get_instance_id(), -1)
 	var v_vout = circuit.electrical_nodes.get(vout_node_id, {}).get("voltage", NAN)

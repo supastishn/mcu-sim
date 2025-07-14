@@ -11,8 +11,6 @@ signal joystick_released()
 @export var boundary_radius: float = 50.0 
 ## The radius of the inner dead zone where input is ignored.
 @export var dead_zone_radius: float = 10.0 
-## The speed at which the knob returns to the center when released.
-@export var return_to_center_speed: float = 15.0 
 
 ## Reference to the TextureRect node for the joystick knob.
 @onready var knob: TextureRect = $Knob

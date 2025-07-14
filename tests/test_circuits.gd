@@ -3,7 +3,6 @@ extends Node
 const TestUtils = preload("res://tests/test_utils.gd")
 const TestRig = preload("res://tests/test_helpers.gd")   # gives us class TestRig
 const CircuitEditorScene = preload("res://CircuitEditor3D.tscn")  # legacy tests need it
-const PChannelMOSFETScene = preload("res://components/PChannelMOSFET3D.tscn")   # optional
 const OpAmpScene = preload("res://components/OpAmp3D.tscn")
 
 ## Emitted when all tests are completed, carrying the results dictionary.
@@ -172,7 +171,6 @@ func test_op_amp_inverting_amplifier() -> bool:
 	var rig := TestRig.new()
 	add_child(rig)
 	await rig.init()
-	var g = rig.graph
 	var ed = rig.editor
 
 	print("  Op-Amp Test: Inverting Amplifier (Linear Region)")

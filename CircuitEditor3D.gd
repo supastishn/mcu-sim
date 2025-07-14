@@ -1,16 +1,12 @@
 extends Node3D
 class_name CircuitEditor3D
 
-## Collision layer for component terminals.
-const TERMINAL_COLLISION_LAYER = 2
 ## Collision layer for component bodies.
 const COMPONENT_BODY_COLLISION_LAYER = 4
 ## Collision layer for wires.
 const WIRE_COLLISION_LAYER = 16 
 ## Collision layer for the ground plane.
 const GROUND_COLLISION_LAYER = 8 
-## The normal vector of the plane on which components are dragged.
-const DRAG_PLANE_NORMAL = Vector3.UP 
 ## The size of the grid to which components snap.
 const GRID_SIZE: float = 0.05 
 ## Default distance from the camera to place a new component if raycast fails.
