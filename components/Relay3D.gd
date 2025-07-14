@@ -77,7 +77,6 @@ func set_coil_resistance(value: float):
 ## Displays the calculated state and voltages on the component's 3D label and updates the visual color.
 func show_info(results: Dictionary):
 	if not info_label: return
-
 	var sig_v_str = "Sig V: N/A"
 	if results.has("signal_voltage") and not is_nan(results.signal_voltage):
 		sig_v_str = "Sig V: {val_str} V".format({"val_str": String.num(results.signal_voltage, 2)})

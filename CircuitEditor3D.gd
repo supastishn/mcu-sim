@@ -339,7 +339,7 @@ func _input(event):
 
 
 ## Godot's process function. Handles continuous simulation steps and camera movement.
-func _process(_delta):
+func _process(delta):
 	if is_simulating_continuously:
 		_simulate_circuit()
 	

@@ -1,7 +1,5 @@
 extends Node
 
-const TestUtils = preload("res://tests/test_utils.gd")
-const TestRig = preload("res://tests/test_helpers.gd")   # gives us class TestRig
 const CircuitEditorScene = preload("res://CircuitEditor3D.tscn")  # legacy tests need it
 const OpAmpScene = preload("res://components/OpAmp3D.tscn")
 
