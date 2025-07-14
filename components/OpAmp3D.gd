@@ -61,6 +61,16 @@ func hide_info():
 func reset_visual_state():
 	hide_info()
 
+## Returns a dictionary of terminal nodes and their local positions.
+func get_terminal_info() -> Dictionary:
+	return {
+		"Vp": {"node": terminal_vp, "pos": terminal_vp.position},
+		"Vn": {"node": terminal_vn, "pos": terminal_vn.position},
+		"Vout": {"node": terminal_vout, "pos": terminal_vout.position},
+		"Vcc": {"node": terminal_vcc, "pos": terminal_vcc.position},
+		"Vee": {"node": terminal_vee, "pos": terminal_vee.position}
+	}
+
 # --- Simulation Interface ---
 ## Updates the op-amp's operating region (LINEAR, SAT_HIGH, SAT_LOW) based on an MNA iteration.
 func update_nonlinear_state(

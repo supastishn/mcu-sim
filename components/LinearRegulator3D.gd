@@ -76,6 +76,14 @@ func hide_info():
 func reset_visual_state():
 	hide_info()
 
+## Returns a dictionary of terminal nodes and their local positions.
+func get_terminal_info() -> Dictionary:
+	return {
+		"Vin": {"node": terminal_vin, "pos": terminal_vin.position},
+		"Vout": {"node": terminal_vout, "pos": terminal_vout.position},
+		"GND": {"node": terminal_gnd, "pos": terminal_gnd.position}
+	}
+
 # MNA Functions
 ## Updates the regulator's operating status (REGULATED, DROPOUT) based on an MNA iteration.
 func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter: Array, node_map_iter: Dictionary, _vs_map_iter: Dictionary) -> bool:

@@ -20,6 +20,7 @@ config/icon="res://icon.svg"
 [autoload]
 
 StringUtils="*res://utils/StringUtils.gd"
+ComponentInteractionUtils="*res://utils/ComponentInteractionUtils.gd"
 
 [input_devices]
 

@@ -36,6 +36,13 @@ func hide_current():
 	if not current_label: return
 	current_label.visible = false
 
+## Returns a dictionary of terminal nodes and their local positions.
+func get_terminal_info() -> Dictionary:
+	return {
+		"A": {"node": terminal_anode, "pos": terminal_anode.position},
+		"K": {"node": terminal_kathode, "pos": terminal_kathode.position}
+	}
+
 # -----------------------------------------------------------------
 # Simulation-results extraction
 ## Extracts and stores simulation results for this component from the main solution vector.

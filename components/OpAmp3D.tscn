@@ -28,9 +28,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.25, 0, 0.1)
 collision_layer = 2
 script = ExtResource("2_termfb")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="TerminalVn"]
-shape = SubResource("CapsuleShape3D_terminal")
-
 [node name="Visualization" type="MeshInstance3D" parent="TerminalVn"]
 material_override = ExtResource("3_termmat")
 mesh = SubResource("SphereMesh_terminal_vis")
@@ -46,9 +43,6 @@ font_size = 20
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.25, 0, -0.1)
 collision_layer = 2
 script = ExtResource("2_termfb")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="TerminalVp"]
-shape = SubResource("CapsuleShape3D_terminal")
 
 [node name="Visualization" type="MeshInstance3D" parent="TerminalVp"]
 material_override = ExtResource("3_termmat")
@@ -66,9 +60,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.25, 0, 0)
 collision_layer = 2
 script = ExtResource("2_termfb")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="TerminalVout"]
-shape = SubResource("CapsuleShape3D_terminal")
-
 [node name="Visualization" type="MeshInstance3D" parent="TerminalVout"]
 material_override = ExtResource("3_termmat")
 mesh = SubResource("SphereMesh_terminal_vis")
@@ -85,9 +76,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.3)
 collision_layer = 2
 script = ExtResource("2_termfb")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="TerminalVcc"]
-shape = SubResource("CapsuleShape3D_terminal")
-
 [node name="Visualization" type="MeshInstance3D" parent="TerminalVcc"]
 material_override = ExtResource("3_termmat")
 mesh = SubResource("SphereMesh_terminal_vis")
@@ -103,9 +91,6 @@ font_size = 20
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.3)
 collision_layer = 2
 script = ExtResource("2_termfb")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="TerminalVee"]
-shape = SubResource("CapsuleShape3D_terminal")
 
 [node name="Visualization" type="MeshInstance3D" parent="TerminalVee"]
 material_override = ExtResource("3_termmat")

@@ -89,6 +89,14 @@ func hide_current():
 	if not current_label: return
 	current_label.visible = false
 
+## Returns a dictionary of terminal nodes and their local positions.
+func get_terminal_info() -> Dictionary:
+	return {
+		"COM": {"node": terminal_com, "pos": terminal_com.position},
+		"NC": {"node": terminal_nc, "pos": terminal_nc.position},
+		"NO": {"node": terminal_no, "pos": terminal_no.position}
+	}
+
 # -------------------------------------------------------------------------
 # MNA‐stamping interface
 ## Stamps the switch's conductances into the MNA matrix based on its current state.

@@ -248,26 +248,21 @@ func _input(event):
 					if result:
 						var collider = result.collider
 						
-						if collider is Area3D and collider.collision_layer == TERMINAL_COLLISION_LAYER and not is_dragging_component:
+						if collider is Area3D and collider.collision_layer == COMPONENT_BODY_COLLISION_LAYER:
 							is_flying = false
-							_hide_voltage_displays() 
-							_deselect_component() 
-							print("  Raycast hit terminal: {coll_name}".format({"coll_name": collider.name}))
-							_handle_terminal_click(collider)
-						
-						elif collider is Area3D and collider.collision_layer == COMPONENT_BODY_COLLISION_LAYER:
-							is_flying = false
-							print("  Raycast hit component body: {parent_name}".format({"parent_name": collider.get_parent().name}))
+							var component_node = collider.get_parent()
+							var closest_terminal = ComponentInteractionUtils.get_closest_terminal(component_node, result.position)
 							
-							
-							
-							
-
-							
-							var component_node = collider.get_parent() 
-							_select_component(component_node)
-							_potential_drag_target = component_node 
-							_drag_start_position = event.position
+							if is_instance_valid(closest_terminal) and not is_dragging_component:
+								_hide_voltage_displays() 
+								_deselect_component() 
+								print("  Raycast resolved to terminal: {coll_name}".format({"coll_name": closest_terminal.name}))
+								_handle_terminal_click(closest_terminal)
+							else:
+								print("  Raycast hit component body: {parent_name}".format({"parent_name": component_node.name}))
+								_select_component(component_node)
+								_potential_drag_target = component_node 
+								_drag_start_position = event.position
 						
 						elif collider is CSGPolygon3D and collider.collision_layer == WIRE_COLLISION_LAYER:
 							is_flying = false
@@ -401,7 +396,7 @@ func _raycast_from_camera(screen_pos: Vector2):
 	
 	
 	
-	query.collision_mask = TERMINAL_COLLISION_LAYER | COMPONENT_BODY_COLLISION_LAYER | GROUND_COLLISION_LAYER | WIRE_COLLISION_LAYER
+	query.collision_mask = COMPONENT_BODY_COLLISION_LAYER | GROUND_COLLISION_LAYER | WIRE_COLLISION_LAYER
 	query.collide_with_areas = true 
 	query.collide_with_bodies = true 
 

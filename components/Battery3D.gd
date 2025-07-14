@@ -104,6 +104,13 @@ func hide_current():
 	if not current_label: return
 	current_label.visible = false
 
+## Returns a dictionary of terminal nodes and their local positions.
+func get_terminal_info() -> Dictionary:
+	return {
+		"POS": {"node": terminal_pos, "pos": terminal_pos.position},
+		"NEG": {"node": terminal_neg, "pos": terminal_neg.position}
+	}
+
 ## Applies the battery's ideal voltage source contribution to the MNA matrices.
 func stamp(
 	A: Array,

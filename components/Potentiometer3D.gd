@@ -71,6 +71,14 @@ func hide_current():
 	if not current_label: return
 	current_label.visible = false
 
+## Returns a dictionary of terminal nodes and their local positions.
+func get_terminal_info() -> Dictionary:
+	return {
+		"T1": {"node": terminal1, "pos": terminal1.position},
+		"T2": {"node": terminal2, "pos": terminal2.position},
+		"W": {"node": terminal_wiper, "pos": terminal_wiper.position}
+	}
+
 # -------------------------------------------------------------------------
 # MNA‐stamping interface
 ## Stamps the two resistances of the potentiometer model into the MNA matrix.

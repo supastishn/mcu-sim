@@ -87,6 +87,14 @@ func hide_info():
 func reset_visual_state():
 	hide_info()
 
+## Returns a dictionary of terminal nodes and their local positions.
+func get_terminal_info() -> Dictionary:
+	return {
+		"D": {"node": terminal_d, "pos": terminal_d.position},
+		"G": {"node": terminal_g, "pos": terminal_g.position},
+		"S": {"node": terminal_s, "pos": terminal_s.position}
+	}
+
 # ---------- NON-LINEAR REGION EVAL ----------
 ## Updates the MOSFET's operating region based on an MNA iteration.
 func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter: Array, node_map_iter: Dictionary, _vs_map_iter: Dictionary) -> bool:

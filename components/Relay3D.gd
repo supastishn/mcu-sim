@@ -244,6 +244,17 @@ func reset_visual_state():
 			mat.albedo_color = Color(0.4, 0.4, 0.5, 1)
 			mesh_instance.material_override = mat
 
+## Returns a dictionary of terminal nodes and their local positions.
+func get_terminal_info() -> Dictionary:
+	return {
+		"VCC": {"node": terminal_vcc, "pos": terminal_vcc.position},
+		"GND": {"node": terminal_gnd, "pos": terminal_gnd.position},
+		"Signal": {"node": terminal_signal, "pos": terminal_signal.position},
+		"COM": {"node": terminal_com, "pos": terminal_com.position},
+		"NO": {"node": terminal_no, "pos": terminal_no.position},
+		"NC": {"node": terminal_nc, "pos": terminal_nc.position}
+	}
+
 # -----------------------------------------------------------------
 # Simulation-results extraction
 ## Extracts and stores simulation results for this component.

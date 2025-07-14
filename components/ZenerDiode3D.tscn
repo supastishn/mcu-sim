@@ -48,9 +48,6 @@ mesh = SubResource("CylinderMesh_ka2ja")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.15)
 script = ExtResource("2_term_feedback")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="TerminalAnode"]
-shape = SubResource("CapsuleShape3D_jgkj1")
-
 [node name="Visualization" type="MeshInstance3D" parent="TerminalAnode"]
 material_override = ExtResource("3_term_material")
 mesh = SubResource("SphereMesh_terminal_vis_shape")
@@ -65,9 +62,6 @@ font_size = 20
 [node name="TerminalKathode" type="Area3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.15)
 script = ExtResource("2_term_feedback")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="TerminalKathode"]
-shape = SubResource("CapsuleShape3D_nigd7")
 
 [node name="Visualization" type="MeshInstance3D" parent="TerminalKathode"]
 material_override = ExtResource("3_term_material")

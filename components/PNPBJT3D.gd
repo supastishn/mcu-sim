@@ -110,6 +110,14 @@ func hide_info():
 func reset_visual_state():
 	hide_info()
 
+## Returns a dictionary of terminal nodes and their local positions.
+func get_terminal_info() -> Dictionary:
+	return {
+		"E": {"node": terminal_e, "pos": terminal_e.position},
+		"B": {"node": terminal_b, "pos": terminal_b.position},
+		"C": {"node": terminal_c, "pos": terminal_c.position}
+	}
+
 # -----------------------------------------------------------------
 # Simulation-results extraction
 ## Extracts and stores simulation results (currents, region) for this component.

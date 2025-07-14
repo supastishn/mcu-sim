@@ -106,6 +106,14 @@ func reset_visual_state():
 	if is_instance_valid(mesh_instance):
 		mesh_instance.material_override = null 
 
+## Returns a dictionary of terminal nodes and their local positions.
+func get_terminal_info() -> Dictionary:
+	return {
+		"D": {"node": terminal_d, "pos": terminal_d.position},
+		"G": {"node": terminal_g, "pos": terminal_g.position},
+		"S": {"node": terminal_s, "pos": terminal_s.position}
+	}
+
 # -----------------------------------------------------------------
 # Simulation-results extraction
 ## Extracts and stores simulation results (currents, voltages, region) for this component.

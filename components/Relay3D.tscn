@@ -72,9 +72,6 @@ script = ExtResource("2_fghij")
 material_override = ExtResource("3_22i8g")
 mesh = SubResource("SphereMesh_TerminalVis")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="TerminalVCC"]
-shape = SubResource("CapsuleShape3D_22i8g")
-
 [node name="Label3D" type="Label3D" parent="TerminalVCC"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
 visible = false
@@ -90,10 +87,6 @@ script = ExtResource("2_fghij")
 [node name="Visualization" type="MeshInstance3D" parent="TerminalGND"]
 material_override = ExtResource("3_22i8g")
 mesh = SubResource("SphereMesh_TerminalVis")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="TerminalGND"]
-visible = false
-shape = SubResource("CapsuleShape3D_gnv1a")
 
 [node name="Label3D" type="Label3D" parent="TerminalGND"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
@@ -111,9 +104,6 @@ script = ExtResource("2_fghij")
 material_override = ExtResource("3_22i8g")
 mesh = SubResource("SphereMesh_TerminalVis")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="TerminalCOM"]
-shape = SubResource("CapsuleShape3D_luwat")
-
 [node name="Label3D" type="Label3D" parent="TerminalCOM"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
 visible = false
@@ -129,9 +119,6 @@ script = ExtResource("2_fghij")
 [node name="Visualization" type="MeshInstance3D" parent="TerminalNO"]
 material_override = ExtResource("3_22i8g")
 mesh = SubResource("SphereMesh_TerminalVis")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="TerminalNO"]
-shape = SubResource("CapsuleShape3D_qwwrn")
 
 [node name="Label3D" type="Label3D" parent="TerminalNO"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
@@ -149,9 +136,6 @@ script = ExtResource("2_fghij")
 material_override = ExtResource("3_22i8g")
 mesh = SubResource("SphereMesh_TerminalVis")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="TerminalNC"]
-shape = SubResource("CapsuleShape3D_euk0p")
-
 [node name="Label3D" type="Label3D" parent="TerminalNC"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
 visible = false
@@ -167,10 +151,6 @@ script = ExtResource("2_fghij")
 [node name="Visualization" type="MeshInstance3D" parent="TerminalSignal"]
 material_override = ExtResource("3_22i8g")
 mesh = SubResource("SphereMesh_TerminalVis")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="TerminalSignal"]
-visible = false
-shape = SubResource("CapsuleShape3D_luwat")
 
 [node name="Label3D" type="Label3D" parent="TerminalSignal"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)

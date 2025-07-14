@@ -68,6 +68,13 @@ func hide_info():
 func reset_visual_state():
 	hide_info()
 
+## Returns a dictionary of terminal nodes and their local positions.
+func get_terminal_info() -> Dictionary:
+	return {
+		"T1": {"node": terminal1, "pos": terminal1.position},
+		"T2": {"node": terminal2, "pos": terminal2.position}
+	}
+
 # -------------------------------------------------------------------------
 # MNA‐stamping interface
 ## Stamps the inductor's contribution to the MNA matrices for transient analysis.

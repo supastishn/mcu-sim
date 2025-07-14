@@ -68,6 +68,13 @@ func hide_current():
 	if not current_label: return
 	current_label.visible = false
 
+## Returns a dictionary of terminal nodes and their local positions.
+func get_terminal_info() -> Dictionary:
+	return {
+		"POS": {"node": terminal_pos, "pos": terminal_pos.position},
+		"NEG": {"node": terminal_neg, "pos": terminal_neg.position}
+	}
+
 ## Updates the power supply's operating mode (CV or CC) based on an MNA iteration.
 func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter: Array, node_map_iter: Dictionary, vs_map_iter: Dictionary) -> bool:
 	# x_iter is the current iteration's solution vector (circuit._current_iteration_solution)
