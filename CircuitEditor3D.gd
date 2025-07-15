@@ -44,6 +44,8 @@ var RelayScene = preload("res://components/Relay3D.tscn")
 var LinearRegulatorScene = preload("res://components/LinearRegulator3D.tscn")
 ## Preloaded scene for the OpAmp component.
 var OpAmpScene = preload("res://components/OpAmp3D.tscn")
+## Preloaded scene for the Breadboard component.
+var BreadboardScene = preload("res://components/Breadboard3D.tscn")
 
 
 ## Reference to the main 3D camera.
@@ -689,6 +691,7 @@ func _populate_component_bar():
 		{"name": "P-MOS", "scene": PChannelMOSFETScene},
 		{"name": "Relay", "scene": RelayScene},
 		{"name": "Regulator", "scene": LinearRegulatorScene},
+		{"name": "Breadboard", "scene": BreadboardScene},
 	]
 	
 	var enable_beta = ProjectSettings.get_setting("mcu_sim/features/enable_beta_components", false)

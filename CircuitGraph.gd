@@ -228,6 +228,8 @@ func add_component(component: Node3D):
 		component_data.terminals["Vout"] = component.terminal_vout
 		component_data.terminals["Vcc"] = component.terminal_vcc
 		component_data.terminals["Vee"] = component.terminal_vee
+	elif component is Breadboard3D:
+		component_data.type = "Breadboard"
 
 	for term_name in component_data.terminals:
 		var terminal = component_data.terminals[term_name]
@@ -348,6 +350,20 @@ func set_ground_node(terminal: Area3D):
 	else:
 		ground_node_id = node_id
 		electrical_nodes[ground_node_id].voltage = 0.0
+
+
+## Registers dynamically created terminals from a component like a breadboard.
+func register_dynamic_terminals(component_node: Node3D, terminals: Array):
+	var component_data = component_node_map.get(component_node)
+	if component_data:
+		for terminal in terminals:
+			if terminal is Area3D:
+				component_data.terminals[terminal.name] = terminal
+				var term_id = terminal.get_instance_id()
+				if not terminal_connections.has(term_id):
+					var new_node_id = _get_new_node_id()
+					electrical_nodes[new_node_id] = { "terminals": [terminal], "voltage": NAN }
+					terminal_connections[term_id] = new_node_id
 
 
 ## Updates the graph's internal data for a component whose properties have changed.
