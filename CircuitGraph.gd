@@ -608,7 +608,6 @@ func _build_mna_system(delta_time: float) -> Dictionary:
 			active_voltage_sources.push_back(comp_data_item_vs)
 		elif comp_data_item_vs.type == "PowerSource" and comp_data_item_vs.properties.get("current_operating_mode") == "CV":
 			active_voltage_sources.push_back(comp_data_item_vs)
-		# OpAmp is NOT included as a voltage source here
 
 	var active_inductors: Array[Dictionary] = []
 	for comp_data_item_L in components: 

@@ -111,13 +111,6 @@ func stamp(
 	
 	var L_div_dt: float
 	if delta_time <= 1e-9: # Avoid division by zero or very small dt
-		# For DC or very small dt, inductor behaves like a short (or very small resistance)
-		# This model becomes problematic. A common approach is to use a small series resistance.
-		# For now, let's make L/dt very large, making I_L(t) try to match I_L(t-dt) if V1=V2.
-		# Or, if we consider it a voltage source of 0V, its current is idx_I_L_val.
-		# The MNA formulation for an inductor adds a current variable.
-		# The equation is V1 - V2 = L * dI/dt.
-		# V_L = L * (I_L - I_L_prev) / dt
 		# V1 - V2 - (L/dt) * I_L = - (L/dt) * I_L_prev
 		L_div_dt = L_val_prop / 1e-9 # Effectively a large number
 		# This case should ideally be handled by how the solver treats dt=0 (e.g. DC analysis)
