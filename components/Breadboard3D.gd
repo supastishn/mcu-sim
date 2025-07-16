@@ -5,6 +5,7 @@ class_name Breadboard3D
 @onready var terminals_container = $Terminals
 
 const TerminalFeedbackScript = preload("res://components/TerminalFeedback.gd")
+const col_labels = ["a", "b", "c", "d", "e"]
 
 ## Called when the node enters the scene tree.
 func _ready():
@@ -22,7 +23,6 @@ func generate_terminals() -> Array[Node]:
 	var terminals_array: Array[Node] = []
 	# Mini-breadboard layout
 	var row_count = 10
-	var col_labels = ["a", "b", "c", "d", "e"]
 	var x_spacing = 0.1
 	var z_spacing = 0.1
 	var strip_x_offset = -0.3
@@ -87,9 +87,9 @@ func connect_internal_strips():
 	
 	# Connect terminal strips
 	for row in range(1, 11):
-		for i in range(4): # a-b, b-c, c-d, d-e
-			var col1 = char(ord("a") + i)
-			var col2 = char(ord("a") + i + 1)
+		for i in range(col_labels.size() - 1): # a-b, b-c, c-d, d-e
+			var col1 = col_labels[i]
+			var col2 = col_labels[i + 1]
 			var term_a_name = "s1_{row}{col}".format({"row": row, "col": col1})
 			var term_b_name = "s1_{row}{col}".format({"row": row, "col": col2})
 			var term_a = terminals_container.get_node_or_null(term_a_name)
