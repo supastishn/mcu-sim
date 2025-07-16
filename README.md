@@ -1,106 +1,71 @@
 
-MCU-Sim is a 3D circuit editor and simulator built with the Godot Engine. It allows users to visually construct electronic circuits in a 3D environment and observe their behavior through simulation.
+Welcome to MCU-Sim!
 
-## Features
+This is a 3D circuit editor and simulator built with the Godot Engine. It's a fun way to build circuits in a 3D space and see how they work.
 
-*   **3D Circuit Construction:** Place and wire components in a 3D space.
-*   **Component Library:** Includes common electronic components like resistors, power sources, LEDs, switches, diodes, potentiometers, capacitors (polarized and non-polarized), inductors, and batteries.
-*   **Wiring System:** Connect component terminals using wires.
-*   **Interactive Simulation:**
-    *   Solve circuit behavior using Modified Nodal Analysis (MNA).
-    *   View calculated voltage at terminals.
-    *   Display current flowing through components.
-    *   Visualize LED illumination and burn-out state.
-    *   Simulate capacitor explosion (for polarized capacitors) and over-voltage warnings (for non-polarized).
-    *   Interactive components like switches and potentiometers.
-*   **Camera Controls:**
-    *   Desktop: WASD for movement, Right-click + Mouse for look.
-    *   Mobile: Virtual joysticks for movement and look.
-*   **Component Interaction:**
-    *   Select components to view/edit their properties (resistance, voltage, capacitance, etc.).
-    *   Drag and drop components on a grid.
-    *   Delete components and wires.
-*   **UI:**
-    *   Component addition bar.
-    *   Selection bar for editing component properties.
-    *   Simulation control and voltage display toggles.
+## What it can do
 
-## Components Available
+- Build in 3D: Place and wire components in a 3D world.
+- A good box of parts: Includes common components like resistors, power sources, LEDs, switches, transistors, and more.
+- Easy wiring: Click between terminals to connect parts.
+- Live simulation: See your circuit work in real-time.
+- Visual feedback: Watch LEDs light up, see current values, and check voltages. Some parts even break if you push them too hard!
+- Fly around: Move the camera with WASD and the mouse (on desktop) or with virtual joysticks (on mobile).
+- Edit on the fly: Click a component to change its properties, like resistance or voltage.
 
-*   Power Source (Voltage Source with Current Limiting)
-*   Resistor
-*   LED (Light Emitting Diode)
-*   Switch (SPDT)
-*   Diode
-*   Zener Diode
-*   Potentiometer
-*   Battery (configurable number of cells)
-*   Polarized Capacitor
-*   Non-Polarized Capacitor
-*   Inductor
-*   NPN Bipolar Junction Transistor (BJT)
-*   PNP Bipolar Junction Transistor (BJT)
-*   N-Channel MOSFET
-*   P-Channel MOSFET
-*   Relay
-*   Wire
+## Components you can use
 
-## How to Use
+- Power Source
+- Resistor
+- LED (Light Emitting Diode)
+- Switch
+- Diode
+- Zener Diode
+- Potentiometer
+- Battery
+- Polarized Capacitor
+- Non-Polarized Capacitor
+- Inductor
+- NPN Bipolar Junction Transistor (BJT)
+- PNP Bipolar Junction Transistor (BJT)
+- N-Channel MOSFET
+- P-Channel MOSFET
+- Relay
+- Wire
+- Breadboard
 
-1.  **Launch the Project:** Open the project in the Godot Engine (version 4.x compatible with "Forward Plus" rendering and "gl_compatibility" for mobile). The main scene is `CircuitEditor3D.tscn`.
-2.  **Adding Components:**
-    *   Click buttons on the top "ComponentBar" (e.g., "Add Resistor", "Add Power Source") to add components to the scene.
-    *   The component will appear near the center of the view and will be automatically selected for dragging.
-3.  **Moving Components:**
-    *   Click and drag a component's body to move it. Components snap to a grid.
-4.  **Wiring:**
-    *   Click on a component's terminal (visualized as a sphere). The terminal will highlight.
-    *   Click on another component's terminal to create a wire between them.
-5.  **Selecting & Editing Components:**
-    *   Click on a component's body or a wire to select it.
-    *   The "SelectionBar" on the right will appear, allowing you to:
-        *   **Edit Values:** Change properties like resistance, voltage, capacitance, etc., in the `LineEdit` fields. Press Enter to submit.
-        *   **Toggle Switch:** For switches, a button will appear to toggle its state.
-        *   **Adjust Potentiometer:** For potentiometers, a slider will appear to change the wiper position.
-        *   **Configure Battery:** For batteries, select the number of cells.
-        *   **Delete:** Click the "Delete" button to remove the selected component or wire.
-6.  **Camera Controls:**
-    *   **Desktop:**
-        *   `W, A, S, D`: Move the camera.
-        *   Hold `Right Mouse Button` + Move Mouse: Look around.
-    *   **Mobile:**
-        *   Use the on-screen virtual joysticks (left for movement, right for look).
-7.  **Simulation:**
-    *   **Ground:** For a simulation to run, at least one power source (PowerSource3D or Battery3D) negative terminal must be part of the circuit, which will be implicitly grounded.
-    *   Click the "Simulate" button to start/stop continuous simulation.
-    *   When simulating:
-        *   LEDs will light up or show as burned based on current.
-        *   Capacitors may show as "EXPLODED!" if their voltage limits are exceeded (polarized) or display warnings (non-polarized).
-        *   The "Display Voltage Labels" button (appears after first simulation) can be toggled to show/hide voltage values at each terminal and current values on components.
+## How to get started
 
-## Project Structure
+1.  Open the project: You'll need Godot Engine 4.x. Open the `CircuitEditor3D.tscn` scene to start.
+2.  Add components: Use the buttons at the top to add parts to your scene. They'll show up in the middle of your view, ready to be dragged around.
+3.  Move things: Click and drag a component's body to move it. It will snap to the grid.
+4.  Wire it up: Click on a component's terminal (the little sphere), then click on another terminal to create a wire between them.
+5.  Select and edit: Click on any component or wire to select it. A panel will show up on the right where you can:
+    - Change values like resistance or voltage.
+    - Flip switches or adjust potentiometers.
+    - Delete the selected part.
+6.  Control the camera:
+    - On desktop: Use W, A, S, D to move. Hold the right mouse button and move the mouse to look around.
+    - On mobile: Use the two virtual joysticks on the screen.
+7.  Run the simulation:
+    - You need a ground reference for the simulation to work. Just make sure you've used a Power Source or Battery, and it will automatically ground the negative terminal.
+    - Click the "Simulate" button to start and stop the simulation.
+    - While it's running, you can click "Display Voltages" to see the voltage at each terminal and the current through each component.
 
-*   `CircuitEditor3D.tscn`: Main scene for the editor.
-*   `CircuitEditor3D.gd`: Main script handling editor logic, UI, input, and simulation orchestration.
-*   `CircuitGraph.gd`: Manages the logical representation of the circuit, component data, and MNA solving.
-*   `LinearSolver.gd`: Provides a static function for solving systems of linear equations (Ax=b).
-*   `components/`: Contains scenes (.tscn) and scripts (.gd) for each electronic component.
-    *   `TerminalFeedback.gd`: Script attached to terminal `Area3D` nodes for visual feedback and label display.
-*   `ui/`: Contains UI related scenes and scripts.
-    *   `VirtualJoystick.tscn`/`.gd`: Implements the on-screen joystick for mobile.
-*   `default_env.tres`: Default Godot environment resource.
-*   `project.godot`: Godot project configuration file.
+## A peek at the project files
 
-## To Run
+- `CircuitEditor3D.tscn`: This is the main scene.
+- `CircuitEditor3D.gd`: This script runs the editor, UI, and input.
+- `CircuitGraph.gd`: This handles the circuit logic and simulation.
+- `LinearSolver.gd`: A simple solver for the linear equations used in the simulation.
+- `components/`: You'll find all the scenes and scripts for the electronic components here.
+- `ui/`: This folder contains UI scenes and scripts, like the virtual joystick.
+- `project.godot`: The main Godot project file.
 
-1.  Ensure you have Godot Engine 4.x installed.
+## How to run the project
+
+1.  Make sure you have Godot Engine 4.x.
 2.  Download or clone this project.
-3.  Open the Godot Project Manager.
-4.  Click "Import" and navigate to the project's root folder (the one containing `project.godot`).
-5.  Once imported, select the "MCU-Sim" project and click "Edit".
-6.  In the Godot editor, open the `CircuitEditor3D.tscn` scene.
-7.  Press F5 (or the "Play" button) to run the main scene.
-
----
-
-This README provides a basic overview. Further details on specific MNA implementation, component models, and advanced features can be found by examining the GDScript code.
+3.  In the Godot Project Manager, click "Import" and find this project's folder.
+4.  Select "MCU-Sim" from the project list and click "Edit".
+5.  Open the `CircuitEditor3D.tscn` scene and press F5 to run it.
