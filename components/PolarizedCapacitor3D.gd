@@ -104,8 +104,6 @@ func get_terminal_info() -> Dictionary:
 		"T2": {"node": terminal2, "pos": terminal2.position}
 	}
 
-# -------------------------------------------------------------------------
-# MNA‐stamping interface
 ## Stamps the capacitor's equivalent conductance and current source into the MNA matrices for transient analysis.
 func stamp(
 	A: Array,
@@ -120,12 +118,12 @@ func stamp(
 	var G_eq: float
 	var I_eq_source: float = 0.0
 	
-	if comp_data.get("is_exploded", false): # State from comp_data
+	if comp_data.get("is_exploded", false):
 		G_eq = 1e-9 # Effectively open if exploded
 	else:
-		var C_val = capacitance # Direct access to exported property
+		var C_val = capacitance
 		if C_val <= 1e-12: C_val = 1e-12
-		var Vc_prev_dt_val = comp_data.properties.get("voltage_across_cap_prev_dt", 0.0) # State from comp_data
+		var Vc_prev_dt_val = comp_data.properties.get("voltage_across_cap_prev_dt", 0.0)
 		
 		if delta_time <= 1e-9: # Avoid division by zero or very small dt
 			G_eq = 1e9 # Effectively a short for DC analysis if dt is zero
@@ -154,12 +152,9 @@ func stamp(
 	elif idx2 != -1:
 		A[idx2][idx2] += G_eq
 		
-	# Stamp current source part
 	if idx1 != -1: b[idx1] += I_eq_source
 	if idx2 != -1: b[idx2] -= I_eq_source
 
-# -----------------------------------------------------------------
-# Simulation-results extraction
 ## Extracts and stores simulation results, checking for overvoltage or reverse polarity explosion.
 func gather_sim_results(
 	circuit      : CircuitGraph,
@@ -169,7 +164,6 @@ func gather_sim_results(
 	_vs_map       : Dictionary,
 	_inductor_map : Dictionary,
 	delta_time   : float) -> void:
-	#region LEGACY_RESULT_CODE
 	var comp_node = comp_data.component_node
 	var comp_id = comp_node.get_instance_id()
 
@@ -207,4 +201,3 @@ func gather_sim_results(
 	circuit.component_results[comp_id]["current"] = current_cap
 	circuit.component_results[comp_id]["voltage_across"] = Vc_t
 	circuit.component_results[comp_id]["is_exploded"] = comp_data.get("is_exploded", false)
-	#endregion

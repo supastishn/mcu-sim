@@ -43,8 +43,6 @@ func get_terminal_info() -> Dictionary:
 		"K": {"node": terminal_kathode, "pos": terminal_kathode.position}
 	}
 
-# -----------------------------------------------------------------
-# Simulation-results extraction
 ## Extracts and stores simulation results for this component from the main solution vector.
 func gather_sim_results(
 		circuit      : CircuitGraph,
@@ -54,7 +52,6 @@ func gather_sim_results(
 		_vs_map       : Dictionary,
 		_inductor_map : Dictionary,
 		_delta_time   : float) -> void:
-	#region LEGACY_RESULT_CODE
 	var comp_node = comp_data.component_node
 	var comp_id = comp_node.get_instance_id()
 
@@ -78,7 +75,6 @@ func gather_sim_results(
 		current = 0.0
 
 	circuit.component_results[comp_id]["current"] = current
-	#endregion
 
 ## Updates the diode's conducting state based on the latest voltage solution from an MNA iteration.
 func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter: Array, node_map_iter: Dictionary, _vs_map_iter: Dictionary) -> bool:
@@ -135,7 +131,6 @@ func stamp(
 		var offset_val = Vf / R_on 
 		if ia != -1: b[ia] += offset_val
 		if ik != -1: b[ik] -= offset_val
-	
 	
 	if ia != -1 and ik != -1:
 		A[ia][ia] += g

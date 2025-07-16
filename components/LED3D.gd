@@ -162,8 +162,6 @@ func get_terminal_info() -> Dictionary:
 		"K": {"node": terminal_kathode, "pos": terminal_kathode.position}
 	}
 
-# -----------------------------------------------------------------
-# Simulation-results extraction
 ## Extracts and stores simulation results for this component from the main solution vector.
 func gather_sim_results(
 		circuit      : CircuitGraph,
@@ -173,7 +171,6 @@ func gather_sim_results(
 		_vs_map       : Dictionary,
 		_inductor_map : Dictionary,
 		_delta_time   : float) -> void:
-	#region LEGACY_RESULT_CODE
 	var comp_node = comp_data.component_node
 	var comp_id = comp_node.get_instance_id()
 
@@ -205,7 +202,6 @@ func gather_sim_results(
 		current = 0.0
 	
 	circuit.component_results[comp_id]["current"] = current
-	#endregion
 
 ## Applies the LED's contribution to the MNA matrices based on its current state.
 func stamp(

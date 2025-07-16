@@ -176,8 +176,6 @@ func stamp(
 	g_coil_path_val = 1.0 / R_coil_path_val
 	CircuitGraph.stamp_conductance(A, g_coil_path_val, idx_vcc, idx_gnd)
 
-	
-	
 	var R_signal_in_prop = comp_data.properties["input_signal_resistance"] 
 	if R_signal_in_prop <= 1e-9: R_signal_in_prop = 1e-9
 	var g_signal_in_val = 1.0 / R_signal_in_prop
@@ -187,7 +185,6 @@ func stamp(
 	var idx_sig = node_map.get(node_sig_lookup, -1)
 	CircuitGraph.stamp_conductance(A, g_signal_in_val, idx_sig, idx_gnd)
 
-	
 	var R_sw_closed_const = CircuitGraph.R_SWITCH_CLOSED
 	var g_sw_closed_val = 1.0 / R_sw_closed_const
 	var R_sw_open_const = CircuitGraph.R_SWITCH_OPEN
@@ -213,7 +210,7 @@ func stamp(
 		CircuitGraph.stamp_conductance(A, g_sw_open_val, idx_com_sw, idx_no_sw)
 		CircuitGraph.stamp_conductance(A, g_sw_closed_val, idx_com_sw, idx_nc_sw)
 		CircuitGraph.stamp_conductance(A, g_sw_open_val, idx_no_sw, idx_nc_sw)
-	return          # or ‘pass’
+	return
 
 ## Hides the information label.
 func hide_info():
@@ -244,8 +241,6 @@ func get_terminal_info() -> Dictionary:
 		"NC": {"node": terminal_nc, "pos": terminal_nc.position}
 	}
 
-# -----------------------------------------------------------------
-# Simulation-results extraction
 ## Extracts and stores simulation results for this component.
 func gather_sim_results(
 		circuit      : CircuitGraph,
@@ -255,7 +250,6 @@ func gather_sim_results(
 		_vs_map       : Dictionary,
 		_inductor_map : Dictionary,
 		_delta_time   : float) -> void:
-	#region LEGACY_RESULT_CODE
 	var comp_node = comp_data.component_node
 	var comp_id = comp_node.get_instance_id()
 
@@ -293,4 +287,3 @@ func gather_sim_results(
 	circuit.component_results[comp_id]["coil_current"] = actual_coil_current
 	circuit.component_results[comp_id]["is_energized"] = is_energized_res
 	circuit.component_results[comp_id]["signal_threshold"] = comp_data.properties["signal_voltage_threshold"]
-	#endregion

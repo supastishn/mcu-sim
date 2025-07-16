@@ -118,8 +118,6 @@ func get_terminal_info() -> Dictionary:
 		"E": {"node": terminal_e, "pos": terminal_e.position}
 	}
 
-# -----------------------------------------------------------------
-# Simulation-results extraction
 ## Extracts and stores simulation results (currents, region) for this component.
 func gather_sim_results(
 		circuit      : CircuitGraph,
@@ -129,7 +127,6 @@ func gather_sim_results(
 		_vs_map       : Dictionary,
 		_inductor_map : Dictionary,
 		_delta_time   : float) -> void:
-	#region LEGACY_RESULT_CODE
 	var comp_node = comp_data.component_node
 	var comp_id = comp_node.get_instance_id()
 
@@ -183,7 +180,6 @@ func gather_sim_results(
 	circuit.component_results[comp_id]["Ib"] = Ib
 	circuit.component_results[comp_id]["Ie"] = Ie
 	circuit.component_results[comp_id]["region"] = region 
-	#endregion
 
 ## Updates the BJT's operating region based on an MNA iteration.
 func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter: Array, node_map_iter: Dictionary, _vs_map_iter: Dictionary) -> bool:
@@ -269,7 +265,6 @@ func stamp(
 		CircuitGraph.stamp_conductance(A, g_off, idx_c, idx_b)
 		
 	elif region == "ACTIVE":
-		
 		var G_be_active = 1.0 / R_be_active_model_const
 		var Is_be_active = vbe_on_model_val / R_be_active_model_const 
 		if idx_b != -1: A[idx_b][idx_b] += G_be_active; b[idx_b] += Is_be_active
@@ -278,19 +273,9 @@ func stamp(
 			A[idx_b][idx_e] -= G_be_active
 			A[idx_e][idx_b] -= G_be_active
 		
-		
-		
-		
-		
-		
 		var Gm_bjt_active = beta_val / R_be_active_model_const
 		var Ic_const_offset_active = beta_val * vbe_on_model_val / R_be_active_model_const 
 
-		
-		
-		
-		
-		
 		if idx_c != -1:
 			if idx_b != -1: A[idx_c][idx_b] += Gm_bjt_active
 			if idx_e != -1: A[idx_c][idx_e] -= Gm_bjt_active
@@ -301,7 +286,6 @@ func stamp(
 			b[idx_e] -= Ic_const_offset_active
 
 	elif region == "SATURATION":
-		
 		var G_be_sat = 1.0 / R_be_active_model_const 
 		var Is_be_sat = vbe_on_model_val / R_be_active_model_const
 		if idx_b != -1: A[idx_b][idx_b] += G_be_sat; b[idx_b] += Is_be_sat
@@ -310,7 +294,6 @@ func stamp(
 			A[idx_b][idx_e] -= G_be_sat
 			A[idx_e][idx_b] -= G_be_sat
 			
-		
 		var G_ce_sat = 1.0 / R_ce_sat_model_const
 		var Is_ce_sat = vce_sat_model_val / R_ce_sat_model_const 
 		if idx_c != -1: A[idx_c][idx_c] += G_ce_sat; b[idx_c] += Is_ce_sat

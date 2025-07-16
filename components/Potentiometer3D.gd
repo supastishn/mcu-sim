@@ -79,8 +79,6 @@ func get_terminal_info() -> Dictionary:
 		"W": {"node": terminal_wiper, "pos": terminal_wiper.position}
 	}
 
-# -------------------------------------------------------------------------
-# MNA‐stamping interface
 ## Stamps the two resistances of the potentiometer model into the MNA matrix.
 func stamp(
 	A: Array,
@@ -92,8 +90,8 @@ func stamp(
 	comp_data: Dictionary, # Used for total_resistance and wiper_position from comp_data.properties
 	_delta_time: float # Unused by Potentiometer
 ):
-	var total_R_val = comp_data.properties["total_resistance"] # Accessing via comp_data as per original _stamp_potentiometer
-	var wiper_pos_val = comp_data.properties["wiper_position"] # Accessing via comp_data
+	var total_R_val = comp_data.properties["total_resistance"]
+	var wiper_pos_val = comp_data.properties["wiper_position"]
 
 	var R1 = total_R_val * wiper_pos_val
 	if R1 < 1e-9: R1 = 1e-9
@@ -115,22 +113,18 @@ func stamp(
 	var idx2 = node_map.get(node2_lookup_id, -1)
 	var idxW = node_map.get(nodeW_lookup_id, -1)
 
-	# Stamp R1 (between terminal1 and wiper)
 	if idx1 != -1: A[idx1][idx1] += g1
 	if idxW != -1: A[idxW][idxW] += g1
 	if idx1 != -1 and idxW != -1:
 		A[idx1][idxW] -= g1
 		A[idxW][idx1] -= g1
 	
-	# Stamp R2 (between wiper and terminal2)
 	if idxW != -1: A[idxW][idxW] += g2
 	if idx2 != -1: A[idx2][idx2] += g2
 	if idxW != -1 and idx2 != -1:
 		A[idxW][idx2] -= g2
 		A[idx2][idxW] -= g2
 
-# -----------------------------------------------------------------
-# Simulation-results extraction
 ## Extracts and stores the currents flowing through the potentiometer's resistive segments.
 func gather_sim_results(
 		circuit      : CircuitGraph,
@@ -140,7 +134,6 @@ func gather_sim_results(
 		_vs_map       : Dictionary,
 		_inductor_map : Dictionary,
 		_delta_time   : float) -> void:
-	#region LEGACY_RESULT_CODE
 	var comp_node = comp_data.component_node
 	var comp_id = comp_node.get_instance_id()
 
@@ -176,4 +169,3 @@ func gather_sim_results(
 	circuit.component_results[comp_id]["current_T1_W"] = current1W
 	circuit.component_results[comp_id]["current_W_T2"] = currentW2
 	circuit.component_results[comp_id]["current_Wiper_Net"] = current1W - currentW2 if not is_nan(current1W) and not is_nan(currentW2) else NAN
-	#endregion

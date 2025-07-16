@@ -118,8 +118,6 @@ func get_terminal_info() -> Dictionary:
 		"C": {"node": terminal_c, "pos": terminal_c.position}
 	}
 
-# -----------------------------------------------------------------
-# Simulation-results extraction
 ## Extracts and stores simulation results (currents, region) for this component.
 func gather_sim_results(
 		circuit      : CircuitGraph,
@@ -129,7 +127,6 @@ func gather_sim_results(
 		_vs_map       : Dictionary,
 		_inductor_map : Dictionary,
 		_delta_time   : float) -> void:
-	#region LEGACY_RESULT_CODE
 	var comp_node = comp_data.component_node
 	var comp_id = comp_node.get_instance_id()
 
@@ -182,7 +179,6 @@ func gather_sim_results(
 	circuit.component_results[comp_id]["Ib"] = Ib_pnp
 	circuit.component_results[comp_id]["Ie"] = Ie_pnp
 	circuit.component_results[comp_id]["region"] = region_pnp_calc
-	#endregion
 
 ## Updates the BJT's operating region based on an MNA iteration.
 func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter: Array, node_map_iter: Dictionary, _vs_map_iter: Dictionary) -> bool:
@@ -268,7 +264,6 @@ func stamp(
 		CircuitGraph.stamp_conductance(A, g_off_pnp_val, idx_b, idx_c)
 		
 	elif region_pnp_val == "ACTIVE":
-		
 		var G_eb_active_pnp_val = 1.0 / R_eb_active_model_pnp_const
 		var Is_eb_active_pnp_val = veb_on_model_pnp_prop / R_eb_active_model_pnp_const 
 		
@@ -278,18 +273,9 @@ func stamp(
 			A[idx_e][idx_b] -= G_eb_active_pnp_val
 			A[idx_b][idx_e] -= G_eb_active_pnp_val
 		
-		
-		
-		
 		var Gm_pnp_active = beta_pnp_prop / R_eb_active_model_pnp_const
 		var Ic_const_offset_pnp_active = beta_pnp_prop * veb_on_model_pnp_prop / R_eb_active_model_pnp_const
 
-		
-		
-		
-		
-		
-		
 		if idx_e != -1: 
 			if idx_e != -1: A[idx_e][idx_e] += Gm_pnp_active 
 			if idx_b != -1: A[idx_e][idx_b] -= Gm_pnp_active 
@@ -300,7 +286,6 @@ func stamp(
 			b[idx_c] -= Ic_const_offset_pnp_active 
 
 	elif region_pnp_val == "SATURATION":
-		
 		var G_eb_sat_pnp_val = 1.0 / R_eb_active_model_pnp_const 
 		var Is_eb_sat_pnp_val = veb_on_model_pnp_prop / R_eb_active_model_pnp_const
 		if idx_e != -1: A[idx_e][idx_e] += G_eb_sat_pnp_val; b[idx_e] += Is_eb_sat_pnp_val
@@ -309,8 +294,6 @@ func stamp(
 			A[idx_e][idx_b] -= G_eb_sat_pnp_val
 			A[idx_b][idx_e] -= G_eb_sat_pnp_val
 			
-		
-		
 		var G_ec_sat_pnp_val = 1.0 / R_ec_sat_model_pnp_const
 		var Is_ec_sat_pnp_val = vec_sat_model_pnp_prop / R_ec_sat_model_pnp_const 
 		if idx_e != -1: A[idx_e][idx_e] += G_ec_sat_pnp_val; b[idx_e] += Is_ec_sat_pnp_val 

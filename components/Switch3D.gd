@@ -97,8 +97,6 @@ func get_terminal_info() -> Dictionary:
 		"NO": {"node": terminal_no, "pos": terminal_no.position}
 	}
 
-# -------------------------------------------------------------------------
-# MNA‐stamping interface
 ## Stamps the switch's conductances into the MNA matrix based on its current state.
 func stamp(
 	A: Array,
@@ -110,7 +108,7 @@ func stamp(
 	comp_data: Dictionary, # Used for 'state' (current_state of switch)
 	_delta_time: float # Unused by Switch
 ):
-	var state_from_comp_data: Switch3D.State = comp_data.state # current_state is stored in comp_data by CircuitGraph
+	var state_from_comp_data: Switch3D.State = comp_data.state
 	var R_closed = CircuitGraph.R_SWITCH_CLOSED
 	var g_closed = 1.0 / R_closed
 	var R_open = CircuitGraph.R_SWITCH_OPEN
@@ -128,7 +126,6 @@ func stamp(
 	var idx_nc = node_map.get(node_nc_id_lookup, -1)
 	var idx_no = node_map.get(node_no_id_lookup, -1)
 
-	# Helper for inlining _stamp_conductance
 	var _inline_stamp_conductance = func(matrix_A, g_val, idx1, idx2):
 		if idx1 != -1 and idx2 != -1:
 			matrix_A[idx1][idx1] += g_val
@@ -142,15 +139,13 @@ func stamp(
 
 	if state_from_comp_data == Switch3D.State.CONNECTED_NC:
 		_inline_stamp_conductance.call(A, g_closed, idx_com, idx_nc)
-		_inline_stamp_conductance.call(A, g_open, idx_com, idx_no) # NC to COM is closed, NO to COM is open
-		_inline_stamp_conductance.call(A, g_open, idx_nc, idx_no) # NC to NO should be open
+		_inline_stamp_conductance.call(A, g_open, idx_com, idx_no)
+		_inline_stamp_conductance.call(A, g_open, idx_nc, idx_no)
 	elif state_from_comp_data == Switch3D.State.CONNECTED_NO:
-		_inline_stamp_conductance.call(A, g_open, idx_com, idx_nc)  # NO to COM is closed, NC to COM is open
+		_inline_stamp_conductance.call(A, g_open, idx_com, idx_nc)
 		_inline_stamp_conductance.call(A, g_closed, idx_com, idx_no)
-		_inline_stamp_conductance.call(A, g_open, idx_nc, idx_no) # NC to NO should be open
+		_inline_stamp_conductance.call(A, g_open, idx_nc, idx_no)
 
-# -----------------------------------------------------------------
-# Simulation-results extraction
 ## Extracts and stores the current flowing through the active path of the switch.
 func gather_sim_results(
 		circuit      : CircuitGraph,
@@ -160,7 +155,6 @@ func gather_sim_results(
 		_vs_map       : Dictionary,
 		_inductor_map : Dictionary,
 		_delta_time   : float) -> void:
-	#region LEGACY_RESULT_CODE
 	var comp_node = comp_data.component_node
 	var comp_id = comp_node.get_instance_id()
 
@@ -177,4 +171,3 @@ func gather_sim_results(
 	if not is_nan(V_com) and not is_nan(V_active):
 		current = (V_com - V_active) / R_closed
 	circuit.component_results[comp_id]["current"] = current
-	#endregion

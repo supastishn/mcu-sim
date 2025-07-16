@@ -93,8 +93,6 @@ func get_terminal_info() -> Dictionary:
 		"K": {"node": terminal_kathode, "pos": terminal_kathode.position}
 	}
 
-# -----------------------------------------------------------------
-# Simulation-results extraction
 ## Extracts and stores simulation results for this component from the main solution vector.
 func gather_sim_results(
 		circuit      : CircuitGraph,
@@ -104,7 +102,6 @@ func gather_sim_results(
 		_vs_map       : Dictionary,
 		_inductor_map : Dictionary,
 		_delta_time   : float) -> void:
-	#region LEGACY_RESULT_CODE
 	var comp_node = comp_data.component_node
 	var comp_id = comp_node.get_instance_id()
 
@@ -143,7 +140,6 @@ func gather_sim_results(
 	circuit.component_results[comp_id]["current"] = current_zener
 	circuit.component_results[comp_id]["voltage_ak"] = Vak_z_val 
 	circuit.component_results[comp_id]["state"] = state_z
-	#endregion
 
 ## Updates the diode's operating state (OFF, FORWARD, ZENER) based on an MNA iteration.
 func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter: Array, node_map_iter: Dictionary, _vs_map_iter: Dictionary) -> bool:
@@ -216,25 +212,14 @@ func stamp(
 	if state_zener_val == "OFF":
 		CircuitGraph.stamp_conductance(A, G_off_model_val, idx_a, idx_k)
 	elif state_zener_val == "FORWARD":
-		
-		
 		CircuitGraph.stamp_conductance(A, G_on_model_val, idx_a, idx_k)
 		var current_offset_fwd_val = G_on_model_val * Vf_zener_model_prop
 		
 		if idx_a != -1: b[idx_a] += current_offset_fwd_val 
 		if idx_k != -1: b[idx_k] -= current_offset_fwd_val 
 	elif state_zener_val == "ZENER":
-		
-		
-		
-		
-		
 		CircuitGraph.stamp_conductance(A, G_on_model_val, idx_a, idx_k)
 		var current_offset_zener_val = G_on_model_val * Vz_zener_model_prop
-		
-		
-		
-		
 		
 		if idx_k != -1: b[idx_k] += current_offset_zener_val 
 		if idx_a != -1: b[idx_a] -= current_offset_zener_val 

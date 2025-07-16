@@ -3,18 +3,12 @@ extends Node
 class_name CircuitGraph
 
 const LinearSolver = preload("res://LinearSolver.gd")
-## Model resistance for a conducting LED, in Ohms.
-const R_LED_ON            := 0.1                   
-## Model resistance for a non-conducting LED, in Ohms.
-const R_LED_OFF           := 1.0e9                 
-## Model resistance for a conducting diode, in Ohms.
-const R_DIODE_ON          := R_LED_ON              
-## Model resistance for a non-conducting diode, in Ohms.
+const R_LED_ON            := 0.1
+const R_LED_OFF           := 1.0e9
+const R_DIODE_ON          := R_LED_ON
 const R_DIODE_OFF         := R_LED_OFF
-## Model resistance for a closed switch, in Ohms.
-const R_SWITCH_CLOSED     := 1e-6                  
-## Model resistance for an open switch, in Ohms.
-const R_SWITCH_OPEN       := 1.0e12                
+const R_SWITCH_CLOSED     := 1e-6
+const R_SWITCH_OPEN       := 1.0e12
 
 ## Helper function for string formatting.
 static func fmt(t : String, d : Dictionary) -> String:
@@ -507,7 +501,7 @@ func solve_single_time_step(delta_time: float) -> bool:
 		var b_iter = result_iter.b
 		var node_map_iter = result_iter.node_map
 		var active_vs_map_iter = result_iter.vs_map 
-		var inductor_map_iter = result_iter.inductor_map 
+		var inductor_map_iter = result_iter.inductor_map
 
 		var N_iter = A_iter.size()
 
@@ -539,19 +533,16 @@ func solve_single_time_step(delta_time: float) -> bool:
 				if electrical_nodes.has(node_id_key) and matrix_index < x.size():
 					electrical_nodes[node_id_key].voltage = x[matrix_index]
 
-		# --- BEGIN refactored nonlinear‐state update loop ---
 		var state_changed_this_iteration = false
 		for comp_data_item in components:
-			var component_node = comp_data_item.component_node # Renamed 'node' to 'component_node' for clarity
+			var component_node = comp_data_item.component_node
 			if is_instance_valid(component_node) and component_node.has_method("update_nonlinear_state"):
-				# Pass the full set of maps for this iteration's solution vector.
 				if component_node.update_nonlinear_state(self, comp_data_item, x, node_map_iter, active_vs_map_iter):
 					state_changed_this_iteration = true
 
 		if not state_changed_this_iteration and not x.is_empty():
 			converged = true
 			break
-		# --- END refactored loop ---
 
 	if not converged and iterations_done >= max_iter:
 		var result_final_consistency_solve = _build_mna_system(delta_time) 
@@ -658,12 +649,6 @@ func _build_mna_system(delta_time: float) -> Dictionary:
 	var b: Array = []
 	b.resize(N)
 	b.fill(0.0)
-
-
-	
-	
-	
-	# (No MOSFET voltage preparation loop here)
 
 	for comp_data_item in components:
 		var component_node = comp_data_item.component_node

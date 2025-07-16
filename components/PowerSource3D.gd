@@ -90,7 +90,7 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 	var state_changed = false
 
 	if previous_op_mode == "CV":
-		if x_iter != null and vs_map_iter != null: # Check if solver data is available
+		if x_iter != null and vs_map_iter != null:
 			var vs_current_idx = vs_map_iter.get(ps_id, -1)
 			if vs_current_idx != -1 and vs_current_idx < x_iter.size():
 				var current_mna_val_for_ps = x_iter[vs_current_idx] 
@@ -174,8 +174,6 @@ func stamp(
 		if neg_idx != -1:
 			b[neg_idx] -= actual_current_to_stamp 
 
-# -----------------------------------------------------------------
-# Simulation-results extraction
 ## Extracts and stores simulation results (current, voltage, mode) for this component.
 func gather_sim_results(
 		circuit      : CircuitGraph,
@@ -185,7 +183,6 @@ func gather_sim_results(
 		vs_map       : Dictionary,
 		_inductor_map : Dictionary,
 		_delta_time   : float) -> void:
-	#region LEGACY_RESULT_CODE
 	var comp_node = comp_data.component_node
 	var comp_id = comp_node.get_instance_id()
 
@@ -204,7 +201,7 @@ func gather_sim_results(
 				var actual_V_across_fv = NAN
 				if not is_nan(Vp_fv) and not is_nan(Vn_fv): actual_V_across_fv = Vp_fv - Vn_fv
 				circuit.component_results[comp_id]["voltage"] = actual_V_across_fv
-				circuit.component_results[comp_id]["operating_mode"] = "CV" 
+				circuit.component_results[comp_id]["operating_mode"] = "CV"
 	elif ps_op_mode == "CC":
 		var cc_current_val = comp_data.properties.cc_current_direction_sign * comp_data.properties.target_current
 		circuit.component_results[comp_id]["current"] = cc_current_val
@@ -216,4 +213,3 @@ func gather_sim_results(
 		var actual_V_across_cc = NAN
 		if not is_nan(Vp_cc) and not is_nan(Vn_cc): actual_V_across_cc = Vp_cc - Vn_cc
 		circuit.component_results[comp_id]["voltage"] = actual_V_across_cc
-	#endregion

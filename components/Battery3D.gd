@@ -145,8 +145,6 @@ func stamp(
 		A[battery_current_matrix_idx][neg_idx] = -1.0
 		A[neg_idx][battery_current_matrix_idx] = -1.0
 
-# -----------------------------------------------------------------
-# Simulation-results extraction
 ## Extracts and stores simulation results for this component from the main solution vector.
 func gather_sim_results(
 		circuit      : CircuitGraph,
@@ -156,7 +154,6 @@ func gather_sim_results(
 		vs_map       : Dictionary,
 		_inductor_map : Dictionary,
 		_delta_time   : float) -> void:
-	#region LEGACY_RESULT_CODE
 	var comp_node = comp_data.component_node
 	var comp_id = comp_node.get_instance_id()
 
@@ -173,4 +170,3 @@ func gather_sim_results(
 			var actual_V_across_fv = NAN
 			if not is_nan(Vp_fv) and not is_nan(Vn_fv): actual_V_across_fv = Vp_fv - Vn_fv
 			circuit.component_results[comp_id]["voltage"] = actual_V_across_fv
-	#endregion

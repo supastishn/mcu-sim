@@ -10,8 +10,6 @@ var editor : CircuitEditor3D
 ## Reference to the CircuitGraph script within the editor.
 var graph  : CircuitGraph
 
-# ------------------------------------------------------------------ #
-# life-cycle
 ## Initializes the test rig by instantiating the editor scene and getting references.
 func init() -> void:             # call with:  await rig.init()
 	editor = EditorScene.instantiate()
@@ -26,8 +24,6 @@ func cleanup() -> void:
 		editor.queue_free()
 	queue_free()
 
-# ------------------------------------------------------------------ #
-# helpers
 ## Helper to add a component to the circuit.
 func add(scene: PackedScene, pos := Vector3.ZERO) -> Node3D:
 	return editor._add_component(scene, pos)
@@ -52,7 +48,6 @@ func solve(dt := 0.01) -> bool:
 func results(comp: Node3D) -> Dictionary:
 	return graph.component_results.get(comp.get_instance_id(), {})
 
-# -- optional between-sub-test reset (replaces old helper) ----------
 ## Resets the entire graph, removing all components and wires.
 func reset_graph() -> void:
 	for cd in graph.components.duplicate():

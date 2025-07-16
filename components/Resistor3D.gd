@@ -76,8 +76,6 @@ func stamp(
 		A[i1][i1] += g
 	elif i2 != -1:
 		A[i2][i2] += g
-# -----------------------------------------------------------------
-# Simulation‐results extraction
 ## Extracts and stores the current flowing through the resistor.
 func gather_sim_results(
 		circuit      : CircuitGraph,

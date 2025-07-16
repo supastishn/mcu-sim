@@ -114,8 +114,6 @@ func get_terminal_info() -> Dictionary:
 		"S": {"node": terminal_s, "pos": terminal_s.position}
 	}
 
-# -----------------------------------------------------------------
-# Simulation-results extraction
 ## Extracts and stores simulation results (currents, voltages, region) for this component.
 func gather_sim_results(
 		circuit      : CircuitGraph,
@@ -125,7 +123,6 @@ func gather_sim_results(
 		_vs_map       : Dictionary,
 		_inductor_map : Dictionary,
 		_delta_time   : float) -> void:
-	#region LEGACY_RESULT_CODE
 	var comp_node = comp_data.component_node
 	var comp_id = comp_node.get_instance_id()
 
@@ -157,7 +154,6 @@ func gather_sim_results(
 	circuit.component_results[comp_id]["Vgs"] = Vgs_nmos_actual
 	circuit.component_results[comp_id]["Vds"] = Vds_nmos_actual
 	circuit.component_results[comp_id]["region"] = region_nmos_calc
-	#endregion
 
 ## Updates the MOSFET's operating region based on an MNA iteration.
 func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter: Array, node_map_iter: Dictionary, _vs_map_iter: Dictionary) -> bool:
@@ -239,9 +235,6 @@ func stamp(
 		var G_ds_off_const = 1e-9 
 		CircuitGraph.stamp_conductance(A, G_ds_off_const, idx_d, idx_s)
 	else:
-		
-		
-		
 		var Vg_prev_iter_val = comp_data.properties.get("_internal_Vg_stamp", 0.0) 
 		var Vs_prev_iter_val = comp_data.properties.get("_internal_Vs_stamp", 0.0)
 		var Vgs_for_model_val = Vg_prev_iter_val - Vs_prev_iter_val

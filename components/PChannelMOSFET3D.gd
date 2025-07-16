@@ -173,7 +173,7 @@ func gather_sim_results(circuit,comp_data,_x,_node_map,_vs_map,_inductor_map,_dt
 	var Vs = circuit.electrical_nodes.get(circuit.terminal_connections.get(terminal_s.get_instance_id(),-1), {}).get("voltage", NAN)
 	var Vg = circuit.electrical_nodes.get(circuit.terminal_connections.get(terminal_g.get_instance_id(),-1), {}).get("voltage", NAN)
 	var Vd = circuit.electrical_nodes.get(circuit.terminal_connections.get(terminal_d.get_instance_id(),-1), {}).get("voltage", NAN)
-	var vt = threshold_voltage   # local copy for formulas
+	var vt = threshold_voltage
 
 	var Vgs = Vg - Vs
 	var Vds = Vd - Vs

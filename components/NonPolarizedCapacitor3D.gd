@@ -97,8 +97,6 @@ func get_terminal_info() -> Dictionary:
 		"T2": {"node": terminal2, "pos": terminal2.position}
 	}
 
-# -------------------------------------------------------------------------
-# MNA‐stamping interface
 ## Stamps the capacitor's equivalent conductance and current source into the MNA matrices for transient analysis.
 func stamp(
 	A: Array,
@@ -110,9 +108,9 @@ func stamp(
 	comp_data: Dictionary, # Used for capacitance, voltage_across_cap_prev_dt
 	delta_time: float
 ):
-	var C_val = capacitance # Direct access to exported property
+	var C_val = capacitance
 	if C_val <= 1e-12: C_val = 1e-12
-	var Vc_prev_dt_val = comp_data.properties.get("voltage_across_cap_prev_dt", 0.0) # State from comp_data
+	var Vc_prev_dt_val = comp_data.properties.get("voltage_across_cap_prev_dt", 0.0)
 
 	var G_eq: float
 	var I_eq_source: float
@@ -133,19 +131,15 @@ func stamp(
 	var idx1 = node_map.get(node1_lookup_id, -1)
 	var idx2 = node_map.get(node2_lookup_id, -1)
 
-	# Stamp conductance part (G_eq)
 	if idx1 != -1: A[idx1][idx1] += G_eq
 	if idx2 != -1: A[idx2][idx2] += G_eq
 	if idx1 != -1 and idx2 != -1:
 		A[idx1][idx2] -= G_eq
 		A[idx2][idx1] -= G_eq
 		
-	# Stamp current source part (I_eq_source)
 	if idx1 != -1: b[idx1] += I_eq_source
 	if idx2 != -1: b[idx2] -= I_eq_source
 
-# -----------------------------------------------------------------
-# Simulation-results extraction
 ## Extracts and stores simulation results (current, voltage) for this component.
 func gather_sim_results(
 		circuit      : CircuitGraph,
@@ -155,7 +149,6 @@ func gather_sim_results(
 		_vs_map       : Dictionary,
 		_inductor_map : Dictionary,
 		delta_time   : float) -> void:
-	#region LEGACY_RESULT_CODE
 	var comp_node = comp_data.component_node
 	var comp_id = comp_node.get_instance_id()
 
@@ -180,7 +173,6 @@ func gather_sim_results(
 		comp_data.properties["voltage_across_cap_prev_dt"] = Vc_np_t
 		
 		if abs(Vc_np_t) > max_V_np_cap:
-			# Overvoltage condition is handled in show_info
 			pass
 
 	else:
@@ -188,4 +180,3 @@ func gather_sim_results(
 
 	circuit.component_results[comp_id]["current"] = current_np_cap
 	circuit.component_results[comp_id]["voltage_across"] = Vc_np_t
-	#endregion

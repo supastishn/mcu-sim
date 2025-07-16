@@ -140,7 +140,6 @@ const SIMULATION_TIME_STEP: float = 0.01
 
 ## Godot's ready function. Initializes the editor, sets up UI, and prepares for user interaction.
 func _ready():
-	
 	is_mobile = OS.has_feature("mobile")
 	if is_mobile:
 		print("Mobile platform detected. Enabling virtual joysticks.")
@@ -169,63 +168,27 @@ func _ready():
 
 ## Handles all input events, including mouse clicks for selecting/wiring/dragging and keyboard controls for camera flight.
 func _input(event):
-	
-	
 	if get_viewport().is_input_handled():
-		print("--- _input: event already handled by GUI, returning. ---") 
 		return
 
-	
-	
-	
-
-
-	
-	
 	if selection_bar.visible: 
 		var ui_rect = selection_bar.get_global_rect()
-		print("  Workaround check: SelectionBar visible. Rect: {rect}".format({"rect": ui_rect})) 
 
 		var event_pos: Vector2 = Vector2.INF 
-		var is_mouse_event: bool = false
-		var is_touch_event: bool = false
-
 		if event is InputEventMouse:
 			event_pos = event.position
-			is_mouse_event = true
-			print("    Event is Mouse. Position: {pos}".format({"pos": event_pos})) 
 		elif event is InputEventScreenTouch:
 			event_pos = event.position
-			is_touch_event = true
-			print("    Event is Touch. Position: {pos}".format({"pos": event_pos})) 
 
-		
-		if (is_mouse_event or is_touch_event) and event_pos != Vector2.INF:
-			var hit_ui = ui_rect.has_point(event_pos)
-			print("    Rect.has_point(event_pos)? {hit}".format({"hit": hit_ui})) 
-			if hit_ui:
-				print("--- _input: event occurred over SelectionBar, manually stopping propagation. ---")
+		if event_pos != Vector2.INF:
+			if ui_rect.has_point(event_pos):
 				return 
-			else:
-				print("  Workaround check: Event position is NOT inside SelectionBar rect.") 
-
-	elif false: 
-		print("--- _input: event occurred over SelectionBar, manually stopping propagation. ---")
-		return 
-	
 
 	if event is InputEventMouseButton:
 			if event.button_index == MOUSE_BUTTON_LEFT:
 				if event.pressed:
-					
-					
-					
-					
-
 					print("Left Mouse Button Pressed at: {pos}".format({"pos": event.position}))
 
-					
-					
 					if _just_added_component:
 						print("  Ignoring input event immediately after component add button press.")
 						_just_added_component = false 
@@ -265,14 +228,12 @@ func _input(event):
 				elif not event.pressed: 
 					print("Left Mouse Button Released at: {0}".format([event.position]))
 
-
 					if is_dragging_component and dragged_component: 
 						print("  Was dragging component. Stopping drag.")
 						_stop_component_drag() 
 					
 					_potential_drag_target = null
 
-			
 			elif event.button_index == MOUSE_BUTTON_RIGHT and not is_dragging_component: 
 				if event.pressed:
 					print("Right Mouse Button Pressed - Toggling fly cam ON")
@@ -290,7 +251,6 @@ func _input(event):
 			_update_dragged_component_position(event.position)
 		
 		elif event.button_mask & MOUSE_BUTTON_LEFT and _potential_drag_target != null:
-			
 			if not _potential_drag_target is Wire3D:
 				var distance_moved = (event.position - _drag_start_position).length()
 				if distance_moved > DRAG_THRESHOLD:
@@ -301,15 +261,8 @@ func _input(event):
 						_update_dragged_component_position(event.position) 
 						_potential_drag_target = null 
 		elif is_flying and not is_mobile: 
-
-				
-				
-				
 				camera.rotate_y(-event.relative.x * look_sensitivity) 
-
-				
 				camera.rotate_object_local(Vector3.RIGHT, -event.relative.y * look_sensitivity)
-				
 				camera.rotation.x = clamp(camera.rotation.x, -deg_to_rad(89.0), deg_to_rad(89.0))
 
 
@@ -427,10 +380,7 @@ func _start_component_drag(component: Node3D):
 		dragged_component = component
 		_hide_voltage_displays() 
 		is_flying = false 
-		_reset_wiring_state() 
-		
-		
-		
+		_reset_wiring_state()
 
 ## Updates the position of the currently dragged component based on mouse/touch screen position.
 func _update_dragged_component_position(screen_pos: Vector2):
@@ -445,8 +395,6 @@ func _update_dragged_component_position(screen_pos: Vector2):
 
 	var result = space_state.intersect_ray(query)
 	if result:
-		
-		
 		var snapped_position = _snap_to_grid(result.position)
 		dragged_component.global_position = snapped_position
 		print("Dragging {drag_comp_name}: screen_pos={scr_pos} -> world_pos={world_pos} -> snapped_pos={snap_pos}".format({"drag_comp_name": dragged_component.name, "scr_pos": screen_pos, "world_pos": result.position, "snap_pos": snapped_position}))
@@ -455,11 +403,6 @@ func _update_dragged_component_position(screen_pos: Vector2):
 func _stop_component_drag():
 	if not is_dragging_component: return 
 	print("Stopping drag for: {drag_comp_name} at final position {final_pos}".format({"drag_comp_name": dragged_component.name, "final_pos": dragged_component.global_position}))
-	
-	
-		
-	
-
 	
 	is_dragging_component = false
 	
@@ -518,14 +461,6 @@ func _reset_wiring_state():
 	first_selected_terminal = null
 
 
-
-
-
-
-
-
-
-
 ## Callback for the 'Add Component' button, initiating the component placement process.
 func _on_add_component_button_pressed(scene_to_add: PackedScene):
 	print("Add component button pressed for scene: {scene_path}".format({"scene_path": scene_to_add.resource_path}))
@@ -565,8 +500,6 @@ func _on_add_component_button_pressed(scene_to_add: PackedScene):
 ## Performs a single step of the circuit simulation.
 func _perform_simulation_step():
 	print("Performing simulation step...")
-	
-	
 	var ground_terminal_set = false
 	if circuit_graph.ground_node_id == -1: 
 		print("  Attempting to set ground node as none is currently set.")
@@ -602,8 +535,6 @@ func _on_simulate_button_pressed():
 	if is_simulating_continuously:
 		simulate_button.text = "Stop Simulation"
 		print("Starting continuous simulation.")
-		
-		
 		_perform_simulation_step() 
 	else:
 		simulate_button.text = "Simulate"
@@ -614,16 +545,9 @@ func _on_simulate_button_pressed():
 			display_voltage_button.button_pressed = false 
 			display_voltage_button.text = "Display Voltage Labels"
 		
-		
 ## Called every frame when continuous simulation is active.
 func _simulate_circuit():
-	
-	
 	if circuit_graph.ground_node_id == -1:
-		
-		
-		
-		
 		var temp_ground_set = false
 		if circuit_graph.ground_node_id == -1: 
 			for comp_data in circuit_graph.components:
@@ -660,13 +584,8 @@ func _simulate_circuit():
 		_update_component_visuals()       
 		_update_voltage_displays() 
 	else:
-		
-		
-		
-		
 		_hide_voltage_displays() 
 		pass 
-
 
 
 # --- Dynamic UI generation for component bar and property editor ---
@@ -845,7 +764,7 @@ func _select_component(component: Node3D):
 		_add_slider_property(selected_component.wiper_position, func(new_val): selected_component.set_wiper_position(new_val))
 		
 	elif selected_component is Wire3D:
-		pass # No properties to show
+		pass
 		
 	elif selected_component is PolarizedCapacitor3D or selected_component is NonPolarizedCapacitor3D:
 		_add_line_edit_property("Capacitance (F):", selected_component.capacitance, func(new_val): selected_component.capacitance = new_val)
