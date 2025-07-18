@@ -561,10 +561,12 @@ func _calculate_kcl_error_vector(system: Dictionary) -> Array:
 	# The update is J*dV = -F(V), so we need to negate the final vector.
 	return error_vector.map(func(v): return -v)
 
-func _update_voltages_from_solution(delta_x: Array, node_map: Dictionary):
+func _update_voltages_from_solution(delta_x: Array, system: Dictionary):
+	var node_map = system.node_map
 	for node_id in node_map:
 		var index = node_map[node_id]
 		if index < delta_x.size():
+			if not electrical_nodes.has(node_id): electrical_nodes[node_id] = {"terminals": [], "voltage": 0.0}
 			electrical_nodes[node_id].voltage += delta_x[index]
 	
 	# Update internal component voltages for next linearization
