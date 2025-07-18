@@ -567,10 +567,23 @@ func _update_voltages_from_solution(delta_x: Array, node_map: Dictionary):
 	
 	# Update internal component voltages for next linearization
 	for comp_data in components:
-		if comp_data.type in ["Diode", "LED", "ZenerDiode"]:
+		var comp_type = comp_data.type
+		if comp_type in ["Diode", "LED", "ZenerDiode"]:
 			var va = electrical_nodes.get(terminal_connections.get(comp_data.terminals.A.get_instance_id(), -1), {}).get("voltage", 0.0)
 			var vk = electrical_nodes.get(terminal_connections.get(comp_data.terminals.K.get_instance_id(), -1), {}).get("voltage", 0.0)
 			comp_data.properties["_internal_voltage"] = va - vk
+		elif comp_type == "NPNBJT":
+			var vb = electrical_nodes.get(terminal_connections.get(comp_data.terminals.B.get_instance_id(), -1), {}).get("voltage", 0.0)
+			var ve = electrical_nodes.get(terminal_connections.get(comp_data.terminals.E.get_instance_id(), -1), {}).get("voltage", 0.0)
+			var vc = electrical_nodes.get(terminal_connections.get(comp_data.terminals.C.get_instance_id(), -1), {}).get("voltage", 0.0)
+			comp_data.properties["_internal_vbe"] = vb - ve
+			comp_data.properties["_internal_vbc"] = vb - vc
+		elif comp_type == "PNPBJT":
+			var ve = electrical_nodes.get(terminal_connections.get(comp_data.terminals.E.get_instance_id(), -1), {}).get("voltage", 0.0)
+			var vb = electrical_nodes.get(terminal_connections.get(comp_data.terminals.B.get_instance_id(), -1), {}).get("voltage", 0.0)
+			var vc = electrical_nodes.get(terminal_connections.get(comp_data.terminals.C.get_instance_id(), -1), {}).get("voltage", 0.0)
+			comp_data.properties["_internal_veb"] = ve - vb
+			comp_data.properties["_internal_vcb"] = vc - vb
 
 func _check_convergence(delta_x: Array, v_tol: float) -> bool:
 	var norm = delta_x.reduce(func(acc, val): return acc + val*val, 0.0)
