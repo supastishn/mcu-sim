@@ -101,10 +101,12 @@ func gather_sim_results(
 	var Ic = NAN
 	var Ib = NAN
 	var Ie = NAN
+	var Vbe = NAN
+	var Vbc = NAN
 	
 	if not is_nan(Vc) and not is_nan(Vb) and not is_nan(Ve):
-		var Vbe = Vb - Ve
-		var Vbc = Vb - Vc
+		Vbe = Vb - Ve
+		Vbc = Vb - Vc
 		comp_data.properties["_internal_vbe"] = Vbe
 		comp_data.properties["_internal_vbc"] = Vbc
 
@@ -116,12 +118,14 @@ func gather_sim_results(
 		Ib = Ie - Ic
 
 	var region = "OFF"
-	if not is_nan(Vbe):
-		if Vbe > 0.5: # Simple check for region for display
-			if Vbc > -0.4:
-				region = "SATURATION"
-			else:
-				region = "ACTIVE"
+	var Vth = 0.5
+	if Vbe > Vth:
+		if Vbc > 0:
+			region = "SATURATION"
+		else:
+			region = "ACTIVE"
+	elif Vbc > Vth:
+		region = "INVERSE"
 
 	circuit.component_results[comp_id]["Ic"] = Ic
 	circuit.component_results[comp_id]["Ib"] = Ib

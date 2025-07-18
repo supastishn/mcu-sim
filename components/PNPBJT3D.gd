@@ -101,10 +101,12 @@ func gather_sim_results(
 	var Ic = NAN
 	var Ib = NAN
 	var Ie = NAN
+	var Veb = NAN
+	var Vcb = NAN
 	
 	if not is_nan(Vc) and not is_nan(Vb) and not is_nan(Ve):
-		var Veb = Ve - Vb
-		var Vcb = Vc - Vb
+		Veb = Ve - Vb
+		Vcb = Vc - Vb
 		comp_data.properties["_internal_veb"] = Veb
 		comp_data.properties["_internal_vcb"] = Vcb
 
@@ -116,14 +118,14 @@ func gather_sim_results(
 		Ib = -(Ie + Ic) # Current flows out of base for PNP
 
 	var region = "OFF"
-	if not is_nan(comp_data.properties.get("_internal_veb", NAN)):
-		var Veb_check = comp_data.properties.get("_internal_veb", 0.0)
-		var Vcb_check = comp_data.properties.get("_internal_vcb", 0.0)
-		if Veb_check > 0.5: # Simple check for region for display
-			if Vcb_check > -0.4:
-				region = "SATURATION"
-			else:
-				region = "ACTIVE"
+	var Vth = 0.5
+	if Veb > Vth:
+		if Vcb > 0:
+			region = "SATURATION"
+		else:
+			region = "ACTIVE"
+	elif Vcb > Vth:
+		region = "INVERSE"
 
 	circuit.component_results[comp_id]["Ic"] = -Ic
 	circuit.component_results[comp_id]["Ib"] = Ib

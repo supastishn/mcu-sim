@@ -164,8 +164,11 @@ func gather_sim_results(
 		current = 0.0
 	elif not is_nan(Va) and not is_nan(Vk):
 		var Vd = Va - Vk
-		current = Is * (exp(Vd / (n * V_thermal)) - 1.0)
 		comp_data.properties["_internal_voltage"] = Vd
+		if Vd < 0:
+			current = 0.0
+		else:
+			current = Is * (exp(Vd / (n * V_thermal)) - 1.0)
 
 		if current > max_current_before_burn:
 			# record burn state back into the component‐data dict
