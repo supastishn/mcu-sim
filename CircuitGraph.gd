@@ -97,16 +97,16 @@ func add_component(component: Node3D):
 		component_data.terminals["NEG"] = component.terminal_neg
 	elif component is LED3D:
 		component_data.type = "LED"
-		component_data.properties["forward_voltage"] = component.forward_voltage
+		component_data.properties["saturation_current"] = component.saturation_current
+		component_data.properties["ideality_factor"] = component.ideality_factor
 		component_data.terminals["A"] = component.terminal_anode
 		component_data.terminals["K"] = component.terminal_kathode
 		component_data["conducting"] = false 
-		component_data.properties["min_current"] = component.min_current_to_light 
-		component_data.properties["max_current"] = component.max_current_before_burn 
 		component_data.is_burned = false 
 	elif component is Diode3D:
 		component_data.type = "Diode"
-		component_data.properties["forward_voltage"] = component.forward_voltage 
+		component_data.properties["saturation_current"] = component.saturation_current
+		component_data.properties["ideality_factor"] = component.ideality_factor
 		component_data.terminals["A"] = component.terminal_anode
 		component_data.terminals["K"] = component.terminal_kathode
 		component_data["conducting"] = false 
@@ -390,12 +390,12 @@ func component_config_changed(component_node: Node3D):
 		found_component_data.properties["target_voltage"] = component_node.target_voltage 
 		found_component_data.properties["num_cells"] = component_node.num_cells
 	elif comp_type == "LED" and component_node is LED3D:
-		found_component_data.properties["forward_voltage"] = component_node.forward_voltage
-		found_component_data.properties["min_current"] = component_node.min_current_to_light
-		found_component_data.properties["max_current"] = component_node.max_current_before_burn
+		found_component_data.properties["saturation_current"] = component_node.saturation_current
+		found_component_data.properties["ideality_factor"] = component_node.ideality_factor
 		found_component_data.is_burned = false 
 	elif comp_type == "Diode" and component_node is Diode3D:
-		found_component_data.properties["forward_voltage"] = component_node.forward_voltage
+		found_component_data.properties["saturation_current"] = component_node.saturation_current
+		found_component_data.properties["ideality_factor"] = component_node.ideality_factor
 	elif comp_type == "Switch" and component_node is Switch3D:
 		found_component_data.state = component_node.current_state
 	elif comp_type == "Potentiometer" and component_node is Potentiometer3D:
