@@ -52,7 +52,7 @@ var _needs_rebuild: bool = true
 
 ## A counter to generate unique electrical node IDs.
 var _next_node_id: int = 0
-
+var _next_internal_node_id: int = -1 # Use negative numbers for internal nodes
 
 ## Returns a new unique ID for an electrical node.
 func _get_new_node_id() -> int:
@@ -345,6 +345,10 @@ func set_ground_node(terminal: Area3D):
 		ground_node_id = node_id
 		electrical_nodes[ground_node_id].voltage = 0.0
 
+## Returns a unique ID for an internal node within a component.
+func _get_internal_node_id() -> int:
+	_next_internal_node_id -= 1
+	return _next_internal_node_id
 
 ## Registers dynamically created terminals from a component like a breadboard.
 func register_dynamic_terminals(component_node: Node3D, terminals: Array):
@@ -517,8 +521,8 @@ func _solve_newton_raphson(delta_time: float) -> bool:
 		
 		if A.is_empty(): return true
 
-		# Newton-Raphson: Solve A * dV = -f(V)
-		var delta_x = LinearSolver.solve(A, b_error.map(func(v): return -v))
+		# Newton-Raphson: Solve A * dV = F(V)
+		var delta_x = LinearSolver.solve(A, b_error)
 
 		if delta_x.is_empty():
 			printerr("LinearSolver failed in Newton-Raphson iteration.")
@@ -533,31 +537,29 @@ func _solve_newton_raphson(delta_time: float) -> bool:
 	return false
 
 func _calculate_kcl_error_vector(system: Dictionary) -> Array:
-	var A = system.A
-	var b = system.b
-	var num_vars = A.size()
-	
-	# Get current voltage vector Vk
-	var V_k = []
-	V_k.resize(num_vars)
-	V_k.fill(0.0)
-	for node_id in system.node_map:
-		var index = system.node_map[node_id]
-		V_k[index] = electrical_nodes.get(node_id, {"voltage": 0.0}).voltage
-
-	# KCL error f(Vk) = A * Vk - b
-	# (Since the stamp functions build A*V=b for the linearized system)
-	var error_vector = []
+	var num_vars = system.A.size()
+	var error_vector: Array = []
 	error_vector.resize(num_vars)
 	error_vector.fill(0.0)
-	
-	for i in range(num_vars):
-		var sum_av = 0.0
-		for j in range(num_vars):
-			sum_av += A[i][j] * V_k[j]
-		error_vector[i] = sum_av - b[i]
+
+	# Independent sources are already in b, so just add component currents
+	error_vector = system.b.duplicate()
+
+	for comp_data in components:
+		if not comp_data.component_node.has_method("get_kcl_contributions"):
+			continue
+
+		var node_voltages = {}
+		for term_name in comp_data.terminals:
+			var terminal = comp_data.terminals[term_name]
+			var node_id = terminal_connections.get(terminal.get_instance_id(), -1)
+			node_voltages[term_name] = electrical_nodes.get(node_id, {}).get("voltage", 0.0)
 		
-	return error_vector
+		comp_data.component_node.get_kcl_contributions(node_voltages, error_vector, system.node_map)
+
+	# The vector we want is the error, which is the sum of currents at each node.
+	# The update is J*dV = -F(V), so we need to negate the final vector.
+	return error_vector.map(func(v): return -v)
 
 func _update_voltages_from_solution(delta_x: Array, node_map: Dictionary):
 	for node_id in node_map:
@@ -632,7 +634,22 @@ func _build_mna_system(delta_time: float) -> Dictionary:
 	for i in range(num_inductors):
 		var ind_comp_data = active_inductors[i]
 		var ind_id = ind_comp_data.component_node.get_instance_id()
-		inductor_id_to_matrix_index[ind_id] = num_nodes + num_active_vs + i 
+		inductor_id_to_matrix_index[ind_id] = num_nodes + num_active_vs + i
+	
+	# Discover internal nodes required by components
+	var internal_nodes: Array[int] = []
+	for comp in components:
+		if comp.component_node.has_method("get_internal_nodes"):
+			var comp_internal_nodes = comp.component_node.get_internal_nodes(self)
+			for internal_node_id in comp_internal_nodes:
+				if not internal_nodes.has(internal_node_id):
+					internal_nodes.push_back(internal_node_id)
+
+	var num_internal_nodes = internal_nodes.size()
+	for i in range(num_internal_nodes):
+		node_id_to_matrix_index[internal_nodes[i]] = num_nodes + num_active_vs + num_inductors + i
+		
+	N += num_internal_nodes
 		
 	if N == 0:
 		return {"A": [], "b": [], "node_map": node_id_to_matrix_index, "vs_map": active_vs_id_to_matrix_index, "inductor_map": inductor_id_to_matrix_index}

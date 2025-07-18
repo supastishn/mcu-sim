@@ -77,6 +77,10 @@ func get_terminal_info() -> Dictionary:
 		"T2": {"node": terminal2, "pos": terminal2.position}
 	}
 
+## Returns any internal nodes this component requires.
+func get_internal_nodes(graph: CircuitGraph) -> Array:
+	return [graph._get_internal_node_id()]
+
 ## Stamps the inductor's contribution to the MNA matrices for transient analysis.
 func stamp(
 	A: Array,
@@ -88,20 +92,24 @@ func stamp(
 	comp_data: Dictionary, # Used for inductance, current_through_L_prev_dt
 	delta_time: float
 ):
-	# TODO: Implement DCR. This would involve stamping a resistor in series,
-	# which requires an internal node.
+	var dcr = dc_resistance
+	var internal_node_idx = node_map.get(get_internal_nodes(get_tree().current_scene.circuit_graph)[0], -1)
+
+	var t1_idx = node_map.get(terminal_connections.get(terminal1.get_instance_id(), -1), -1)
+	var t2_idx = node_map.get(terminal_connections.get(terminal2.get_instance_id(), -1), -1)
+	
+	# Stamp DCR between terminal 1 and internal node
+	if dcr > 1e-9:
+		var g_dcr = 1.0 / dcr
+		CircuitGraph.stamp_conductance(A, g_dcr, t1_idx, internal_node_idx)
+	else:
+		CircuitGraph.stamp_conductance(A, 1e9, t1_idx, internal_node_idx)
+
 	var L_val_prop = inductance
 	if L_val_prop <= 1e-12: L_val_prop = 1e-12 # Ensure L is not zero
 	var I_L_prev_dt_val_prop = comp_data.properties.get("current_through_L_prev_dt", 0.0)
 
-	var t1_instance_id = terminal1.get_instance_id() if is_instance_valid(terminal1) else -1
 	var t2_instance_id = terminal2.get_instance_id() if is_instance_valid(terminal2) else -1
-
-	var node1_lookup_id = terminal_connections.get(t1_instance_id, -1)
-	var node2_lookup_id = terminal_connections.get(t2_instance_id, -1)
-
-	var idx1 = node_map.get(node1_lookup_id, -1)
-	var idx2 = node_map.get(node2_lookup_id, -1)
 	
 	var self_instance_id = self.get_instance_id()
 	if not inductor_map.has(self_instance_id):
@@ -110,29 +118,24 @@ func stamp(
 	var idx_I_L_val = inductor_map[self_instance_id]
 
 	# Inductor equation: V1 - V2 - L * d(I_L)/dt = 0
-	# Using Backward Euler: V1(t) - V2(t) - L * (I_L(t) - I_L(t-dt))/dt = 0
-	# Row for I_L: V1(t) - V2(t) - (L/dt)*I_L(t) = -(L/dt)*I_L(t-dt)
+	# Using Backward Euler: V_internal(t) - V2(t) - L * (I_L(t) - I_L(t-dt))/dt = 0
+	# Row for I_L: V_internal(t) - V2(t) - (L/dt)*I_L(t) = -(L/dt)*I_L(t-dt)
 	
 	var L_div_dt: float
-	if delta_time <= 1e-9: # Avoid division by zero or very small dt
-		# V1 - V2 - (L/dt) * I_L = - (L/dt) * I_L_prev
-		L_div_dt = L_val_prop / 1e-9 # Effectively a large number
-		# This case should ideally be handled by how the solver treats dt=0 (e.g. DC analysis)
-		# For transient, dt should not be zero.
+	if delta_time <= 1e-9:
+		L_div_dt = L_val_prop / 1e-9
 	else:
 		L_div_dt = L_val_prop / delta_time
 
-	if idx1 != -1: A[idx_I_L_val][idx1] = 1.0
-	if idx2 != -1: A[idx_I_L_val][idx2] = -1.0
+	if internal_node_idx != -1: A[idx_I_L_val][internal_node_idx] = 1.0
+	if t2_idx != -1: A[idx_I_L_val][t2_idx] = -1.0
 	A[idx_I_L_val][idx_I_L_val] = -L_div_dt
 	
 	b[idx_I_L_val] = -L_div_dt * I_L_prev_dt_val_prop
 	
-	# KCL equations:
-	# Node 1: ... + I_L = ...
-	# Node 2: ... - I_L = ...
-	if idx1 != -1: A[idx1][idx_I_L_val] = 1.0
-	if idx2 != -1: A[idx2][idx_I_L_val] = -1.0
+	# KCL equations for ideal inductor
+	if internal_node_idx != -1: A[internal_node_idx][idx_I_L_val] = 1.0
+	if t2_idx != -1: A[t2_idx][idx_I_L_val] = -1.0
 
 ## Extracts and stores simulation results (current, voltage) for this component.
 func gather_sim_results(

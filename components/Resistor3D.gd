@@ -76,6 +76,19 @@ func stamp(
 		A[i1][i1] += g
 	elif i2 != -1:
 		A[i2][i2] += g
+
+func get_kcl_contributions(node_voltages: Dictionary, error_vector: Array, node_map: Dictionary):
+	var v1 = node_voltages.get("T1", 0.0)
+	var v2 = node_voltages.get("T2", 0.0)
+	var R = max(resistance, 1e-12)
+	var current = (v1 - v2) / R
+	
+	var i1 = node_map.get(terminal_connections.get(terminal1.get_instance_id(),-1), -1)
+	var i2 = node_map.get(terminal_connections.get(terminal2.get_instance_id(),-1), -1)
+
+	if i1 != -1: error_vector[i1] += current
+	if i2 != -1: error_vector[i2] -= current
+
 ## Extracts and stores the current flowing through the resistor.
 func gather_sim_results(
 		circuit      : CircuitGraph,

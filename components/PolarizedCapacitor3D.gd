@@ -106,6 +106,12 @@ func get_terminal_info() -> Dictionary:
 		"T2": {"node": terminal2, "pos": terminal2.position}
 	}
 
+## Returns any internal nodes this component requires.
+func get_internal_nodes(graph: CircuitGraph) -> Array:
+	# Request one internal node for the ESR connection.
+	var internal_node_id = graph._get_internal_node_id()
+	return [internal_node_id]
+
 ## Stamps the capacitor's equivalent conductance and current source into the MNA matrices for transient analysis.
 func stamp(
 	A: Array,
@@ -117,9 +123,19 @@ func stamp(
 	comp_data: Dictionary, # Used for is_exploded, capacitance, voltage_across_cap_prev_dt
 	delta_time: float
 ):
-	# TODO: Implement ESR. This requires creating a new internal node for the component,
-	# which needs architectural changes in CircuitGraph._build_mna_system to handle.
-	# For now, only the ideal capacitor is stamped.
+	var esr = equivalent_series_resistance
+	var internal_node_idx = node_map.get(get_internal_nodes(get_tree().current_scene.circuit_graph)[0], -1)
+
+	var t1_idx = node_map.get(terminal_connections.get(terminal1.get_instance_id(),-1), -1)
+	var t2_idx = node_map.get(terminal_connections.get(terminal2.get_instance_id(),-1), -1)
+	
+	# Stamp ESR between terminal 1 and the internal node
+	if esr > 1e-9:
+		var g_esr = 1.0 / esr
+		CircuitGraph.stamp_conductance(A, g_esr, t1_idx, internal_node_idx)
+	else: # If no ESR, effectively connect terminal 1 directly to the internal node
+		CircuitGraph.stamp_conductance(A, 1e9, t1_idx, internal_node_idx)
+
 	var G_eq: float
 	var I_eq_source: float = 0.0
 	
@@ -137,28 +153,11 @@ func stamp(
 			G_eq = C_val / delta_time
 			I_eq_source = G_eq * Vc_prev_dt_val
 			
-	var t1_instance_id = terminal1.get_instance_id() if is_instance_valid(terminal1) else -1
-	var t2_instance_id = terminal2.get_instance_id() if is_instance_valid(terminal2) else -1
-
-	var node1_lookup_id = terminal_connections.get(t1_instance_id, -1)
-	var node2_lookup_id = terminal_connections.get(t2_instance_id, -1)
-
-	var idx1 = node_map.get(node1_lookup_id, -1)
-	var idx2 = node_map.get(node2_lookup_id, -1)
-
-	# Inlined _stamp_conductance(A, G_eq, idx1, idx2)
-	if idx1 != -1 and idx2 != -1:
-		A[idx1][idx1] += G_eq
-		A[idx2][idx2] += G_eq
-		A[idx1][idx2] -= G_eq
-		A[idx2][idx1] -= G_eq
-	elif idx1 != -1:
-		A[idx1][idx1] += G_eq
-	elif idx2 != -1:
-		A[idx2][idx2] += G_eq
+	# Stamp the ideal capacitor between the internal node and terminal 2
+	CircuitGraph.stamp_conductance(A, G_eq, internal_node_idx, t2_idx)
 		
-	if idx1 != -1: b[idx1] += I_eq_source
-	if idx2 != -1: b[idx2] -= I_eq_source
+	if internal_node_idx != -1: b[internal_node_idx] += I_eq_source
+	if t2_idx != -1: b[t2_idx] -= I_eq_source
 
 ## Extracts and stores simulation results, checking for overvoltage or reverse polarity explosion.
 func gather_sim_results(

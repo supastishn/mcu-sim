@@ -181,3 +181,25 @@ func stamp(
 		b[idx_c] -= I_bc_eq - alpha_f * I_be_eq + alpha_r * I_bc_eq
 		if idx_b != -1: A[idx_c][idx_b] -= g_mu - gm_f
 		if idx_e != -1: A[idx_c][idx_e] -= -gm_r
+
+func get_kcl_contributions(node_voltages: Dictionary, error_vector: Array, node_map: Dictionary):
+	var Vc = node_voltages.get("C", 0.0)
+	var Vb = node_voltages.get("B", 0.0)
+	var Ve = node_voltages.get("E", 0.0)
+
+	var Vbe = Vb - Ve
+	var Vbc = Vb - Vc
+	
+	var I_es = saturation_current / alpha_forward
+	var I_cs = saturation_current / alpha_reverse
+
+	var Ie = I_es * (exp(Vbe / THERMAL_VOLTAGE) - 1.0) - alpha_reverse * I_cs * (exp(Vbc / THERMAL_VOLTAGE) - 1.0)
+	var Ic = alpha_forward * I_es * (exp(Vbe / THERMAL_VOLTAGE) - 1.0) - I_cs * (exp(Vbc / THERMAL_VOLTAGE) - 1.0)
+
+	var idx_c = node_map.get(terminal_connections.get(terminal_c.get_instance_id(), -1), -1)
+	var idx_b = node_map.get(terminal_connections.get(terminal_b.get_instance_id(), -1), -1)
+	var idx_e = node_map.get(terminal_connections.get(terminal_e.get_instance_id(), -1), -1)
+	
+	if idx_c != -1: error_vector[idx_c] += Ic
+	if idx_b != -1: error_vector[idx_b] += Ie - Ic # Ib
+	if idx_e != -1: error_vector[idx_e] -= Ie
