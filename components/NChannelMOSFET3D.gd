@@ -174,6 +174,9 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 	var Vg_nmos = x_iter[idx_g] if idx_g != -1 else (0.0 if node_g_id_nmos == circuit.ground_node_id else NAN)
 	var Vs_nmos = x_iter[idx_s] if idx_s != -1 else (0.0 if node_s_id_nmos == circuit.ground_node_id else NAN)
 
+	if not is_nan(Vg_nmos): comp_data.properties["_internal_Vg_stamp"] = Vg_nmos
+	if not is_nan(Vs_nmos): comp_data.properties["_internal_Vs_stamp"] = Vs_nmos
+
 	var vt_nmos_model = comp_data.properties["threshold_voltage"]
 	var previous_region_nmos = comp_data.properties["operating_region"]
 	var new_region_nmos = previous_region_nmos

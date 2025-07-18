@@ -113,6 +113,9 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 	var Vg = x_iter[idx_g] if idx_g != -1 else (0.0 if node_g_id == circuit.ground_node_id else NAN)
 	var Vd = x_iter[idx_d] if idx_d != -1 else (0.0 if node_d_id == circuit.ground_node_id else NAN)
 
+	if not is_nan(Vg): comp_data.properties["_int_Vg"] = Vg
+	if not is_nan(Vs): comp_data.properties["_int_Vs"] = Vs
+
 	var prev = comp_data.properties["operating_region"]
 	var reg  = prev
 	if is_nan(Vs) or is_nan(Vg) or is_nan(Vd):

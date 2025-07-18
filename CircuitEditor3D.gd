@@ -558,16 +558,6 @@ func _simulate_circuit():
 						temp_ground_set = true
 						break
 			if not temp_ground_set:
-				
-				for comp_data_mos_gnd in circuit_graph.components:
-					if comp_data_mos_gnd.type == "NChannelMOSFET":
-						var s_terminal = comp_data_mos_gnd.terminals.get("S", null)
-						if is_instance_valid(s_terminal):
-							circuit_graph.set_ground_node(s_terminal)
-							temp_ground_set = true
-							print_debug("Continuous simulation: No PS/Battery ground, grounded Source of NChannelMOSFET {n}".format({"n": comp_data_mos_gnd.component_node.name}))
-							break
-			if not temp_ground_set:
 				printerr("Continuous Simulation Error: Ground node not set and could not auto-set. Stopping.")
 				is_simulating_continuously = false 
 				simulate_button.text = "Simulate"

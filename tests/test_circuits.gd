@@ -1450,7 +1450,12 @@ func test_pmosfet_regions() -> bool:
 	id_val = res.get("Id", NAN)
 	print_debug("    TRIODE solve → region=" + region_str + " , Id=" + str(id_val))
 	if not TestUtils.assert_equals(res.get("region",""), "TRIODE", "PMOS Test (TRI): Region is TRIODE"): ok = false
-	if not TestUtils.assert_true(res.get("Id", NAN) > 0, "PMOS Test (TRI): Id > 0 (D->S current)"): ok = false
+	var Vsg_tri = res.get("Vgs", NAN) * -1.0
+	var Vsd_tri = res.get("Vds", NAN) * -1.0
+	var kp_tri = pmos_tr.transconductance_parameter
+	var vt_tri = pmos_tr.threshold_voltage
+	var expected_id_tri = kp_tri * ( (Vsg_tri - vt_tri) * Vsd_tri - 0.5 * pow(Vsd_tri, 2) )
+	if not TestUtils.assert_approx_equals(id_val, expected_id_tri, 0.01, "PMOS Test (TRI): Id matches expected"): ok = false
 	# ---- SATURATION ----
 	rig.reset_graph()
 	var ps_s_sat : PowerSource3D     = rig.add(ed.PowerSourceScene)
@@ -1473,7 +1478,11 @@ func test_pmosfet_regions() -> bool:
 	id_val = res.get("Id", NAN)
 	print_debug("    SAT solve → region=" + region_str + " , Id=" + str(id_val))
 	if not TestUtils.assert_equals(res.get("region",""), "SATURATION", "PMOS Test (SAT): Region is SATURATION"): ok = false
-	if not TestUtils.assert_true(res.get("Id", NAN) > 0, "PMOS Test (SAT): Id > 0 (D->S current)"): ok = false
+	var Vsg_sat = res.get("Vgs", NAN) * -1.0
+	var kp_sat = pmos_sat.transconductance_parameter
+	var vt_sat = pmos_sat.threshold_voltage
+	var expected_id_sat = 0.5 * kp_sat * pow(Vsg_sat - vt_sat, 2)
+	if not TestUtils.assert_approx_equals(id_val, expected_id_sat, 0.01, "PMOS Test (SAT): Id matches expected"): ok = false
 	rig.cleanup()
 	return ok
 
