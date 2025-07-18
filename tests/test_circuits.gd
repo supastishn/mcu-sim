@@ -726,10 +726,9 @@ func test_npn_bjt_regions() -> bool:
 	graph_script.component_config_changed(ps_cutoff)
 	rc_cutoff.resistance = 1000.0 
 	graph_script.component_config_changed(rc_cutoff)
-	bjt_cutoff.beta_dc = 100.0
-	bjt_cutoff.vbe_on = 0.7
-	bjt_cutoff.vce_sat = 0.2
-	graph_script.component_config_changed(bjt_cutoff)
+	bjt_cutoff.saturation_current = 1e-15
+	bjt_cutoff.alpha_forward = 0.99
+	bjt_cutoff.alpha_reverse = 0.5
 
 	graph_script.connect_terminals(ps_cutoff.terminal_pos, rc_cutoff.terminal1)
 	graph_script.connect_terminals(rc_cutoff.terminal2, bjt_cutoff.terminal_c)
