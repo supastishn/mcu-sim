@@ -533,15 +533,30 @@ func _solve_newton_raphson(delta_time: float) -> bool:
 	return false
 
 func _calculate_kcl_error_vector(system: Dictionary) -> Array:
-	var num_vars = system.A.size()
-	var error_vector: Array = []
+	var A = system.A
+	var b = system.b
+	var num_vars = A.size()
+	
+	# Get current voltage vector Vk
+	var V_k = []
+	V_k.resize(num_vars)
+	V_k.fill(0.0)
+	for node_id in system.node_map:
+		var index = system.node_map[node_id]
+		V_k[index] = electrical_nodes.get(node_id, {"voltage": 0.0}).voltage
+
+	# KCL error f(Vk) = A * Vk - b
+	# (Since the stamp functions build A*V=b for the linearized system)
+	var error_vector = []
 	error_vector.resize(num_vars)
 	error_vector.fill(0.0)
 	
-	# This is a simplified placeholder. A full implementation would
-	# iterate through components and sum their non-linear currents
-	# at each node to calculate the KCL error.
-	
+	for i in range(num_vars):
+		var sum_av = 0.0
+		for j in range(num_vars):
+			sum_av += A[i][j] * V_k[j]
+		error_vector[i] = sum_av - b[i]
+		
 	return error_vector
 
 func _update_voltages_from_solution(delta_x: Array, node_map: Dictionary):
