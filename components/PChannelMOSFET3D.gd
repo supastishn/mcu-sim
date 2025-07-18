@@ -8,6 +8,8 @@ signal configuration_changed(component_node : Node3D)
 @export var threshold_voltage : float = 2.0 : set = set_threshold_voltage
 ## The transconductance parameter (Kp), related to the MOSFET's current-carrying capability.
 @export var transconductance_parameter : float = 0.1 : set = set_transconductance_parameter
+## The channel-length modulation parameter (lambda). A value of 0.0 is ideal.
+@export var lambda: float = 0.01
 
 ## Reference to the Drain terminal Area3D node.
 @onready var terminal_d : Area3D = $TerminalD
@@ -115,6 +117,7 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 
 	if not is_nan(Vg): comp_data.properties["_int_Vg"] = Vg
 	if not is_nan(Vs): comp_data.properties["_int_Vs"] = Vs
+	if not is_nan(Vd): comp_data.properties["_int_Vd"] = Vd
 
 	var prev = comp_data.properties["operating_region"]
 	var reg  = prev
@@ -138,36 +141,34 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 # ---------- STAMP ----------
 ## Applies the MOSFET's contribution to the MNA matrices based on its current operating region.
 func stamp(A, b,node_map,_vs_map,_inductor_map,term_conn,comp_data,_dt):
-	var reg = comp_data.properties["operating_region"]
+	var reg = comp_data.properties.get("operating_region")
 	var vt  = threshold_voltage
 	var kp  = transconductance_parameter
+	var p_lambda = lambda
 
 	var idx_d = node_map.get(term_conn.get(terminal_d.get_instance_id(),-1), -1)
 	var idx_s = node_map.get(term_conn.get(terminal_s.get_instance_id(),-1), -1)
 	var idx_g = node_map.get(term_conn.get(terminal_g.get_instance_id(),-1), -1)
 
-	var G_gate_leak = 1e-12
-
-	CircuitGraph.stamp_conductance(A, G_gate_leak, idx_g, idx_s)
-	CircuitGraph.stamp_conductance(A, G_gate_leak, idx_g, idx_d)
+	CircuitGraph.stamp_conductance(A, 1e-12, idx_g, idx_s) # Gate leakage
+	
+	var Vsg = comp_data.properties.get("_int_Vs",0.0) - comp_data.properties.get("_int_Vg",0.0)
+	var Vsd = comp_data.properties.get("_int_Vs",0.0) - comp_data.properties.get("_int_Vd",0.0)
 
 	if reg=="OFF":
 		CircuitGraph.stamp_conductance(A, 1e-9, idx_s, idx_d)
 	elif reg=="TRIODE":
-		var Vsg = comp_data.properties.get("_int_Vs",0.0) - comp_data.properties.get("_int_Vg",0.0)
-		var cond = kp * max(0.01, Vsg - vt)
-		cond = clamp(cond,1e-3,1e9)
-		CircuitGraph.stamp_conductance(A, cond, idx_s, idx_d)
+		var g_ds = kp * (Vsg - vt - Vsd) * (1 + p_lambda * Vsd) + kp * ( (Vsg-vt)*Vsd - 0.5*Vsd*Vsd) * p_lambda
+		CircuitGraph.stamp_conductance(A, g_ds, idx_s, idx_d)
 	else: # SATURATION
-		var Vsg = comp_data.properties.get("_int_Vs",0.0) - comp_data.properties.get("_int_Vg",0.0)
-		var Id_sat = 0.0
-		if Vsg > vt:
-			Id_sat = 0.5 * kp * pow(Vsg - vt,2.0)   # positive current (D->S, matches NMOS convention)
-		if idx_d!=-1: b[idx_d] -= Id_sat
-		if idx_s!=-1: b[idx_s] += Id_sat
-		# add a tiny output-resistance so the matrix is well-conditioned
-		var Gds_sat := 1e-6      #  ≈ 1 MΩ
-		CircuitGraph.stamp_conductance(A, Gds_sat, idx_s, idx_d)
+		var g_ds = 0.5 * kp * pow(max(0, Vsg - vt), 2.0) * p_lambda
+		CircuitGraph.stamp_conductance(A, g_ds, idx_s, idx_d)
+		
+		var Id_sat = 0.5 * kp * pow(max(0, Vsg - vt), 2.0) * (1 + p_lambda * Vsd)
+		var I_norton = Id_sat - g_ds * Vsd
+
+		if idx_s != -1: b[idx_s] += I_norton
+		if idx_d != -1: b[idx_d] -= I_norton
 
 # ---------- gather_sim_results ----------
 ## Extracts and stores simulation results (currents, voltages, region) for this component.
@@ -188,9 +189,9 @@ func gather_sim_results(circuit,comp_data,_x,_node_map,_vs_map,_inductor_map,_dt
 		if reg=="OFF":
 			Id = 0.0
 		elif reg=="TRIODE":
-			Id =  transconductance_parameter * ( (Vsg - vt) * Vsd - 0.5*pow(Vsd,2) )
+			Id =  transconductance_parameter * ( (Vsg - vt) * Vsd - 0.5*pow(Vsd,2) ) * (1 + lambda * Vsd)
 		else: # SATURATION
-			Id = 0.5 * transconductance_parameter * pow(Vsg - vt,2)
+			Id = 0.5 * transconductance_parameter * pow(Vsg - vt,2) * (1 + lambda * Vsd)
 	# ensure we always store a positive current magnitude
 	if not is_nan(Id) and Id < 0.0:
 		Id = -Id

@@ -148,9 +148,9 @@ func gather_sim_results(
 		if region_nmos_calc == "OFF": 
 			Id_nmos = 0.0
 		elif region_nmos_calc == "TRIODE": 
-			Id_nmos = kn_nmos_model_calc * (vgs_vt_diff_calc * Vds_nmos_actual - 0.5 * pow(Vds_nmos_actual, 2.0))
+			Id_nmos = kn_nmos_model_calc * (vgs_vt_diff_calc * Vds_nmos_actual - 0.5 * pow(Vds_nmos_actual, 2.0)) * (1 + lambda * Vds_nmos_actual)
 		elif region_nmos_calc == "SATURATION": 
-			Id_nmos = 0.5 * kn_nmos_model_calc * pow(vgs_vt_diff_calc, 2.0)
+			Id_nmos = 0.5 * kn_nmos_model_calc * pow(vgs_vt_diff_calc, 2.0) * (1 + lambda * Vds_nmos_actual)
 	
 	circuit.component_results[comp_id]["Id"] = Id_nmos
 	circuit.component_results[comp_id]["Vgs"] = Vgs_nmos_actual
@@ -178,6 +178,7 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 
 	if not is_nan(Vg_nmos): comp_data.properties["_internal_Vg_stamp"] = Vg_nmos
 	if not is_nan(Vs_nmos): comp_data.properties["_internal_Vs_stamp"] = Vs_nmos
+	if not is_nan(Vd_nmos) and not is_nan(Vs_nmos): comp_data.properties["_internal_Vds_stamp"] = Vd_nmos - Vs_nmos
 
 	var vt_nmos_model = comp_data.properties["threshold_voltage"]
 	var previous_region_nmos = comp_data.properties["operating_region"]
@@ -259,12 +260,17 @@ func stamp(
 			CircuitGraph.stamp_conductance(A, G_ds_triode_val, idx_d, idx_s)
 			
 		elif region_nmos_mna_val == "SATURATION":
-			# Add small output conductance for matrix stability (Gds_sat)
-			var Gds_sat := 1e-6  # ~1 MΩ
-			CircuitGraph.stamp_conductance(A, Gds_sat, idx_d, idx_s)
+			# Model with channel length modulation: Id = 0.5 * Kn * (Vgs-Vt)^2 * (1 + lambda*Vds)
+			# This linearizes to a current source and an output conductance g_ds.
+			var Vds_last = comp_data.properties.get("_internal_Vds_stamp", 0.0)
+			var g_ds = 0.5 * kn_nmos_mna_prop * pow(max(0, Vgs_for_model_val - vt_nmos_mna_prop), 2.0) * lambda
+			CircuitGraph.stamp_conductance(A, g_ds, idx_d, idx_s)
 			
 			var Id_sat_calc_val = 0.0
 			if Vgs_for_model_val > vt_nmos_mna_prop:
-				Id_sat_calc_val = 0.5 * kn_nmos_mna_prop * pow(Vgs_for_model_val - vt_nmos_mna_prop, 2.0)
-			if idx_d != -1: b[idx_d] -= Id_sat_calc_val 
-			if idx_s != -1: b[idx_s] += Id_sat_calc_val 
+				Id_sat_calc_val = 0.5 * kn_nmos_mna_prop * pow(Vgs_for_model_val - vt_nmos_mna_prop, 2.0) * (1 + lambda * Vds_last)
+			
+			# Adjust for Norton equivalent current source
+			var I_norton = Id_sat_calc_val - g_ds * Vds_last
+			if idx_d != -1: b[idx_d] -= I_norton
+			if idx_s != -1: b[idx_s] += I_norton

@@ -12,6 +12,8 @@ signal configuration_changed(component_node: Node3D)
 
 ## The maximum voltage the capacitor can safely handle, in Volts.
 @export var max_voltage: float = 400.0 : set = set_max_voltage 
+## The Equivalent Series Resistance (ESR) of the capacitor in Ohms.
+@export var equivalent_series_resistance: float = 0.05
 
 ## Reference to the first terminal Area3D node.
 @onready var terminal1: Area3D = $Terminal1
@@ -108,6 +110,7 @@ func stamp(
 	comp_data: Dictionary, # Used for capacitance, voltage_across_cap_prev_dt
 	delta_time: float
 ):
+	# TODO: Implement ESR. This requires creating a new internal node for the component.
 	var C_val = capacitance
 	if C_val <= 1e-12: C_val = 1e-12
 	var Vc_prev_dt_val = comp_data.properties.get("voltage_across_cap_prev_dt", 0.0)

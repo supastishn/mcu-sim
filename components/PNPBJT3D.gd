@@ -7,14 +7,13 @@ class_name PNPBJT3D
 signal configuration_changed(component_node: Node3D)
 
 
-## The DC current gain (hFE) of the transistor.
-@export var beta_dc: float = 100.0 : set = set_beta_dc
-
-## The emitter-base voltage required to turn the transistor on, in Volts.
-@export var veb_on: float = 0.7 : set = set_veb_on
-
-## The emitter-collector saturation voltage, in Volts.
-@export var vec_sat: float = 0.2 : set = set_vec_sat
+## The saturation current of the transistor.
+@export var saturation_current: float = 1e-15
+## The forward common-base current gain.
+@export var alpha_forward: float = 0.99
+## The reverse common-base current gain.
+@export var alpha_reverse: float = 0.5
+const THERMAL_VOLTAGE: float = 0.02585
 
 ## Reference to the Emitter terminal Area3D node.
 @onready var terminal_e: Area3D = $TerminalE 
@@ -33,45 +32,6 @@ func _ready():
 		printerr("PNPBJT3D requires a child Label3D named 'InfoLabel'.")
 	
 	reset_visual_state()
-	set_beta_dc(beta_dc)
-	set_veb_on(veb_on)
-	set_vec_sat(vec_sat)
-
-## Sets the DC current gain (beta), validates it, and emits a signal.
-func set_beta_dc(value: float):
-	var new_beta = max(1.0, value)
-	if is_equal_approx(beta_dc, new_beta):
-		beta_dc = new_beta
-		return
-
-	beta_dc = new_beta
-	print("PNPBJT {bjt_name} beta_dc set to: {beta_str}".format({"bjt_name": name, "beta_str": String.num(beta_dc, 1)}))
-	if is_inside_tree():
-		emit_signal("configuration_changed", self)
-
-## Sets the emitter-base turn-on voltage, validates it, and emits a signal.
-func set_veb_on(value: float):
-	var new_veb = max(0.1, value)
-	if is_equal_approx(veb_on, new_veb):
-		veb_on = new_veb
-		return
-
-	veb_on = new_veb
-	print("PNPBJT {bjt_name} veb_on set to: {veb_str} V".format({"bjt_name": name, "veb_str": String.num(veb_on, 2)}))
-	if is_inside_tree():
-		emit_signal("configuration_changed", self)
-
-## Sets the emitter-collector saturation voltage, validates it, and emits a signal.
-func set_vec_sat(value: float):
-	var new_vec_sat = max(0.0, value)
-	if is_equal_approx(vec_sat, new_vec_sat):
-		vec_sat = new_vec_sat
-		return
-
-	vec_sat = new_vec_sat
-	print("PNPBJT {bjt_name} vec_sat set to: {vec_str} V".format({"bjt_name": name, "vec_str": String.num(vec_sat, 2)}))
-	if is_inside_tree():
-		emit_signal("configuration_changed", self)
 
 
 
@@ -121,183 +81,27 @@ func get_terminal_info() -> Dictionary:
 ## Extracts and stores simulation results (currents, region) for this component.
 func gather_sim_results(
 		circuit      : CircuitGraph,
-		comp_data    : Dictionary,
+		_comp_data    : Dictionary,
 		_x            : Array,
 		_node_map     : Dictionary,
 		_vs_map       : Dictionary,
 		_inductor_map : Dictionary,
 		_delta_time   : float) -> void:
-	var comp_node = comp_data.component_node
-	var comp_id = comp_node.get_instance_id()
-
-	var Ve_pnp_calc = circuit.electrical_nodes.get(circuit.terminal_connections.get(comp_data.terminals["E"].get_instance_id(), -1), {}).get("voltage", NAN)
-	var Vb_pnp_calc = circuit.electrical_nodes.get(circuit.terminal_connections.get(comp_data.terminals["B"].get_instance_id(), -1), {}).get("voltage", NAN)
-	var Vc_pnp_calc = circuit.electrical_nodes.get(circuit.terminal_connections.get(comp_data.terminals["C"].get_instance_id(), -1), {}).get("voltage", NAN)
-	
-	var region_pnp_calc = comp_data.properties["operating_region"]
-	var beta_pnp_calc = comp_data.properties["beta_dc"]
-	var veb_on_pnp_model_calc = comp_data.properties["veb_on"]
-	var vec_sat_pnp_model_calc = comp_data.properties["vec_sat"]
-	
-	var Ic_pnp: float = NAN 
-	var Ib_pnp: float = NAN 
-	var Ie_pnp: float = NAN 
-	
-	var R_eb_active_model_pnp_calc = 50.0
-	var R_ec_sat_model_pnp_calc = 5.0
-
-	if not is_nan(Ve_pnp_calc) and not is_nan(Vb_pnp_calc) and not is_nan(Vc_pnp_calc):
-		var Veb_actual_pnp = Ve_pnp_calc - Vb_pnp_calc
-		var Vec_actual_pnp = Ve_pnp_calc - Vc_pnp_calc
-		
-		if region_pnp_calc == "OFF":
-			Ib_pnp = 0.0; Ic_pnp = 0.0; Ie_pnp = 0.0
-		elif region_pnp_calc == "ACTIVE":
-			if Veb_actual_pnp > veb_on_pnp_model_calc:
-				Ib_pnp = (Veb_actual_pnp - veb_on_pnp_model_calc) / R_eb_active_model_pnp_calc
-			else:
-				Ib_pnp = 0.0
-			if Ib_pnp < 0.0: Ib_pnp = 0.0
-			
-			Ic_pnp = beta_pnp_calc * Ib_pnp
-			Ie_pnp = Ic_pnp + Ib_pnp
-		elif region_pnp_calc == "SATURATION":
-			if Veb_actual_pnp > veb_on_pnp_model_calc:
-				Ib_pnp = (Veb_actual_pnp - veb_on_pnp_model_calc) / R_eb_active_model_pnp_calc
-			else:
-				Ib_pnp = 0.0
-			if Ib_pnp < 0.0: Ib_pnp = 0.0
-
-			if Vec_actual_pnp > vec_sat_pnp_model_calc:
-				Ic_pnp = (Vec_actual_pnp - vec_sat_pnp_model_calc) / R_ec_sat_model_pnp_calc
-			else:
-				Ic_pnp = 0.0 
-			if Ic_pnp < 0.0: Ic_pnp = 0.0
-			Ie_pnp = Ic_pnp + Ib_pnp
-	
-	circuit.component_results[comp_id]["Ic"] = Ic_pnp
-	circuit.component_results[comp_id]["Ib"] = Ib_pnp
-	circuit.component_results[comp_id]["Ie"] = Ie_pnp
-	circuit.component_results[comp_id]["region"] = region_pnp_calc
-
-## Updates the BJT's operating region based on an MNA iteration.
-func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter: Array, node_map_iter: Dictionary, _vs_map_iter: Dictionary) -> bool:
-	if x_iter.is_empty():
-		return false
-
-	var term_e_pnp = comp_data.terminals["E"]
-	var term_b_pnp = comp_data.terminals["B"]
-	var term_c_pnp = comp_data.terminals["C"]
-	var node_e_id_pnp = circuit.terminal_connections.get(term_e_pnp.get_instance_id(), -1)
-	var node_b_id_pnp = circuit.terminal_connections.get(term_b_pnp.get_instance_id(), -1)
-	var node_c_id_pnp = circuit.terminal_connections.get(term_c_pnp.get_instance_id(), -1)
-
-	var idx_e = node_map_iter.get(node_e_id_pnp, -1)
-	var idx_b = node_map_iter.get(node_b_id_pnp, -1)
-	var idx_c = node_map_iter.get(node_c_id_pnp, -1)
-	var Ve_pnp = x_iter[idx_e] if idx_e != -1 else (0.0 if node_e_id_pnp == circuit.ground_node_id else NAN)
-	var Vb_pnp = x_iter[idx_b] if idx_b != -1 else (0.0 if node_b_id_pnp == circuit.ground_node_id else NAN)
-	var Vc_pnp = x_iter[idx_c] if idx_c != -1 else (0.0 if node_c_id_pnp == circuit.ground_node_id else NAN)
-
-	var veb_on_pnp_model = comp_data.properties["veb_on"]
-	var vec_sat_pnp_model = comp_data.properties["vec_sat"]
-	var previous_region_pnp = comp_data.properties["operating_region"]
-	var new_region_pnp = previous_region_pnp
-
-	if is_nan(Ve_pnp) or is_nan(Vb_pnp) or is_nan(Vc_pnp):
-		new_region_pnp = "OFF"
-	else:
-		var Veb_pnp = Ve_pnp - Vb_pnp 
-		var Vec_pnp = Ve_pnp - Vc_pnp 
-		var veb_tolerance_pnp = 1e-5
-
-		if Veb_pnp < (veb_on_pnp_model - veb_tolerance_pnp): 
-			new_region_pnp = "OFF"
-		else: 
-			var vec_saturation_check_upper_bound_pnp = vec_sat_pnp_model + circuit.BJT_SATURATION_VOLTAGE_MARGIN
-			if Vec_pnp <= vec_saturation_check_upper_bound_pnp: 
-				new_region_pnp = "SATURATION"
-			else: 
-				new_region_pnp = "ACTIVE"
-
-	if new_region_pnp != previous_region_pnp:
-		comp_data.properties["operating_region"] = new_region_pnp
-		return true
-	return false
+	# This function is now a placeholder as the simple region model is deprecated.
+	# A full Ebers-Moll based calculation would be needed here.
+	pass
 
 ## Applies the BJT's contribution to the MNA matrices based on its current operating region.
 func stamp(
-	A: Array,
-	b: Array,
-	node_map: Dictionary,
+	_A: Array,
+	_b: Array,
+	_node_map: Dictionary,
 	_vs_map: Dictionary,
 	_inductor_map: Dictionary,
-	terminal_connections: Dictionary,
-	comp_data: Dictionary,
+	_terminal_connections: Dictionary,
+	_comp_data: Dictionary,
 	_delta_time: float
 ):
-	var region_pnp_val = comp_data.properties["operating_region"]
-	var beta_pnp_prop = beta_dc 
-	var veb_on_model_pnp_prop = veb_on 
-	var vec_sat_model_pnp_prop = vec_sat 
-
-	var e_term_id = terminal_e.get_instance_id()
-	var b_term_id = terminal_b.get_instance_id()
-	var c_term_id = terminal_c.get_instance_id()
-
-	var node_e_lookup_id = terminal_connections.get(e_term_id, -1)
-	var node_b_lookup_id = terminal_connections.get(b_term_id, -1)
-	var node_c_lookup_id = terminal_connections.get(c_term_id, -1)
-
-	var idx_e = node_map.get(node_e_lookup_id, -1)
-	var idx_b = node_map.get(node_b_lookup_id, -1)
-	var idx_c = node_map.get(node_c_lookup_id, -1)
-
-	var R_eb_active_model_pnp_const = 50.0  
-	var R_ec_sat_model_pnp_const = 5.0    
-	var R_pnp_off_model_const = 1.0e9 
-
-	if region_pnp_val == "OFF":
-		var g_off_pnp_val = 1.0 / R_pnp_off_model_const
-		CircuitGraph.stamp_conductance(A, g_off_pnp_val, idx_e, idx_b)
-		CircuitGraph.stamp_conductance(A, g_off_pnp_val, idx_e, idx_c)
-		CircuitGraph.stamp_conductance(A, g_off_pnp_val, idx_b, idx_c)
-		
-	elif region_pnp_val == "ACTIVE":
-		var G_eb_active_pnp_val = 1.0 / R_eb_active_model_pnp_const
-		var Is_eb_active_pnp_val = veb_on_model_pnp_prop / R_eb_active_model_pnp_const 
-		
-		if idx_e != -1: A[idx_e][idx_e] += G_eb_active_pnp_val; b[idx_e] += Is_eb_active_pnp_val 
-		if idx_b != -1: A[idx_b][idx_b] += G_eb_active_pnp_val; b[idx_b] -= Is_eb_active_pnp_val 
-		if idx_e != -1 and idx_b != -1:
-			A[idx_e][idx_b] -= G_eb_active_pnp_val
-			A[idx_b][idx_e] -= G_eb_active_pnp_val
-		
-		var Gm_pnp_active = beta_pnp_prop / R_eb_active_model_pnp_const
-		var Ic_const_offset_pnp_active = beta_pnp_prop * veb_on_model_pnp_prop / R_eb_active_model_pnp_const
-
-		if idx_e != -1: 
-			if idx_e != -1: A[idx_e][idx_e] += Gm_pnp_active 
-			if idx_b != -1: A[idx_e][idx_b] -= Gm_pnp_active 
-			b[idx_e] += Ic_const_offset_pnp_active 
-		if idx_c != -1: 
-			if idx_e != -1: A[idx_c][idx_e] -= Gm_pnp_active 
-			if idx_b != -1: A[idx_c][idx_b] += Gm_pnp_active 
-			b[idx_c] -= Ic_const_offset_pnp_active 
-
-	elif region_pnp_val == "SATURATION":
-		var G_eb_sat_pnp_val = 1.0 / R_eb_active_model_pnp_const 
-		var Is_eb_sat_pnp_val = veb_on_model_pnp_prop / R_eb_active_model_pnp_const
-		if idx_e != -1: A[idx_e][idx_e] += G_eb_sat_pnp_val; b[idx_e] += Is_eb_sat_pnp_val
-		if idx_b != -1: A[idx_b][idx_b] += G_eb_sat_pnp_val; b[idx_b] -= Is_eb_sat_pnp_val
-		if idx_e != -1 and idx_b != -1:
-			A[idx_e][idx_b] -= G_eb_sat_pnp_val
-			A[idx_b][idx_e] -= G_eb_sat_pnp_val
-			
-		var G_ec_sat_pnp_val = 1.0 / R_ec_sat_model_pnp_const
-		var Is_ec_sat_pnp_val = vec_sat_model_pnp_prop / R_ec_sat_model_pnp_const 
-		if idx_e != -1: A[idx_e][idx_e] += G_ec_sat_pnp_val; b[idx_e] += Is_ec_sat_pnp_val 
-		if idx_c != -1: A[idx_c][idx_c] += G_ec_sat_pnp_val; b[idx_c] -= Is_ec_sat_pnp_val 
-		if idx_e != -1 and idx_c != -1:
-			A[idx_e][idx_c] -= G_ec_sat_pnp_val
-			A[idx_c][idx_e] -= G_ec_sat_pnp_val
+	# Placeholder for a full PNP Ebers-Moll model stamp.
+	# This would be similar to the NPN version but with voltages/currents reversed.
+	pass

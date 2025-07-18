@@ -9,6 +9,8 @@ signal configuration_changed(component_node: Node3D)
 
 ## The inductance value in Henrys.
 @export var inductance: float = 1.0e-3 : set = set_inductance 
+## The DC resistance (DCR) of the inductor's winding in Ohms.
+@export var dc_resistance: float = 0.1
 
 ## Reference to the first terminal Area3D node.
 @onready var terminal1: Area3D = $Terminal1
@@ -86,6 +88,8 @@ func stamp(
 	comp_data: Dictionary, # Used for inductance, current_through_L_prev_dt
 	delta_time: float
 ):
+	# TODO: Implement DCR. This would involve stamping a resistor in series,
+	# which requires an internal node.
 	var L_val_prop = inductance
 	if L_val_prop <= 1e-12: L_val_prop = 1e-12 # Ensure L is not zero
 	var I_L_prev_dt_val_prop = comp_data.properties.get("current_through_L_prev_dt", 0.0)

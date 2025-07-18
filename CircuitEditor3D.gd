@@ -732,7 +732,8 @@ func _select_component(component: Node3D):
 		)
 		
 	elif selected_component is LED3D:
-		_add_line_edit_property("Fwd Voltage (V):", selected_component.forward_voltage, func(new_val): selected_component.forward_voltage = new_val)
+		_add_line_edit_property("Sat. Current (A):", selected_component.saturation_current, func(new_val): selected_component.saturation_current = new_val)
+		_add_line_edit_property("Ideality Factor:", selected_component.ideality_factor, func(new_val): selected_component.ideality_factor = new_val)
 		
 	elif selected_component is Diode3D:
 		_add_line_edit_property("Sat. Current (A):", selected_component.saturation_current, func(new_val): selected_component.saturation_current = new_val)
@@ -760,9 +761,11 @@ func _select_component(component: Node3D):
 	elif selected_component is PolarizedCapacitor3D or selected_component is NonPolarizedCapacitor3D:
 		_add_line_edit_property("Capacitance (F):", selected_component.capacitance, func(new_val): selected_component.capacitance = new_val)
 		_add_line_edit_property("Max Voltage (V):", selected_component.max_voltage, func(new_val): selected_component.max_voltage = new_val)
+		_add_line_edit_property("ESR (Ohms):", selected_component.equivalent_series_resistance, func(new_val): selected_component.equivalent_series_resistance = new_val)
 
 	elif selected_component is Inductor3D:
 		_add_line_edit_property("Inductance (H):", selected_component.inductance, func(new_val): selected_component.inductance = new_val)
+		_add_line_edit_property("DCR (Ohms):", selected_component.dc_resistance, func(new_val): selected_component.dc_resistance = new_val)
 
 	elif selected_component is NPNBJT3D:
 		var selected_t : NPNBJT3D = selected_component
@@ -772,9 +775,9 @@ func _select_component(component: Node3D):
 		
 	elif selected_component is PNPBJT3D:
 		var selected_t : PNPBJT3D = selected_component
-		_add_line_edit_property("Beta (Hfe):", selected_t.beta_dc, func(new_val): selected_t.beta_dc = new_val)
-		_add_line_edit_property("Veb On (V):", selected_t.veb_on, func(new_val): selected_t.veb_on = new_val)
-		_add_line_edit_property("Vec Sat (V):", selected_t.vec_sat, func(new_val): selected_t.vec_sat = new_val)
+		_add_line_edit_property("Is (A):", selected_t.saturation_current, func(new_val): selected_t.saturation_current = new_val)
+		_add_line_edit_property("Alpha Fwd:", selected_t.alpha_forward, func(new_val): selected_t.alpha_forward = new_val)
+		_add_line_edit_property("Alpha Rev:", selected_t.alpha_reverse, func(new_val): selected_t.alpha_reverse = new_val)
 	
 	elif selected_component is NChannelMOSFET3D:
 		var selected_t : NChannelMOSFET3D = selected_component
@@ -786,6 +789,7 @@ func _select_component(component: Node3D):
 		var selected_t : PChannelMOSFET3D = selected_component
 		_add_line_edit_property("|Vtp| (V):", selected_t.threshold_voltage, func(new_val): selected_t.threshold_voltage = new_val)
 		_add_line_edit_property("Kp (A/V^2):", selected_t.transconductance_parameter, func(new_val): selected_t.transconductance_parameter = new_val)
+		_add_line_edit_property("Lambda:", selected_t.lambda, func(new_val): selected_t.lambda = new_val)
 
 	elif selected_component is Relay3D:
 		var selected_t : Relay3D = selected_component

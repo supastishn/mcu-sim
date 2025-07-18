@@ -32,45 +32,6 @@ func _ready():
 		printerr("NPNBJT3D requires a child Label3D named 'InfoLabel'.")
 	
 	reset_visual_state()
-	set_beta_dc(beta_dc)
-	set_vbe_on(vbe_on)
-	set_vce_sat(vce_sat)
-
-## Sets the DC current gain (beta), validates it, and emits a signal.
-func set_beta_dc(value: float):
-	var new_beta = max(1.0, value)
-	if is_equal_approx(beta_dc, new_beta):
-		beta_dc = new_beta
-		return
-
-	beta_dc = new_beta
-	print("NPNBJT {bjt_name} beta_dc set to: {beta_str}".format({"bjt_name": name, "beta_str": String.num(beta_dc, 1)}))
-	if is_inside_tree():
-		emit_signal("configuration_changed", self)
-
-## Sets the base-emitter turn-on voltage, validates it, and emits a signal.
-func set_vbe_on(value: float):
-	var new_vbe = max(0.1, value)
-	if is_equal_approx(vbe_on, new_vbe):
-		vbe_on = new_vbe
-		return
-
-	vbe_on = new_vbe
-	print("NPNBJT {bjt_name} vbe_on set to: {vbe_str} V".format({"bjt_name": name, "vbe_str": String.num(vbe_on, 2)}))
-	if is_inside_tree():
-		emit_signal("configuration_changed", self)
-
-## Sets the collector-emitter saturation voltage, validates it, and emits a signal.
-func set_vce_sat(value: float):
-	var new_vce_sat = max(0.0, value)
-	if is_equal_approx(vce_sat, new_vce_sat):
-		vce_sat = new_vce_sat
-		return
-	
-	vce_sat = new_vce_sat
-	print("NPNBJT {bjt_name} vce_sat set to: {vce_str} V".format({"bjt_name": name, "vce_str": String.num(vce_sat, 2)}))
-	if is_inside_tree():
-		emit_signal("configuration_changed", self)
 
 
 
@@ -126,104 +87,37 @@ func gather_sim_results(
 		_vs_map       : Dictionary,
 		_inductor_map : Dictionary,
 		_delta_time   : float) -> void:
-	var comp_node = comp_data.component_node
-	var comp_id = comp_node.get_instance_id()
-
+	var comp_id = comp_data.component_node.get_instance_id()
+	
 	var Vc = circuit.electrical_nodes.get(circuit.terminal_connections.get(comp_data.terminals["C"].get_instance_id(), -1), {}).get("voltage", NAN)
 	var Vb = circuit.electrical_nodes.get(circuit.terminal_connections.get(comp_data.terminals["B"].get_instance_id(), -1), {}).get("voltage", NAN)
 	var Ve = circuit.electrical_nodes.get(circuit.terminal_connections.get(comp_data.terminals["E"].get_instance_id(), -1), {}).get("voltage", NAN)
-	
-	var region = comp_data.properties["operating_region"]
-	var beta = comp_data.properties["beta_dc"]
-	var vbe_on_calc = comp_data.properties["vbe_on"]
-	var vce_sat_calc = comp_data.properties["vce_sat"]
-	
-	var Ic: float = NAN
-	var Ib: float = NAN
-	var Ie: float = NAN
-	
-	var R_be_active_model_calc = 50.0
-	var R_ce_sat_model_calc = 5.0
 
+	var Is = comp_data.properties["saturation_current"]
+	var alpha_f = comp_data.properties["alpha_forward"]
+	var alpha_r = comp_data.properties["alpha_reverse"]
+	var Vt = THERMAL_VOLTAGE
+
+	var Ic = NAN
+	var Ib = NAN
+	var Ie = NAN
+	
 	if not is_nan(Vc) and not is_nan(Vb) and not is_nan(Ve):
-		var Vbe_actual = Vb - Ve
-		var Vce_actual = Vc - Ve
-		
-		if region == "OFF":
-			Ib = 0.0; Ic = 0.0; Ie = 0.0
-		elif region == "ACTIVE":
-			if Vbe_actual > vbe_on_calc:
-				Ib = (Vbe_actual - vbe_on_calc) / R_be_active_model_calc
-			else: 
-				Ib = 0.0
-			if Ib < 0.0: Ib = 0.0 
-			
-			Ic = beta * Ib
-			Ie = Ic + Ib
-		elif region == "SATURATION":
-			if Vbe_actual > vbe_on_calc:
-				Ib = (Vbe_actual - vbe_on_calc) / R_be_active_model_calc
-			else:
-				Ib = 0.0
-			if Ib < 0.0: Ib = 0.0
+		var Vbe = Vb - Ve
+		var Vbc = Vb - Vc
+		comp_data.properties["_internal_vbe"] = Vbe
+		comp_data.properties["_internal_vbc"] = Vbc
 
-			if Vce_actual > vce_sat_calc: 
-				Ic = (Vce_actual - vce_sat_calc) / R_ce_sat_model_calc
-			else: 
-				Ic = 0.0 
-			if Ic < 0.0: Ic = 0.0 
+		var I_es = Is / alpha_f
+		var I_cs = Is / alpha_r
 
-			Ie = Ic + Ib
-	
+		Ie = I_es * (exp(Vbe / Vt) - 1.0) - alpha_r * I_cs * (exp(Vbc / Vt) - 1.0)
+		Ic = alpha_f * I_es * (exp(Vbe / Vt) - 1.0) - I_cs * (exp(Vbc / Vt) - 1.0)
+		Ib = Ie - Ic
+
 	circuit.component_results[comp_id]["Ic"] = Ic
 	circuit.component_results[comp_id]["Ib"] = Ib
 	circuit.component_results[comp_id]["Ie"] = Ie
-	circuit.component_results[comp_id]["region"] = region 
-
-## Updates the BJT's operating region based on an MNA iteration.
-func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter: Array, node_map_iter: Dictionary, _vs_map_iter: Dictionary) -> bool:
-	if x_iter.is_empty():
-		return false
-
-	var term_c = comp_data.terminals["C"]
-	var term_b = comp_data.terminals["B"]
-	var term_e = comp_data.terminals["E"]
-	var node_c_id = circuit.terminal_connections.get(term_c.get_instance_id(), -1)
-	var node_b_id = circuit.terminal_connections.get(term_b.get_instance_id(), -1)
-	var node_e_id = circuit.terminal_connections.get(term_e.get_instance_id(), -1)
-
-	var idx_c = node_map_iter.get(node_c_id, -1)
-	var idx_b = node_map_iter.get(node_b_id, -1)
-	var idx_e = node_map_iter.get(node_e_id, -1)
-	var Vc = x_iter[idx_c] if idx_c != -1 else (0.0 if node_c_id == circuit.ground_node_id else NAN)
-	var Vb = x_iter[idx_b] if idx_b != -1 else (0.0 if node_b_id == circuit.ground_node_id else NAN)
-	var Ve = x_iter[idx_e] if idx_e != -1 else (0.0 if node_e_id == circuit.ground_node_id else NAN)
-
-	var vbe_on_bjt = comp_data.properties["vbe_on"]
-	var vce_sat_bjt = comp_data.properties["vce_sat"]
-	var previous_region = comp_data.properties["operating_region"]
-	var new_region = previous_region 
-
-	if is_nan(Vb) or is_nan(Ve) or is_nan(Vc):
-		new_region = "OFF" 
-	else:
-		var Vbe = Vb - Ve
-		var Vce = Vc - Ve
-		var vbe_tolerance = 1e-5 
-
-		if Vbe < (vbe_on_bjt - vbe_tolerance): 
-			new_region = "OFF"
-		else: 
-			var vce_saturation_check_upper_bound = vce_sat_bjt + circuit.BJT_SATURATION_VOLTAGE_MARGIN
-			if Vce <= vce_saturation_check_upper_bound: 
-				new_region = "SATURATION"
-			else: 
-				new_region = "ACTIVE"
-
-	if new_region != previous_region:
-		comp_data.properties["operating_region"] = new_region
-		return true
-	return false
 
 ## Applies the BJT's contribution to the MNA matrices based on its current operating region.
 func stamp(
