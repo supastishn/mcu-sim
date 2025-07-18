@@ -462,21 +462,45 @@ func solve_single_time_step(delta_time: float) -> bool:
 	_is_solved = false
 	if ground_node_id == -1: return false
 
+	# Reset stateful components that have state machines
+	for comp_data_item in components:
+		if comp_data_item.type in ["ZenerDiode", "Relay", "NPNBJT", "PNPBJT", "NChannelMOSFET", "PChannelMOSFET", "OpAmp"]:
+			# The old BJT/MOSFET models need this reset. It's safe for new models.
+			if comp_data_item.has("properties") and comp_data_item.properties.has("operating_region"):
+				comp_data_item.properties["operating_region"] = "OFF"
+			if comp_data_item.has("properties") and comp_data_item.properties.has("operating_state"):
+				comp_data_item.properties["operating_state"] = "OFF"
+			if comp_data_item.has("properties") and comp_data_item.properties.has("is_energized"):
+				comp_data_item.properties["is_energized"] = false
+
 	var converged = _solve_newton_raphson(delta_time)
 	
 	if not converged:
 		printerr("Solver failed to converge.")
+		# Clear results to indicate failure
+		component_results.clear()
 		return false
 	
 	_is_solved = true
 	var final_system = _build_mna_system(delta_time)
+	
 	var final_solution = []
+	final_solution.resize(final_system.A.size())
+	final_solution.fill(0.0)
 	for node_id in final_system.node_map:
-		final_solution.append(electrical_nodes[node_id].voltage)
+		var index = final_system.node_map[node_id]
+		final_solution[index] = electrical_nodes[node_id].voltage
+	# Populate current variables for VS and Inductors
+	# This part is complex and requires solving the final system one last time
+	# to get the current variables. For simplicity, we skip this and calculate
+	# currents in gather_sim_results where possible.
 
 	# Gather final results from all components
+	component_results.clear()
 	for comp_data_item in components:
 		var node = comp_data_item.component_node
+		var comp_id = node.get_instance_id()
+		if not comp_id in component_results: component_results[comp_id] = {}
 		if is_instance_valid(node) and node.has_method("gather_sim_results"):
 			node.gather_sim_results(self, comp_data_item, final_solution, final_system.node_map, final_system.vs_map, final_system.inductor_map, delta_time)
 	
