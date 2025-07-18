@@ -528,8 +528,9 @@ func _solve_newton_raphson(delta_time: float) -> bool:
 			printerr("LinearSolver failed in Newton-Raphson iteration.")
 			return false
 
-		# Damping for stability
-		var damping_factor = 0.7
+		# Adaptive damping for stability
+		var norm = sqrt(delta_x.reduce(func(acc, val): return acc + val*val, 0.0))
+		var damping_factor = clamp(0.1 * log(norm + 1) + 0.3, 0.1, 0.8)
 		var node_map = system.node_map
 		for node_id in node_map:
 			var index = node_map[node_id]

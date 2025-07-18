@@ -24,6 +24,9 @@ const THERMAL_VOLTAGE: float = 0.02585 # At room temperature (300K)
 ## The emission energy multiplier when the current is at or above `max_current_before_burn`.
 @export var max_emission_multiplier: float = 2.0
 
+## The reverse breakdown voltage for the LED (approximate).
+const REVERSE_BREAKDOWN_VOLTAGE: float = 5.0
+
 
 ## Reference to the Anode terminal Area3D node.
 @onready var terminal_anode: Area3D = $TerminalAnode 
@@ -161,15 +164,16 @@ func gather_sim_results(
 	elif not is_nan(Va) and not is_nan(Vk):
 		var Vd = Va - Vk
 		comp_data.properties["_internal_voltage"] = Vd
-		if Vd < 0:
-			current = 0.0
-		else:
-			current = Is * (exp(Vd / (n * V_thermal)) - 1.0)
 
-		if current > max_current_before_burn:
-			# record burn state back into the component‐data dict
+		# Check for reverse breakdown
+		if Vd < -REVERSE_BREAKDOWN_VOLTAGE:
 			comp_data["is_burned"] = true
 			current = 0.0
+		else:
+			current = saturation_current * (exp(Vd / (ideality_factor * THERMAL_VOLTAGE)) - 1.0)
+			if abs(current) > max_current_before_burn:
+				comp_data["is_burned"] = true
+				current = 0.0
 	
 	circuit.component_results[comp_id]["current"] = current
 

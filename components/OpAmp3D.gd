@@ -185,17 +185,20 @@ func stamp(
 		if vout_idx != -1:
 			A[vout_idx][vout_idx] += 1e-9 # High impedance to ground
 	elif region == "LINEAR":
-		# I_n = (Aol / Ro) * (Vp - Vn)
-		# KCL at Vout: ... + g_out*Vout - g_out*Vn_internal = I_n
-		# Where Vn_internal is the controlled source. This is complex.
-		# A simpler VCVS with output resistance is better. This requires an internal node.
-		# Compromise: Use a less ideal VCVS model.
-		var Aol = open_loop_gain
-		if vout_idx != -1:
-			# Stamps a VCVS with output resistance Ro
-			A[vout_idx][vout_idx] += g_out
-			if vp_idx != -1: A[vout_idx][vp_idx] -= g_out * Aol
-			if vn_idx != -1: A[vout_idx][vn_idx] += g_out * Aol
+		# Add a new equation row for the VCVS: Vout - Aol*(Vp - Vn) = 0
+		var N = A.size()
+		A.resize(N + 1)
+		b.resize(N + 1)
+		A[N] = []
+		A[N].resize(N + 1)
+		A[N].fill(0.0)
+		for i in range(N):
+			A[i].resize(N + 1)
+		# Vout - Aol*(Vp - Vn) = 0
+		if vout_idx != -1: A[N][vout_idx] = 1.0
+		if vp_idx != -1:   A[N][vp_idx] = -open_loop_gain
+		if vn_idx != -1:   A[N][vn_idx] = open_loop_gain
+		b[N] = 0.0
 	elif region == "SAT_HIGH":
 		# Enforce Vout = Vcc - rail_saturation_voltage
 		var sat_drop = comp_data.properties["rail_saturation_voltage"]

@@ -112,11 +112,12 @@ func gather_sim_results(
 		# Forward bias calculation
 		var I_fwd = Is * (exp(Vd / (n * V_thermal)) - 1.0)
 		
-		# Reverse bias (Zener) calculation
-		# Simplified model: I_rev = Is * (exp(-(Vd + Vz) / Vt) - 1.0)
-		var I_rev = Is * (exp(-(Vd + Vz) / V_thermal) - 1.0)
+		# Improved reverse bias (Zener) calculation
+		var I_rev = 0.0
+		if Vd < -0.1:
+			I_rev = -Is * exp((Vd + Vz) / (n * V_thermal))
 		
-		current = I_fwd - I_rev # Total current
+		current = I_fwd + I_rev # Total current
 
 		# Determine state for display
 		if Vd > 0.5: state = "FORWARD"

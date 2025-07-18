@@ -68,10 +68,7 @@ func gather_sim_results(
 	var current = NAN
 	if not is_nan(Va) and not is_nan(Vk):
 		var Vd = Va - Vk
-		if Vd < 0:
-			current = 0.0
-		else:
-			current = Is * (exp(Vd / (n * V_thermal)) - 1.0)
+		current = saturation_current * (exp(Vd / (ideality_factor * THERMAL_VOLTAGE)) - 1.0)
 		comp_data.properties["_internal_voltage"] = Vd
 
 	circuit.component_results[comp_id]["current"] = current

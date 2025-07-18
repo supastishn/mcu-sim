@@ -159,14 +159,15 @@ func gather_sim_results(
 
 	if vs_map.has(comp_id): 
 		var matrix_idx_curr_final = vs_map[comp_id]
-		if matrix_idx_curr_final < x.size():
-			var solved_current_mna = x[matrix_idx_curr_final] 
-			circuit.component_results[comp_id]["current"] = -solved_current_mna 
+		var solved_current_mna = 0.0
+		if matrix_idx_curr_final < x.size() and not is_nan(x[matrix_idx_curr_final]):
+			solved_current_mna = x[matrix_idx_curr_final]
+		circuit.component_results[comp_id]["current"] = -solved_current_mna 
 			
-			var term_p_fv = comp_data.terminals["POS"]
-			var term_n_fv = comp_data.terminals["NEG"]
-			var Vp_fv = circuit.electrical_nodes.get(circuit.terminal_connections.get(term_p_fv.get_instance_id(), -1), {}).get("voltage", NAN)
-			var Vn_fv = circuit.electrical_nodes.get(circuit.terminal_connections.get(term_n_fv.get_instance_id(), -1), {}).get("voltage", NAN)
-			var actual_V_across_fv = NAN
-			if not is_nan(Vp_fv) and not is_nan(Vn_fv): actual_V_across_fv = Vp_fv - Vn_fv
-			circuit.component_results[comp_id]["voltage"] = actual_V_across_fv
+		var term_p_fv = comp_data.terminals["POS"]
+		var term_n_fv = comp_data.terminals["NEG"]
+		var Vp_fv = circuit.electrical_nodes.get(circuit.terminal_connections.get(term_p_fv.get_instance_id(), -1), {}).get("voltage", NAN)
+		var Vn_fv = circuit.electrical_nodes.get(circuit.terminal_connections.get(term_n_fv.get_instance_id(), -1), {}).get("voltage", NAN)
+		var actual_V_across_fv = NAN
+		if not is_nan(Vp_fv) and not is_nan(Vn_fv): actual_V_across_fv = Vp_fv - Vn_fv
+		circuit.component_results[comp_id]["voltage"] = actual_V_across_fv
