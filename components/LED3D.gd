@@ -207,3 +207,20 @@ func stamp(
 	CircuitGraph.stamp_conductance(A, Geq, ia, ik)
 	if ia != -1: b[ia] -= Ieq
 	if ik != -1: b[ik] += Ieq
+
+func get_kcl_contributions(node_voltages: Dictionary, error_vector: Array, node_map: Dictionary):
+	var comp_data = get_tree().current_scene.circuit_graph.component_node_map.get(self)
+	if comp_data.get("is_burned", false):
+		return # No current contribution if burned
+
+	var Va = node_voltages.get("A", 0.0)
+	var Vk = node_voltages.get("K", 0.0)
+	var Vd = Va - Vk
+	
+	var current = saturation_current * (exp(Vd / (ideality_factor * THERMAL_VOLTAGE)) - 1.0)
+	
+	var ia = node_map.get(terminal_connections.get(terminal_anode.get_instance_id(),-1), -1)
+	var ik = node_map.get(terminal_connections.get(terminal_kathode.get_instance_id(),-1), -1)
+	
+	if ia != -1: error_vector[ia] += current
+	if ik != -1: error_vector[ik] -= current

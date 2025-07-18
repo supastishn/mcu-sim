@@ -24,6 +24,7 @@ signal configuration_changed(component_node: Node3D)
 
 ## Flag to track the visual "exploded" state.
 var is_visually_exploded: bool = false
+var _internal_node_id = -1
 
 ## Called when the node enters the scene tree. Initializes the component.
 func _ready():
@@ -109,8 +110,9 @@ func get_terminal_info() -> Dictionary:
 ## Returns any internal nodes this component requires.
 func get_internal_nodes(graph: CircuitGraph) -> Array:
 	# Request one internal node for the ESR connection.
-	var internal_node_id = graph._get_internal_node_id()
-	return [internal_node_id]
+	if _internal_node_id == -1:
+		_internal_node_id = graph._get_internal_node_id()
+	return [_internal_node_id]
 
 ## Stamps the capacitor's equivalent conductance and current source into the MNA matrices for transient analysis.
 func stamp(
@@ -124,7 +126,7 @@ func stamp(
 	delta_time: float
 ):
 	var esr = equivalent_series_resistance
-	var internal_node_idx = node_map.get(get_internal_nodes(get_tree().current_scene.circuit_graph)[0], -1)
+	var internal_node_idx = node_map.get(_internal_node_id, -1)
 
 	var t1_idx = node_map.get(terminal_connections.get(terminal1.get_instance_id(),-1), -1)
 	var t2_idx = node_map.get(terminal_connections.get(terminal2.get_instance_id(),-1), -1)

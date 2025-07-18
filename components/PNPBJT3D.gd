@@ -181,3 +181,29 @@ func stamp(
 		A[idx_c][idx_c] += g_mu_pnp + gm_r_pnp
 		b[idx_c] += I_cb_eq + alpha_r * I_cb_eq
 		if idx_b != -1: A[idx_c][idx_b] -= g_mu_pnp + gm_r_pnp
+
+func get_kcl_contributions(node_voltages: Dictionary, error_vector: Array, node_map: Dictionary):
+	var Ve = node_voltages.get("E", 0.0)
+	var Vb = node_voltages.get("B", 0.0)
+	var Vc = node_voltages.get("C", 0.0)
+
+	var Veb = Ve - Vb
+	var Vcb = Vc - Vb
+	
+	var I_es = saturation_current / alpha_forward
+	var I_cs = saturation_current / alpha_reverse
+
+	# The implemented Ebers-Moll equations calculate magnitudes of currents leaving the E and C terminals.
+	var Ie_mag = I_es * (exp(Veb / THERMAL_VOLTAGE) - 1.0) - alpha_reverse * I_cs * (exp(Vcb / THERMAL_VOLTAGE) - 1.0)
+	var Ic_mag = alpha_forward * I_es * (exp(Veb / THERMAL_VOLTAGE) - 1.0) - I_cs * (exp(Vcb / THERMAL_VOLTAGE) - 1.0)
+	var Ib_mag = Ie_mag - Ic_mag
+
+	var idx_e = node_map.get(terminal_connections.get(terminal_e.get_instance_id(), -1), -1)
+	var idx_b = node_map.get(terminal_connections.get(terminal_b.get_instance_id(), -1), -1)
+	var idx_c = node_map.get(terminal_connections.get(terminal_c.get_instance_id(), -1), -1)
+
+	# For PNP: Ie flows IN, Ic and Ib flow OUT.
+	# KCL error vector is sum of currents LEAVING the node.
+	if idx_e != -1: error_vector[idx_e] -= Ie_mag
+	if idx_c != -1: error_vector[idx_c] += Ic_mag
+	if idx_b != -1: error_vector[idx_b] += Ib_mag

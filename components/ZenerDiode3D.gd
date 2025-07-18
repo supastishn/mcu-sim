@@ -162,3 +162,23 @@ func stamp(
 	CircuitGraph.stamp_conductance(A, Geq, ia, ik)
 	if ia != -1: b[ia] -= Ieq
 	if ik != -1: b[ik] += Ieq
+
+func get_kcl_contributions(node_voltages: Dictionary, error_vector: Array, node_map: Dictionary):
+	var Va = node_voltages.get("A", 0.0)
+	var Vk = node_voltages.get("K", 0.0)
+	var Vd = Va - Vk
+
+	var Is = saturation_current
+	var n = ideality_factor
+	var Vz = zener_voltage
+	var V_thermal = THERMAL_VOLTAGE
+	
+	var I_fwd = Is * (exp(Vd / (n * V_thermal)) - 1.0)
+	var I_rev = Is * (exp(-(Vd + Vz) / V_thermal) - 1.0)
+	var current = I_fwd - I_rev
+
+	var ia = node_map.get(terminal_connections.get(terminal_anode.get_instance_id(),-1), -1)
+	var ik = node_map.get(terminal_connections.get(terminal_kathode.get_instance_id(),-1), -1)
+	
+	if ia != -1: error_vector[ia] += current
+	if ik != -1: error_vector[ik] -= current
