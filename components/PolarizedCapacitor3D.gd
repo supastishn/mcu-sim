@@ -12,6 +12,8 @@ signal configuration_changed(component_node: Node3D)
 
 ## The maximum forward voltage the capacitor can safely handle before exploding.
 @export var max_voltage: float = 16.0 : set = set_max_voltage
+## The Equivalent Series Resistance (ESR) of the capacitor in Ohms.
+@export var equivalent_series_resistance: float = 0.01
 
 ## Reference to the positive terminal (anode) Area3D node.
 @onready var terminal1: Area3D = $Terminal1
@@ -115,6 +117,9 @@ func stamp(
 	comp_data: Dictionary, # Used for is_exploded, capacitance, voltage_across_cap_prev_dt
 	delta_time: float
 ):
+	# TODO: Implement ESR. This requires creating a new internal node for the component,
+	# which needs architectural changes in CircuitGraph._build_mna_system to handle.
+	# For now, only the ideal capacitor is stamped.
 	var G_eq: float
 	var I_eq_source: float = 0.0
 	

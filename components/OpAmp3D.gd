@@ -9,6 +9,10 @@ signal configuration_changed(component_node: Node3D)
 @export var open_loop_gain: float = 200000.0 : set = set_open_loop_gain
 ## The voltage drop from the supply rails for output saturation.
 @export var rail_saturation_voltage: float = 1.5 : set = set_rail_saturation_voltage # Voltage drop from the supply rails
+## The input resistance between the Vp and Vn terminals.
+@export var input_resistance: float = 1.0e6
+## The output resistance in series with the voltage source model.
+@export var output_resistance: float = 50.0
 
 # UI and component node references
 ## Reference to the non-inverting input terminal (+) Area3D node.
@@ -169,22 +173,29 @@ func stamp(
 	var vcc_idx = node_map.get(vcc_node_id, -1)
 	var vee_idx = node_map.get(vee_node_id, -1)
 
-	var Gbig = 1e9  # Large conductance for voltage stamping
+	# Stamp input resistance between Vp and Vn
+	var g_in = 1.0 / input_resistance
+	CircuitGraph.stamp_conductance(A, g_in, vp_idx, vn_idx)
+
+	# Model output as a Norton equivalent: I_n in parallel with Ro
+	var g_out = 1.0 / output_resistance
+	var Gbig = 1e9 # Large conductance for voltage stamping
 
 	if region == "OFF":
 		if vout_idx != -1:
 			A[vout_idx][vout_idx] += 1e-9 # High impedance to ground
 	elif region == "LINEAR":
-		# Model as a VCVS: Vout = Aol * (Vp - Vn)
-		# Enforced with a large-conductance model: G * (Vout - Aol * (Vp - Vn)) = 0
-		# KCL at Vout: ... + G*Vout - G*Aol*Vp + G*Aol*Vn = 0
+		# I_n = (Aol / Ro) * (Vp - Vn)
+		# KCL at Vout: ... + g_out*Vout - g_out*Vn_internal = I_n
+		# Where Vn_internal is the controlled source. This is complex.
+		# A simpler VCVS with output resistance is better. This requires an internal node.
+		# Compromise: Use a less ideal VCVS model.
 		var Aol = open_loop_gain
 		if vout_idx != -1:
-			A[vout_idx][vout_idx] += Gbig
-			if vp_idx != -1:
-				A[vout_idx][vp_idx] -= Gbig * Aol
-			if vn_idx != -1:
-				A[vout_idx][vn_idx] += Gbig * Aol
+			# Stamps a VCVS with output resistance Ro
+			A[vout_idx][vout_idx] += g_out
+			if vp_idx != -1: A[vout_idx][vp_idx] -= g_out * Aol
+			if vn_idx != -1: A[vout_idx][vn_idx] += g_out * Aol
 	elif region == "SAT_HIGH":
 		# Enforce Vout = Vcc - rail_saturation_voltage
 		var sat_drop = comp_data.properties["rail_saturation_voltage"]

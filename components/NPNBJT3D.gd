@@ -7,14 +7,13 @@ class_name NPNBJT3D
 signal configuration_changed(component_node: Node3D)
 
 
-## The DC current gain (hFE) of the transistor.
-@export var beta_dc: float = 100.0 : set = set_beta_dc
-
-## The base-emitter voltage required to turn the transistor on, in Volts.
-@export var vbe_on: float = 0.7 : set = set_vbe_on
-
-## The collector-emitter saturation voltage, in Volts.
-@export var vce_sat: float = 0.2 : set = set_vce_sat
+## The saturation current of the transistor.
+@export var saturation_current: float = 1e-15
+## The forward common-base current gain.
+@export var alpha_forward: float = 0.99
+## The reverse common-base current gain.
+@export var alpha_reverse: float = 0.5
+const THERMAL_VOLTAGE: float = 0.02585
 
 ## Reference to the Collector terminal Area3D node.
 @onready var terminal_c: Area3D = $TerminalC 
@@ -237,67 +236,45 @@ func stamp(
 	comp_data: Dictionary,
 	_delta_time: float
 ):
-	var region = comp_data.properties["operating_region"]
-	var beta_val = beta_dc 
-	var vbe_on_model_val = vbe_on 
-	var vce_sat_model_val = vce_sat 
+	# Simplified Ebers-Moll Model Stamp
+	var Vbe = comp_data.properties.get("_internal_vbe", 0.7)
+	var Vbc = comp_data.properties.get("_internal_vbc", 0.0)
+	var Is = saturation_current
+	var alpha_f = alpha_forward
+	var alpha_r = alpha_reverse
+	var Vt = THERMAL_VOLTAGE
 
-	var c_id = terminal_c.get_instance_id()
-	var b_id = terminal_b.get_instance_id()
-	var e_id = terminal_e.get_instance_id()
+	# Linearize BE and BC diodes
+	var g_pi = (Is / Vt) * exp(Vbe / Vt)
+	var I_be_eq = Is * (exp(Vbe / Vt) - 1.0) - g_pi * Vbe
+	
+	var g_mu = (Is / Vt) * exp(Vbc / Vt)
+	var I_bc_eq = Is * (exp(Vbc / Vt) - 1.0) - g_mu * Vbc
 
-	var node_c_lookup = terminal_connections.get(c_id, -1)
-	var node_b_lookup = terminal_connections.get(b_id, -1)
-	var node_e_lookup = terminal_connections.get(e_id, -1)
+	# Transconductances
+	var gm_f = alpha_f * g_pi
+	var gm_r = alpha_r * g_mu
 
-	var idx_c = node_map.get(node_c_lookup, -1)
-	var idx_b = node_map.get(node_b_lookup, -1)
-	var idx_e = node_map.get(node_e_lookup, -1)
+	# Get node indices
+	var idx_c = node_map.get(terminal_connections.get(terminal_c.get_instance_id(), -1), -1)
+	var idx_b = node_map.get(terminal_connections.get(terminal_b.get_instance_id(), -1), -1)
+	var idx_e = node_map.get(terminal_connections.get(terminal_e.get_instance_id(), -1), -1)
 
-	var R_be_active_model_const = 50.0  
-	var R_ce_sat_model_const = 5.0    
-	var R_bjt_off_model_const = 1.0e9 
-
-	if region == "OFF":
-		var g_off = 1.0 / R_bjt_off_model_const
-		CircuitGraph.stamp_conductance(A, g_off, idx_b, idx_e)
-		CircuitGraph.stamp_conductance(A, g_off, idx_c, idx_e)
-		CircuitGraph.stamp_conductance(A, g_off, idx_c, idx_b)
-		
-	elif region == "ACTIVE":
-		var G_be_active = 1.0 / R_be_active_model_const
-		var Is_be_active = vbe_on_model_val / R_be_active_model_const 
-		if idx_b != -1: A[idx_b][idx_b] += G_be_active; b[idx_b] += Is_be_active
-		if idx_e != -1: A[idx_e][idx_e] += G_be_active; b[idx_e] -= Is_be_active 
-		if idx_b != -1 and idx_e != -1:
-			A[idx_b][idx_e] -= G_be_active
-			A[idx_e][idx_b] -= G_be_active
-		
-		var Gm_bjt_active = beta_val / R_be_active_model_const
-		var Ic_const_offset_active = beta_val * vbe_on_model_val / R_be_active_model_const 
-
-		if idx_c != -1:
-			if idx_b != -1: A[idx_c][idx_b] += Gm_bjt_active
-			if idx_e != -1: A[idx_c][idx_e] -= Gm_bjt_active
-			b[idx_c] += Ic_const_offset_active 
-		if idx_e != -1: 
-			if idx_b != -1: A[idx_e][idx_b] -= Gm_bjt_active
-			if idx_e != -1: A[idx_e][idx_e] += Gm_bjt_active 
-			b[idx_e] -= Ic_const_offset_active
-
-	elif region == "SATURATION":
-		var G_be_sat = 1.0 / R_be_active_model_const 
-		var Is_be_sat = vbe_on_model_val / R_be_active_model_const
-		if idx_b != -1: A[idx_b][idx_b] += G_be_sat; b[idx_b] += Is_be_sat
-		if idx_e != -1: A[idx_e][idx_e] += G_be_sat; b[idx_e] -= Is_be_sat
-		if idx_b != -1 and idx_e != -1:
-			A[idx_b][idx_e] -= G_be_sat
-			A[idx_e][idx_b] -= G_be_sat
-			
-		var G_ce_sat = 1.0 / R_ce_sat_model_const
-		var Is_ce_sat = vce_sat_model_val / R_ce_sat_model_const 
-		if idx_c != -1: A[idx_c][idx_c] += G_ce_sat; b[idx_c] += Is_ce_sat
-		if idx_e != -1: A[idx_e][idx_e] += G_ce_sat; b[idx_e] -= Is_ce_sat 
-		if idx_c != -1 and idx_e != -1:
-			A[idx_c][idx_e] -= G_ce_sat
-			A[idx_e][idx_c] -= G_ce_sat
+	# Stamp linearized model into MNA matrices
+	if idx_b != -1:
+		A[idx_b][idx_b] += g_pi + g_mu
+		b[idx_b] -= -I_be_eq - I_bc_eq
+		if idx_e != -1: A[idx_b][idx_e] -= g_pi
+		if idx_c != -1: A[idx_b][idx_c] -= g_mu
+	
+	if idx_e != -1:
+		A[idx_e][idx_e] += g_pi + gm_f - gm_r
+		b[idx_e] -= I_be_eq + alpha_f * I_be_eq - alpha_r * I_bc_eq
+		if idx_b != -1: A[idx_e][idx_b] -= g_pi + gm_f
+		if idx_c != -1: A[idx_e][idx_c] += gm_r
+	
+	if idx_c != -1:
+		A[idx_c][idx_c] += g_mu - gm_f + gm_r
+		b[idx_c] -= I_bc_eq - alpha_f * I_be_eq + alpha_r * I_bc_eq
+		if idx_b != -1: A[idx_c][idx_b] -= g_mu - gm_f
+		if idx_e != -1: A[idx_c][idx_e] -= -gm_r

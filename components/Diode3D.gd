@@ -3,8 +3,11 @@ extends Node3D
 class_name Diode3D
 
 
-## The voltage drop across the diode when it is forward-biased, in volts.
-@export var forward_voltage: float = 0.7
+## The saturation current of the diode.
+@export var saturation_current: float = 1.0e-12
+## The ideality factor (emission coefficient) of the diode.
+@export var ideality_factor: float = 1.0
+const THERMAL_VOLTAGE: float = 0.02585 # At room temperature (300K)
 
 ## Reference to the Anode terminal Area3D node.
 @onready var terminal_anode: Area3D = $TerminalAnode 
@@ -55,51 +58,20 @@ func gather_sim_results(
 	var comp_node = comp_data.component_node
 	var comp_id = comp_node.get_instance_id()
 
-	var R_diode_on_model = circuit.R_DIODE_ON
-	var Vf_diode_calc = comp_data.properties["forward_voltage"]
-	var term_a = comp_data.terminals["A"]
-	var term_k = comp_data.terminals["K"]
-	var node_a_id = circuit.terminal_connections.get(term_a.get_instance_id(), -1)
-	var node_k_id = circuit.terminal_connections.get(term_k.get_instance_id(), -1)
-	var Va = circuit.electrical_nodes.get(node_a_id, {}).get("voltage", NAN)
-	var Vk = circuit.electrical_nodes.get(node_k_id, {}).get("voltage", NAN)
-	var current = 0.0
-
-	if comp_data.get("conducting", false) and not is_nan(Va) and not is_nan(Vk):
-		var V_ak_calc = Va - Vk
-		if V_ak_calc > Vf_diode_calc:
-			current = (V_ak_calc - Vf_diode_calc) / R_diode_on_model
-		else:
-			current = 0.0
-	else:
-		current = 0.0
+	var Va = circuit.electrical_nodes.get(circuit.terminal_connections.get(comp_data.terminals["A"].get_instance_id(), -1), {}).get("voltage", NAN)
+	var Vk = circuit.electrical_nodes.get(circuit.terminal_connections.get(comp_data.terminals["K"].get_instance_id(), -1), {}).get("voltage", NAN)
+	
+	var Is = comp_data.properties["saturation_current"]
+	var n = comp_data.properties["ideality_factor"]
+	var V_thermal = THERMAL_VOLTAGE
+	
+	var current = NAN
+	if not is_nan(Va) and not is_nan(Vk):
+		var Vd = Va - Vk
+		current = Is * (exp(Vd / (n * V_thermal)) - 1.0)
+		comp_data.properties["_internal_voltage"] = Vd
 
 	circuit.component_results[comp_id]["current"] = current
-
-## Updates the diode's conducting state based on the latest voltage solution from an MNA iteration.
-func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter: Array, node_map_iter: Dictionary, _vs_map_iter: Dictionary) -> bool:
-	if x_iter.is_empty():
-		return false
-
-	var term_a = comp_data.terminals["A"]
-	var term_k = comp_data.terminals["K"]
-	var node_a_id = circuit.terminal_connections.get(term_a.get_instance_id(), -1)
-	var node_k_id = circuit.terminal_connections.get(term_k.get_instance_id(), -1)
-
-	var idx_a = node_map_iter.get(node_a_id, -1)
-	var idx_k = node_map_iter.get(node_k_id, -1)
-	var Va = x_iter[idx_a] if idx_a != -1 else (0.0 if node_a_id == circuit.ground_node_id else NAN)
-	var Vk = x_iter[idx_k] if idx_k != -1 else (0.0 if node_k_id == circuit.ground_node_id else NAN)
-
-	var forward_voltage_threshold = comp_data.properties["forward_voltage"]
-	var should_conduct = false
-	if not is_nan(Va) and not is_nan(Vk) and (Va - Vk) >= forward_voltage_threshold:
-		should_conduct = true
-
-	if comp_data["conducting"] != should_conduct:
-		comp_data["conducting"] = should_conduct
-		return true
-	return false
 
 ## Applies the diode's contribution to the MNA matrices (A and b) based on its current state.
 func stamp(
@@ -112,32 +84,21 @@ func stamp(
 	comp_data: Dictionary,
 	_delta_time: float
 ):
-	var on = comp_data.get("conducting", false)
-	var R_on = CircuitGraph.R_DIODE_ON 
-	var R_off = CircuitGraph.R_DIODE_OFF 
-	var g = 1.0 / (R_on if on else R_off)
+	# This function now stamps a linearized model for the Newton-Raphson solver.
+	var Vd_last_iter = comp_data.properties.get("_internal_voltage", 0.0)
+	var n_vt = ideality_factor * THERMAL_VOLTAGE
 
-	var anode_instance_id = terminal_anode.get_instance_id()
-	var kathode_instance_id = terminal_kathode.get_instance_id()
+	# Linearized model from Shockley equation: Geq and Ieq
+	var exp_term = exp(Vd_last_iter / n_vt)
+	var Geq = (saturation_current / n_vt) * exp_term
+	var Ieq = saturation_current * (exp_term - 1.0) - Geq * Vd_last_iter
 
-	var na = terminal_connections.get(anode_instance_id, -1)
-	var nk = terminal_connections.get(kathode_instance_id, -1)
-
+	var na = terminal_connections.get(terminal_anode.get_instance_id(), -1)
+	var nk = terminal_connections.get(terminal_kathode.get_instance_id(), -1)
 	var ia = node_map.get(na, -1)
 	var ik = node_map.get(nk, -1)
 
-	if on:
-		var Vf = forward_voltage 
-		var offset_val = Vf / R_on 
-		if ia != -1: b[ia] += offset_val
-		if ik != -1: b[ik] -= offset_val
-	
-	if ia != -1 and ik != -1:
-		A[ia][ia] += g
-		A[ik][ik] += g
-		A[ia][ik] -= g
-		A[ik][ia] -= g
-	elif ia != -1:
-		A[ia][ia] += g
-	elif ik != -1:
-		A[ik][ik] += g
+	# Stamp the equivalent conductance and current source
+	CircuitGraph.stamp_conductance(A, Geq, ia, ik)
+	if ia != -1: b[ia] -= Ieq
+	if ik != -1: b[ik] += Ieq

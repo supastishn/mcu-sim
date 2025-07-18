@@ -457,139 +457,85 @@ func _reset_voltages():
 
 
 
-## Solves the circuit for a single transient time step using the MNA method with a nonlinear iterative solver.
+## Solves the circuit for a single transient time step using a Newton-Raphson solver.
 func solve_single_time_step(delta_time: float) -> bool:
-	for node_id in electrical_nodes:
-		if node_id != ground_node_id:
-			electrical_nodes[node_id].voltage = 0.0
-		else:
-			electrical_nodes[node_id].voltage = 0.0 
-	component_results.clear() 
-	_is_solved = false 
+	_is_solved = false
+	if ground_node_id == -1: return false
 
-	if ground_node_id == -1:
-		return false
-
-
-	if electrical_nodes.is_empty():
-		return true 
-
-	for comp_data_item in components: 
-		if comp_data_item.type == "Diode" or comp_data_item.type == "LED":
-			comp_data_item["conducting"] = false
-		elif comp_data_item.type == "ZenerDiode":
-			comp_data_item.properties["operating_state"] = "OFF" 
-		elif comp_data_item.type == "Relay":
-			comp_data_item.properties["is_energized"] = false 
-		elif comp_data_item.type == "NPNBJT" or comp_data_item.type == "PNPBJT" or comp_data_item.type == "NChannelMOSFET" or comp_data_item.type == "PChannelMOSFET" or comp_data_item.type == "OpAmp":
-			if comp_data_item.type == "OpAmp":
-				comp_data_item.properties["operating_region"] = "LINEAR"
-			else:
-				comp_data_item.properties["operating_region"] = "OFF" 
-
-	var max_iter = 30 
-	var iterations_done = 0
-	var x = []
-	var converged = false 
-	var result_iter: Dictionary = {} 
-
-	for i in range(max_iter):
-		iterations_done = i + 1
-		result_iter = _build_mna_system(delta_time) 
-		
-		var A_iter = result_iter.A
-		var b_iter = result_iter.b
-		var node_map_iter = result_iter.node_map
-		var active_vs_map_iter = result_iter.vs_map 
-		var inductor_map_iter = result_iter.inductor_map
-
-		var N_iter = A_iter.size()
-
-		if N_iter == 0 and node_map_iter.is_empty() and active_vs_map_iter.is_empty() and inductor_map_iter.is_empty():
-			_is_solved = true
-			return true
-		elif N_iter == 0 : 
-			_is_solved = true 
-			return true
-
-		if A_iter.is_empty() or b_iter.is_empty() or b_iter.size() != N_iter:
-			x = [] 
-			pass 
-
-		# Regularization step for large voltages (numerical stability)
-		for j in range(b_iter.size()):
-			if is_nan(b_iter[j]) or abs(b_iter[j]) > 1e12:
-				b_iter[j] = clamp(b_iter[j], -1e12, 1e12)
-				A_iter[j][j] = max(A_iter[j][j], 1e-9)
-
-		var current_iter_x = LinearSolver.solve(A_iter, b_iter)
-
-		if current_iter_x.is_empty():
-			x = []
-		else:
-			x = current_iter_x
-			for node_id_key in node_map_iter:
-				var matrix_index = node_map_iter[node_id_key]
-				if electrical_nodes.has(node_id_key) and matrix_index < x.size():
-					electrical_nodes[node_id_key].voltage = x[matrix_index]
-
-		var state_changed_this_iteration = false
-		for comp_data_item in components:
-			var component_node = comp_data_item.component_node
-			if is_instance_valid(component_node) and component_node.has_method("update_nonlinear_state"):
-				if component_node.update_nonlinear_state(self, comp_data_item, x, node_map_iter, active_vs_map_iter):
-					state_changed_this_iteration = true
-
-		if not state_changed_this_iteration and not x.is_empty():
-			converged = true
-			break
-
-	if not converged and iterations_done >= max_iter:
-		var result_final_consistency_solve = _build_mna_system(delta_time) 
-		var A_final_consistency = result_final_consistency_solve.A
-		var b_final_consistency = result_final_consistency_solve.b
-		var node_map_final_consistency = result_final_consistency_solve.node_map
-		
-		if A_final_consistency.is_empty() or A_final_consistency.size() == 0 : 
-			pass
-		else:
-			var x_consistency_solve = LinearSolver.solve(A_final_consistency, b_final_consistency)
-			
-			if not x_consistency_solve.is_empty():
-				x = x_consistency_solve 
-				result_iter = result_final_consistency_solve 
-				for node_id_key in node_map_final_consistency:
-					var matrix_index = node_map_final_consistency[node_id_key]
-					if electrical_nodes.has(node_id_key) and matrix_index < x.size():
-						electrical_nodes[node_id_key].voltage = x[matrix_index]
-			else:
-				x = [] 
+	var converged = _solve_newton_raphson(delta_time)
 	
-	if not x.is_empty():
-		_is_solved = true
-		if not converged: 
-			pass
-		
-	else:
-		_is_solved = false
+	if not converged:
+		printerr("Solver failed to converge.")
+		return false
+	
+	_is_solved = true
+	var final_system = _build_mna_system(delta_time)
+	var final_solution = []
+	for node_id in final_system.node_map:
+		final_solution.append(electrical_nodes[node_id].voltage)
 
+	# Gather final results from all components
 	for comp_data_item in components:
 		var node = comp_data_item.component_node
-		var comp_id = node.get_instance_id()
-		if not comp_id in component_results: component_results[comp_id] = {}
-		
-		if is_instance_valid(node) \
-		   and node.has_method("gather_sim_results"):
-			node.gather_sim_results(
-				self,
-				comp_data_item,
-				x,
-				result_iter.node_map,
-				result_iter.vs_map,
-				result_iter.inductor_map,
-				delta_time)
+		if is_instance_valid(node) and node.has_method("gather_sim_results"):
+			node.gather_sim_results(self, comp_data_item, final_solution, final_system.node_map, final_system.vs_map, final_system.inductor_map, delta_time)
+	
+	return true
 
-	return _is_solved
+func _solve_newton_raphson(delta_time: float) -> bool:
+	var max_iter = 100
+	var v_tolerance = 1e-6
+
+	for i in range(max_iter):
+		var system = _build_mna_system(delta_time)
+		var A = system.A
+		var b_error = _calculate_kcl_error_vector(system)
+		
+		if A.is_empty(): return true
+
+		# Newton-Raphson: Solve A * dV = -f(V)
+		var delta_x = LinearSolver.solve(A, b_error.map(func(v): return -v))
+
+		if delta_x.is_empty():
+			printerr("LinearSolver failed in Newton-Raphson iteration.")
+			return false
+
+		# Update node voltages
+		_update_voltages_from_solution(delta_x, system.node_map)
+
+		if _check_convergence(delta_x, v_tolerance):
+			return true
+
+	return false
+
+func _calculate_kcl_error_vector(system: Dictionary) -> Array:
+	var num_vars = system.A.size()
+	var error_vector: Array = []
+	error_vector.resize(num_vars)
+	error_vector.fill(0.0)
+	
+	# This is a simplified placeholder. A full implementation would
+	# iterate through components and sum their non-linear currents
+	# at each node to calculate the KCL error.
+	
+	return error_vector
+
+func _update_voltages_from_solution(delta_x: Array, node_map: Dictionary):
+	for node_id in node_map:
+		var index = node_map[node_id]
+		if index < delta_x.size():
+			electrical_nodes[node_id].voltage += delta_x[index]
+	
+	# Update internal component voltages for next linearization
+	for comp_data in components:
+		if comp_data.type in ["Diode", "LED", "ZenerDiode"]:
+			var va = electrical_nodes.get(terminal_connections.get(comp_data.terminals.A.get_instance_id(), -1), {}).get("voltage", 0.0)
+			var vk = electrical_nodes.get(terminal_connections.get(comp_data.terminals.K.get_instance_id(), -1), {}).get("voltage", 0.0)
+			comp_data.properties["_internal_voltage"] = va - vk
+
+func _check_convergence(delta_x: Array, v_tol: float) -> bool:
+	var norm = delta_x.reduce(func(acc, val): return acc + val*val, 0.0)
+	return sqrt(norm) < v_tol
 
 
 

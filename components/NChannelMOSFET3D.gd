@@ -12,6 +12,8 @@ signal configuration_changed(component_node: Node3D)
 
 ## The transconductance parameter (Kn), related to the MOSFET's current-carrying capability.
 @export var transconductance_parameter: float = 0.1 : set = set_transconductance_parameter
+## The channel-length modulation parameter (lambda). A value of 0.0 is ideal.
+@export var lambda: float = 0.01
 
 ## Reference to the Drain terminal Area3D node.
 @onready var terminal_d: Area3D = $TerminalD 

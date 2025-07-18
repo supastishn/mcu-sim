@@ -735,7 +735,8 @@ func _select_component(component: Node3D):
 		_add_line_edit_property("Fwd Voltage (V):", selected_component.forward_voltage, func(new_val): selected_component.forward_voltage = new_val)
 		
 	elif selected_component is Diode3D:
-		_add_line_edit_property("Fwd Voltage (V):", selected_component.forward_voltage, func(new_val): selected_component.forward_voltage = new_val)
+		_add_line_edit_property("Sat. Current (A):", selected_component.saturation_current, func(new_val): selected_component.saturation_current = new_val)
+		_add_line_edit_property("Ideality Factor:", selected_component.ideality_factor, func(new_val): selected_component.ideality_factor = new_val)
 
 	elif selected_component is ZenerDiode3D:
 		var selected_t : ZenerDiode3D = selected_component
@@ -765,8 +766,9 @@ func _select_component(component: Node3D):
 
 	elif selected_component is NPNBJT3D:
 		var selected_t : NPNBJT3D = selected_component
-		_add_line_edit_property("Beta (Hfe):", selected_t.beta_dc, func(new_val): selected_t.beta_dc = new_val)
-		_add_line_edit_property("Vbe On (V):", selected_t.vbe_on, func(new_val): selected_t.vbe_on = new_val)
+		_add_line_edit_property("Is (A):", selected_t.saturation_current, func(new_val): selected_t.saturation_current = new_val)
+		_add_line_edit_property("Alpha Fwd:", selected_t.alpha_forward, func(new_val): selected_t.alpha_forward = new_val)
+		_add_line_edit_property("Alpha Rev:", selected_t.alpha_reverse, func(new_val): selected_t.alpha_reverse = new_val)
 		
 	elif selected_component is PNPBJT3D:
 		var selected_t : PNPBJT3D = selected_component
@@ -778,6 +780,7 @@ func _select_component(component: Node3D):
 		var selected_t : NChannelMOSFET3D = selected_component
 		_add_line_edit_property("Vt (V):", selected_t.threshold_voltage, func(new_val): selected_t.threshold_voltage = new_val)
 		_add_line_edit_property("Kn (A/V^2):", selected_t.transconductance_parameter, func(new_val): selected_t.transconductance_parameter = new_val)
+		_add_line_edit_property("Lambda:", selected_t.lambda, func(new_val): selected_t.lambda = new_val)
 
 	elif selected_component is PChannelMOSFET3D:
 		var selected_t : PChannelMOSFET3D = selected_component
@@ -793,7 +796,9 @@ func _select_component(component: Node3D):
 		_add_line_edit_property("Regulated (V):", selected_component.regulated_voltage, func(new_val): selected_component.regulated_voltage = new_val)
 
 	elif selected_component is OpAmp3D:
-		_add_label_property("Ideal Op-Amp", "(No properties)")
+		var selected_t : OpAmp3D = selected_component
+		_add_line_edit_property("Input R (Ω):", selected_t.input_resistance, func(new_val): selected_t.input_resistance = new_val)
+		_add_line_edit_property("Output R (Ω):", selected_t.output_resistance, func(new_val): selected_t.output_resistance = new_val)
 
 	else:
 		printerr("Selected node {comp_name} is not a recognized component type for editing.".format({"comp_name": component.name}))
