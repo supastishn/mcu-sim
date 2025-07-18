@@ -7,8 +7,11 @@ class_name ZenerDiode3D
 signal configuration_changed(component_node: Node3D)
 
 
-## The forward voltage drop of the diode when conducting, in Volts.
-@export var forward_voltage: float = 0.7 : set = set_forward_voltage
+## The saturation current of the diode model.
+@export var saturation_current: float = 1e-12
+## The ideality factor (emission coefficient) of the diode model.
+@export var ideality_factor: float = 1.0
+const THERMAL_VOLTAGE: float = 0.02585
 
 ## The reverse breakdown (Zener) voltage, in Volts.
 @export var zener_voltage: float = 5.1 : set = set_zener_voltage
@@ -28,20 +31,7 @@ func _ready():
 		printerr("ZenerDiode3D requires a child Label3D named 'InfoLabel'.")
 	
 	reset_visual_state()
-	set_forward_voltage(forward_voltage)
 	set_zener_voltage(zener_voltage)
-
-## Sets the forward voltage, validates it, and emits the configuration_changed signal.
-func set_forward_voltage(value: float):
-	var new_vf = max(0.1, value)
-	if is_equal_approx(forward_voltage, new_vf):
-		forward_voltage = new_vf
-		return
-
-	forward_voltage = new_vf
-	print("ZenerDiode3D {name} forward_voltage set to: {vf_str} V".format({"name": name, "vf_str": String.num(forward_voltage, 2)}))
-	if is_inside_tree():
-		emit_signal("configuration_changed", self)
 
 ## Sets the Zener voltage, validates it, and emits the configuration_changed signal.
 func set_zener_voltage(value: float):
@@ -102,83 +92,40 @@ func gather_sim_results(
 		_vs_map       : Dictionary,
 		_inductor_map : Dictionary,
 		_delta_time   : float) -> void:
-	var comp_node = comp_data.component_node
-	var comp_id = comp_node.get_instance_id()
+	var comp_id = comp_data.component_node.get_instance_id()
 
-	var state_z = comp_data.properties["operating_state"]
-	var Vf_z_calc = comp_data.properties["forward_voltage"]
-	var Vz_calc = comp_data.properties["zener_voltage"] 
-	var R_on_z_model = 0.1 
-
-	var term_a_z_node = comp_data.terminals["A"]
-	var term_k_z_node = comp_data.terminals["K"]
-	var node_a_id_z_val = circuit.terminal_connections.get(term_a_z_node.get_instance_id(), -1)
-	var node_k_id_z_val = circuit.terminal_connections.get(term_k_z_node.get_instance_id(), -1)
-
-	var Va_z_val = circuit.electrical_nodes.get(node_a_id_z_val, {}).get("voltage", NAN)
-	var Vk_z_val = circuit.electrical_nodes.get(node_k_id_z_val, {}).get("voltage", NAN)
+	var Va = circuit.electrical_nodes.get(circuit.terminal_connections.get(comp_data.terminals["A"].get_instance_id(), -1), {}).get("voltage", NAN)
+	var Vk = circuit.electrical_nodes.get(circuit.terminal_connections.get(comp_data.terminals["K"].get_instance_id(), -1), {}).get("voltage", NAN)
 	
-	var current_zener = NAN
-	var Vak_z_val = NAN
-
-	if not is_nan(Va_z_val) and not is_nan(Vk_z_val):
-		Vak_z_val = Va_z_val - Vk_z_val
-		if state_z == "FORWARD":
-			if Vak_z_val > Vf_z_calc:
-				current_zener = (Vak_z_val - Vf_z_calc) / R_on_z_model 
-			else:
-				current_zener = 0.0
-		elif state_z == "ZENER":
-			if (Vk_z_val - Va_z_val) > Vz_calc : 
-				current_zener = -( (Vk_z_val - Va_z_val) - Vz_calc ) / R_on_z_model
-			else: 
-				current_zener = 0.0
-
-		elif state_z == "OFF":
-			current_zener = 0.0
+	var Is = comp_data.properties["saturation_current"]
+	var n = comp_data.properties["ideality_factor"]
+	var Vz = comp_data.properties["zener_voltage"]
+	var V_thermal = THERMAL_VOLTAGE
 	
-	circuit.component_results[comp_id]["current"] = current_zener
-	circuit.component_results[comp_id]["voltage_ak"] = Vak_z_val 
-	circuit.component_results[comp_id]["state"] = state_z
+	var current = NAN
+	var state = "OFF"
 
-## Updates the diode's operating state (OFF, FORWARD, ZENER) based on an MNA iteration.
-func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter: Array, node_map_iter: Dictionary, _vs_map_iter: Dictionary) -> bool:
-	if x_iter.is_empty():
-		return false
+	if not is_nan(Va) and not is_nan(Vk):
+		var Vd = Va - Vk
+		comp_data.properties["_internal_voltage"] = Vd
+		
+		# Forward bias calculation
+		var I_fwd = Is * (exp(Vd / (n * V_thermal)) - 1.0)
+		
+		# Reverse bias (Zener) calculation
+		# Simplified model: I_rev = Is * (exp(-(Vd + Vz) / Vt) - 1.0)
+		var I_rev = Is * (exp(-(Vd + Vz) / V_thermal) - 1.0)
+		
+		current = I_fwd - I_rev # Total current
 
-	var term_a_z = comp_data.terminals["A"]
-	var term_k_z = comp_data.terminals["K"]
-	var node_a_id_z = circuit.terminal_connections.get(term_a_z.get_instance_id(), -1)
-	var node_k_id_z = circuit.terminal_connections.get(term_k_z.get_instance_id(), -1)
+		# Determine state for display
+		if Vd > 0.5: state = "FORWARD"
+		elif Vd < -Vz - 0.1: state = "ZENER"
+		else: state = "OFF"
 
-	var idx_a = node_map_iter.get(node_a_id_z, -1)
-	var idx_k = node_map_iter.get(node_k_id_z, -1)
-	var Va_z = x_iter[idx_a] if idx_a != -1 else (0.0 if node_a_id_z == circuit.ground_node_id else NAN)
-	var Vk_z = x_iter[idx_k] if idx_k != -1 else (0.0 if node_k_id_z == circuit.ground_node_id else NAN)
-
-	var Vf_z_model = comp_data.properties["forward_voltage"]
-	var Vz_model = comp_data.properties["zener_voltage"] 
-	var previous_state_z = comp_data.properties["operating_state"]
-	var new_state_z = previous_state_z
-
-	if is_nan(Va_z) or is_nan(Vk_z):
-		new_state_z = "OFF" 
-	else:
-		var Vak_z = Va_z - Vk_z 
-		var zener_voltage_threshold = -Vz_model 
-		var zener_on_margin = 1e-5 
-
-		if Vak_z >= (Vf_z_model - 1e-5): 
-			new_state_z = "FORWARD"
-		elif Vak_z <= (zener_voltage_threshold + zener_on_margin): 
-			new_state_z = "ZENER"
-		else: 
-			new_state_z = "OFF"
-
-	if new_state_z != previous_state_z:
-		comp_data.properties["operating_state"] = new_state_z
-		return true
-	return false
+	circuit.component_results[comp_id]["current"] = current
+	circuit.component_results[comp_id]["voltage_ak"] = comp_data.properties.get("_internal_voltage", NAN)
+	circuit.component_results[comp_id]["state"] = state
 
 ## Applies the Zener diode's contribution to the MNA matrices based on its current state.
 func stamp(
@@ -191,35 +138,27 @@ func stamp(
 	comp_data: Dictionary,
 	_delta_time: float
 ):
-	var state_zener_val = comp_data.properties["operating_state"]
-	var Vf_zener_model_prop = forward_voltage 
-	var Vz_zener_model_prop = zener_voltage   
+	var Vd_last = comp_data.properties.get("_internal_voltage", 0.0)
+	var n_vt = ideality_factor * THERMAL_VOLTAGE
+	var Vz = zener_voltage
+	
+	# Forward-bias diode model
+	var exp_fwd = exp(Vd_last / n_vt)
+	var G_fwd = (saturation_current / n_vt) * exp_fwd
+	var I_fwd_eq = saturation_current * (exp_fwd - 1.0) - G_fwd * Vd_last
 
-	var a_id = terminal_anode.get_instance_id() if is_instance_valid(terminal_anode) else -1
-	var k_id = terminal_kathode.get_instance_id() if is_instance_valid(terminal_kathode) else -1
+	# Zener breakdown model (simplified)
+	var exp_rev = exp(-(Vd_last + Vz) / THERMAL_VOLTAGE)
+	var G_rev = (saturation_current / THERMAL_VOLTAGE) * exp_rev
+	var I_rev_eq = saturation_current * (exp_rev - 1.0) - G_rev * (-Vd_last)
 
-	var node_a_lookup = terminal_connections.get(a_id, -1)
-	var node_k_lookup = terminal_connections.get(k_id, -1)
+	# Total linearized model
+	var Geq = G_fwd + G_rev
+	var Ieq = I_fwd_eq - I_rev_eq
 
-	var idx_a = node_map.get(node_a_lookup, -1)
-	var idx_k = node_map.get(node_k_lookup, -1)
-
-	var R_on_model_const = 0.1    
-	var G_on_model_val = 1.0 / R_on_model_const
-	var R_off_model_const = 1.0e9 
-	var G_off_model_val = 1.0 / R_off_model_const
-
-	if state_zener_val == "OFF":
-		CircuitGraph.stamp_conductance(A, G_off_model_val, idx_a, idx_k)
-	elif state_zener_val == "FORWARD":
-		CircuitGraph.stamp_conductance(A, G_on_model_val, idx_a, idx_k)
-		var current_offset_fwd_val = G_on_model_val * Vf_zener_model_prop
-		
-		if idx_a != -1: b[idx_a] += current_offset_fwd_val 
-		if idx_k != -1: b[idx_k] -= current_offset_fwd_val 
-	elif state_zener_val == "ZENER":
-		CircuitGraph.stamp_conductance(A, G_on_model_val, idx_a, idx_k)
-		var current_offset_zener_val = G_on_model_val * Vz_zener_model_prop
-		
-		if idx_k != -1: b[idx_k] += current_offset_zener_val 
-		if idx_a != -1: b[idx_a] -= current_offset_zener_val 
+	var ia = node_map.get(terminal_connections.get(terminal_anode.get_instance_id(), -1), -1)
+	var ik = node_map.get(terminal_connections.get(terminal_kathode.get_instance_id(), -1), -1)
+	
+	CircuitGraph.stamp_conductance(A, Geq, ia, ik)
+	if ia != -1: b[ia] -= Ieq
+	if ik != -1: b[ik] += Ieq

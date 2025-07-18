@@ -741,7 +741,8 @@ func _select_component(component: Node3D):
 
 	elif selected_component is ZenerDiode3D:
 		var selected_t : ZenerDiode3D = selected_component
-		_add_line_edit_property("Fwd Voltage (Vf):", selected_t.forward_voltage, func(new_val): selected_t.forward_voltage = new_val)
+		_add_line_edit_property("Sat. Current (A):", selected_t.saturation_current, func(new_val): selected_t.saturation_current = new_val)
+		_add_line_edit_property("Ideality Factor:", selected_t.ideality_factor, func(new_val): selected_t.ideality_factor = new_val)
 		_add_line_edit_property("Zener Voltage (Vz):", selected_t.zener_voltage, func(new_val): selected_t.zener_voltage = new_val)
 		
 	elif selected_component is Switch3D:
