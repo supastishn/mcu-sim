@@ -274,3 +274,30 @@ func stamp(
 			var I_norton = Id_sat_calc_val - g_ds * Vds_last
 			if idx_d != -1: b[idx_d] -= I_norton
 			if idx_s != -1: b[idx_s] += I_norton
+
+func get_kcl_contributions(graph: CircuitGraph, all_node_voltages: Dictionary, F_v: Array, system: Dictionary, _delta_time: float):
+	var node_d_id = graph.terminal_connections.get(terminal_d.get_instance_id(), -1)
+	var node_g_id = graph.terminal_connections.get(terminal_g.get_instance_id(), -1)
+	var node_s_id = graph.terminal_connections.get(terminal_s.get_instance_id(), -1)
+
+	var Vd = all_node_voltages.get(node_d_id, 0.0)
+	var Vg = all_node_voltages.get(node_g_id, 0.0)
+	var Vs = all_node_voltages.get(node_s_id, 0.0)
+
+	var Vgs = Vg - Vs
+	var Vds = Vd - Vs
+	var vt = threshold_voltage
+	var kn = transconductance_parameter
+	
+	var Id = 0.0
+	if Vgs > vt:
+		if Vds < (Vgs - vt): # Triode
+			Id = kn * ( (Vgs - vt) * Vds - 0.5 * pow(Vds, 2.0) ) * (1 + lambda * Vds)
+		else: # Saturation
+			Id = 0.5 * kn * pow(Vgs - vt, 2.0) * (1 + lambda * Vds)
+
+	var idx_d = system.node_map.get(node_d_id, -1)
+	var idx_s = system.node_map.get(node_s_id, -1)
+
+	if idx_d != -1: F_v[idx_d] += Id
+	if idx_s != -1: F_v[idx_s] -= Id

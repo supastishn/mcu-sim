@@ -647,7 +647,10 @@ func _build_mna_system(delta_time: float) -> Dictionary:
 
 	var num_internal_nodes = internal_nodes.size()
 	for i in range(num_internal_nodes):
-		node_id_to_matrix_index[internal_nodes[i]] = num_nodes + num_active_vs + num_inductors + i
+		var internal_node_id = internal_nodes[i]
+		node_id_to_matrix_index[internal_node_id] = num_nodes + num_active_vs + num_inductors + i
+		if not electrical_nodes.has(internal_node_id):
+			electrical_nodes[internal_node_id] = {"terminals": [], "voltage": 0.0}
 		
 	N += num_internal_nodes
 		

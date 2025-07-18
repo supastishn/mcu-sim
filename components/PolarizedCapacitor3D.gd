@@ -161,6 +161,35 @@ func stamp(
 	if internal_node_idx != -1: b[internal_node_idx] += I_eq_source
 	if t2_idx != -1: b[t2_idx] -= I_eq_source
 
+func get_kcl_contributions(graph: CircuitGraph, all_node_voltages: Dictionary, F_v: Array, system: Dictionary, delta_time: float):
+	var comp_data = graph.component_node_map.get(self)
+	if comp_data.get("is_exploded", false): return
+
+	var t1_node_id = graph.terminal_connections.get(terminal1.get_instance_id(), -1)
+	var t2_node_id = graph.terminal_connections.get(terminal2.get_instance_id(), -1)
+	var v1 = all_node_voltages.get(t1_node_id, 0.0)
+	var v2 = all_node_voltages.get(t2_node_id, 0.0)
+	var v_int = all_node_voltages.get(_internal_node_id, 0.0)
+
+	# Current through ESR
+	var esr = equivalent_series_resistance
+	if esr > 1e-9:
+		var I_esr = (v1 - v_int) / esr
+		var idx1 = system.node_map.get(t1_node_id, -1)
+		var idx_int = system.node_map.get(_internal_node_id, -1)
+		if idx1 != -1: F_v[idx1] += I_esr
+		if idx_int != -1: F_v[idx_int] -= I_esr
+	
+	# Current through ideal capacitor
+	var Vc_prev = comp_data.properties.get("voltage_across_cap_prev_dt", 0.0)
+	if delta_time < 1e-9: delta_time = 1e-9
+	var I_cap = capacitance * ( (v_int - v2) - Vc_prev) / delta_time
+
+	var idx_int_cap = system.node_map.get(_internal_node_id, -1)
+	var idx2 = system.node_map.get(t2_node_id, -1)
+	if idx_int_cap != -1: F_v[idx_int_cap] += I_cap
+	if idx2 != -1: F_v[idx2] -= I_cap
+
 ## Extracts and stores simulation results, checking for overvoltage or reverse polarity explosion.
 func gather_sim_results(
 	circuit      : CircuitGraph,

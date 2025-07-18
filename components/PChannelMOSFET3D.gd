@@ -170,6 +170,34 @@ func stamp(A, b,node_map,_vs_map,_inductor_map,term_conn,comp_data,_dt):
 		if idx_s != -1: b[idx_s] += I_norton
 		if idx_d != -1: b[idx_d] -= I_norton
 
+func get_kcl_contributions(graph: CircuitGraph, all_node_voltages: Dictionary, F_v: Array, system: Dictionary, _delta_time: float):
+	var node_d_id = graph.terminal_connections.get(terminal_d.get_instance_id(), -1)
+	var node_g_id = graph.terminal_connections.get(terminal_g.get_instance_id(), -1)
+	var node_s_id = graph.terminal_connections.get(terminal_s.get_instance_id(), -1)
+
+	var Vd = all_node_voltages.get(node_d_id, 0.0)
+	var Vg = all_node_voltages.get(node_g_id, 0.0)
+	var Vs = all_node_voltages.get(node_s_id, 0.0)
+
+	var Vsg = Vs - Vg
+	var Vsd = Vs - Vd
+	var vt = threshold_voltage
+	var kp = transconductance_parameter
+
+	var Id = 0.0
+	if Vsg > vt:
+		if Vsd < (Vsg - vt): # Triode
+			Id = kp * ( (Vsg - vt) * Vsd - 0.5 * pow(Vsd, 2.0) ) * (1 + lambda * Vsd)
+		else: # Saturation
+			Id = 0.5 * kp * pow(Vsg - vt, 2.0) * (1 + lambda * Vsd)
+
+	var idx_d = system.node_map.get(node_d_id, -1)
+	var idx_s = system.node_map.get(node_s_id, -1)
+	
+	# Current flows S to D
+	if idx_s != -1: F_v[idx_s] += Id
+	if idx_d != -1: F_v[idx_d] -= Id
+
 # ---------- gather_sim_results ----------
 ## Extracts and stores simulation results (currents, voltages, region) for this component.
 func gather_sim_results(circuit,comp_data,_x,_node_map,_vs_map,_inductor_map,_dt):
