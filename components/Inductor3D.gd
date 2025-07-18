@@ -95,6 +95,9 @@ func stamp(
 	comp_data: Dictionary, # Used for inductance, current_through_L_prev_dt
 	delta_time: float
 ):
+	# --- Numerical stability: clamp delta_time ---
+	delta_time = clamp(delta_time, 1e-12, 0.1)
+
 	var dcr = dc_resistance
 	var internal_node_idx = node_map.get(_internal_node_id, -1)
 

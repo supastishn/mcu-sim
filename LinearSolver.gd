@@ -18,6 +18,12 @@ static func solve(A: Array, b: Array) -> Array:
 			printerr("LinearSolver: Matrix A is not square (row size {row_sz} vs expected {n_val}).".format({"row_sz": row.size(), "n_val": n}))
 			return []
 
+	# --- Enhanced singularity/nan detection ---
+	var matrix_norm = 0.0
+	for i in range(n):
+		for j in range(n):
+			matrix_norm = max(matrix_norm, abs(A[i][j]))
+
 	for i in range(n):
 		var pivot = abs(A[i][i])
 		var pivot_row = i
@@ -34,8 +40,9 @@ static func solve(A: Array, b: Array) -> Array:
 			b[i] = b[pivot_row]
 			b[pivot_row] = temp_b
 
-		if is_equal_approx(A[i][i], 0.0) or abs(A[i][i]) < 1e-12:
-			printerr("LinearSolver: Matrix is singular or near-singular at step {step_i}. Cannot solve.".format({"step_i": i}))
+		# Enhanced singularity/nan detection
+		if is_nan(A[i][i]) or abs(A[i][i]) < max(1e-12, 1e-12 * matrix_norm):
+			printerr("LinearSolver: Matrix is singular/invalid at pivots (row {step_i}).".format({"step_i": i}))
 			return []
 
 		for k in range(i + 1, n):
@@ -49,8 +56,8 @@ static func solve(A: Array, b: Array) -> Array:
 	x.resize(n)
 
 	for i in range(n - 1, -1, -1): 
-		if abs(A[i][i]) < 1e-12:
-			printerr("LinearSolver: Matrix became singular during back substitution at row {row_i}.".format({"row_i": i}))
+		if is_nan(A[i][i]) or abs(A[i][i]) < max(1e-12, 1e-12 * matrix_norm):
+			printerr("LinearSolver: Matrix became singular/invalid during back substitution at row {row_i}.".format({"row_i": i}))
 			return []
 
 		var sum_ax = 0.0

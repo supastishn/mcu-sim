@@ -50,6 +50,10 @@ var _is_solved: bool = false
 ## Flag indicating if the MNA system needs to be rebuilt due to circuit changes.
 var _needs_rebuild: bool = true 
 
+# --- MNA System Caching for Performance ---
+var _cached_system: Dictionary = {}
+var _cached_delta_time: float = 0.0
+
 ## A counter to generate unique electrical node IDs.
 var _next_node_id: int = 0
 var _next_internal_node_id: int = -1 # Use negative numbers for internal nodes
@@ -477,6 +481,16 @@ func solve_single_time_step(delta_time: float) -> bool:
 			if comp_data_item.has("properties") and comp_data_item.properties.has("is_energized"):
 				comp_data_item.properties["is_energized"] = false
 
+	# --- MNA System Caching ---
+	var system
+	if not _needs_rebuild and is_equal_approx(delta_time, _cached_delta_time):
+		print("Reusing cached MNA system")
+		system = _cached_system
+	else:
+		system = _build_mna_system(delta_time)
+		_cached_system = system
+		_cached_delta_time = delta_time
+
 	var converged = _solve_newton_raphson(delta_time)
 	
 	if not converged:
@@ -486,8 +500,8 @@ func solve_single_time_step(delta_time: float) -> bool:
 		return false
 	
 	_is_solved = true
-	var final_system = _build_mna_system(delta_time)
-	
+	var final_system = system
+
 	var final_solution = []
 	final_solution.resize(final_system.A.size())
 	final_solution.fill(0.0)

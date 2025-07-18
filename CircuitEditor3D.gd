@@ -879,6 +879,10 @@ func _rebuild_graph_from_scene():
 	circuit_graph.terminal_connections.clear()
 	circuit_graph.ground_node_id = -1
 	circuit_graph._next_node_id = 0
+
+	# --- Invalidate MNA system cache ---
+	circuit_graph._cached_system = {}
+	circuit_graph._cached_delta_time = 0.0
 	
 	# Re-add components
 	for comp in all_components:
