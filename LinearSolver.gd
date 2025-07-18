@@ -34,7 +34,7 @@ static func solve(A: Array, b: Array) -> Array:
 			b[i] = b[pivot_row]
 			b[pivot_row] = temp_b
 
-		if abs(A[i][i]) < 1e-12: 
+		if is_equal_approx(A[i][i], 0.0) or abs(A[i][i]) < 1e-12:
 			printerr("LinearSolver: Matrix is singular or near-singular at step {step_i}. Cannot solve.".format({"step_i": i}))
 			return []
 

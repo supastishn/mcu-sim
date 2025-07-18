@@ -143,6 +143,9 @@ func stamp(
 	comp_data: Dictionary,
 	_delta_time: float
 ):
+	# Null check for terminals
+	if not is_instance_valid(terminal_c) or not is_instance_valid(terminal_b) or not is_instance_valid(terminal_e):
+		return
 	# Simplified Ebers-Moll Model Stamp
 	var Vbe = comp_data.properties.get("_internal_vbe", 0.7)
 	var Vbc = comp_data.properties.get("_internal_vbc", 0.0)

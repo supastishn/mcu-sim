@@ -844,7 +844,6 @@ func test_npn_bjt_regions() -> bool:
 
 ## Tests the PNP BJT model in its three main operating regions: Cutoff, Active, and Saturation.
 func test_pnp_bjt_regions() -> bool:
-	print('test')
 	var overall_test_passed = true
 	var editor_instance: Node3D = CircuitEditorScene.instantiate()
 	add_child(editor_instance)

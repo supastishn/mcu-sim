@@ -156,6 +156,19 @@ func stamp(
 		else:
 			A[idx_vout][idx_vout] += 1e-9
 
+	# Add current limiting (max_current) in all operating modes
+	var Gcurrent = 1e8  # Conductance for current limiting
+	if idx_vin != -1 and idx_vout != -1:
+		A[idx_vin][idx_vin] += Gcurrent
+		A[idx_vout][idx_vout] += Gcurrent
+		A[idx_vin][idx_vout] -= Gcurrent
+		A[idx_vout][idx_vin] -= Gcurrent
+		var target_diff = max_current / Gcurrent
+		if status == "REGULATED":
+			b[idx_vin] -= Gcurrent * target_diff
+		else:
+			b[idx_vin] -= Gcurrent * (dropout_voltage + target_diff)
+
 ## Extracts simulation results and updates the info label.
 func gather_sim_results(circuit, comp_data, _x, _node_map, _vs_map, _inductor_map, _delta_time):
 	var comp_id = self.get_instance_id()

@@ -153,9 +153,9 @@ func stamp(
 ):
 	
 	var R_coil_path_val: float
+	# Use max() for coil resistance to avoid division by zero
+	var R_coil_actual_prop = max(coil_resistance, 1e-9)
 	var g_coil_path_val: float
-	var R_coil_actual_prop = coil_resistance 
-	if R_coil_actual_prop <= 1e-9: R_coil_actual_prop = 1e-9
 
 	var vcc_id = terminal_vcc.get_instance_id()
 	var gnd_id = terminal_gnd.get_instance_id()

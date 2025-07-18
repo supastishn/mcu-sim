@@ -40,8 +40,6 @@ const THERMAL_VOLTAGE: float = 0.02585 # At room temperature (300K)
 var _original_material: StandardMaterial3D = null
 ## A copy of the LED's material, modified to emit light.
 var _lit_material: StandardMaterial3D = null
-## A flag indicating if the LED has been destroyed by excessive current.
-var is_actually_burned: bool = false 
 
 ## Called when the node enters the scene tree. Initializes materials and labels.
 func _ready():
@@ -70,11 +68,9 @@ func _ready():
 
 ## Updates the LED's visual appearance (lit, unlit, or burned) based on the simulation results.
 func update_visual_state(current: float, p_is_logically_burned: bool):
-	is_actually_burned = p_is_logically_burned
-
 	if not burn_label: return 
 
-	if is_actually_burned: 
+	if p_is_logically_burned: 
 		burn_label.visible = true 
 		if _original_material:
 			led_mesh_instance.material_override = _original_material 

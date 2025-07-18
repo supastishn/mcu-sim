@@ -140,7 +140,7 @@ const SIMULATION_TIME_STEP: float = 0.01
 
 ## Godot's ready function. Initializes the editor, sets up UI, and prepares for user interaction.
 func _ready():
-	is_mobile = OS.has_feature("mobile")
+	is_mobile = OS.has_feature("mobile") or OS.get_name() in ["Android", "iOS"]
 	if is_mobile:
 		print("Mobile platform detected. Enabling virtual joysticks.")
 		

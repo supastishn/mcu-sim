@@ -528,8 +528,13 @@ func _solve_newton_raphson(delta_time: float) -> bool:
 			printerr("LinearSolver failed in Newton-Raphson iteration.")
 			return false
 
-		# Update node voltages
-		_update_voltages_from_solution(delta_x, system.node_map)
+		# Damping for stability
+		var damping_factor = 0.7
+		var node_map = system.node_map
+		for node_id in node_map:
+			var index = node_map[node_id]
+			if electrical_nodes.has(node_id):
+				electrical_nodes[node_id].voltage += damping_factor * delta_x[index]
 
 		if _check_convergence(delta_x, v_tolerance):
 			return true
