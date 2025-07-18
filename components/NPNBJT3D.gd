@@ -115,9 +115,18 @@ func gather_sim_results(
 		Ic = alpha_f * I_es * (exp(Vbe / Vt) - 1.0) - I_cs * (exp(Vbc / Vt) - 1.0)
 		Ib = Ie - Ic
 
+	var region = "OFF"
+	if not is_nan(Vbe):
+		if Vbe > 0.5: # Simple check for region for display
+			if Vbc > -0.4:
+				region = "SATURATION"
+			else:
+				region = "ACTIVE"
+
 	circuit.component_results[comp_id]["Ic"] = Ic
 	circuit.component_results[comp_id]["Ib"] = Ib
 	circuit.component_results[comp_id]["Ie"] = Ie
+	circuit.component_results[comp_id]["region"] = region
 
 ## Applies the BJT's contribution to the MNA matrices based on its current operating region.
 func stamp(

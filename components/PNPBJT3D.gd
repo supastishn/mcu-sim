@@ -81,27 +81,103 @@ func get_terminal_info() -> Dictionary:
 ## Extracts and stores simulation results (currents, region) for this component.
 func gather_sim_results(
 		circuit      : CircuitGraph,
-		_comp_data    : Dictionary,
+		comp_data    : Dictionary,
 		_x            : Array,
 		_node_map     : Dictionary,
 		_vs_map       : Dictionary,
 		_inductor_map : Dictionary,
 		_delta_time   : float) -> void:
-	# This function is now a placeholder as the simple region model is deprecated.
-	# A full Ebers-Moll based calculation would be needed here.
-	pass
+	var comp_id = comp_data.component_node.get_instance_id()
+	
+	var Ve = circuit.electrical_nodes.get(circuit.terminal_connections.get(comp_data.terminals["E"].get_instance_id(), -1), {}).get("voltage", NAN)
+	var Vb = circuit.electrical_nodes.get(circuit.terminal_connections.get(comp_data.terminals["B"].get_instance_id(), -1), {}).get("voltage", NAN)
+	var Vc = circuit.electrical_nodes.get(circuit.terminal_connections.get(comp_data.terminals["C"].get_instance_id(), -1), {}).get("voltage", NAN)
+
+	var Is = comp_data.properties["saturation_current"]
+	var alpha_f = comp_data.properties["alpha_forward"]
+	var alpha_r = comp_data.properties["alpha_reverse"]
+	var Vt = THERMAL_VOLTAGE
+
+	var Ic = NAN
+	var Ib = NAN
+	var Ie = NAN
+	
+	if not is_nan(Vc) and not is_nan(Vb) and not is_nan(Ve):
+		var Veb = Ve - Vb
+		var Vcb = Vc - Vb
+		comp_data.properties["_internal_veb"] = Veb
+		comp_data.properties["_internal_vcb"] = Vcb
+
+		var I_es = Is / alpha_f
+		var I_cs = Is / alpha_r
+
+		Ie = I_es * (exp(Veb / Vt) - 1.0) - alpha_r * I_cs * (exp(Vcb / Vt) - 1.0)
+		Ic = alpha_f * I_es * (exp(Veb / Vt) - 1.0) - I_cs * (exp(Vcb / Vt) - 1.0)
+		Ib = -(Ie + Ic) # Current flows out of base for PNP
+
+	var region = "OFF"
+	if not is_nan(comp_data.properties.get("_internal_veb", NAN)):
+		var Veb_check = comp_data.properties.get("_internal_veb", 0.0)
+		var Vcb_check = comp_data.properties.get("_internal_vcb", 0.0)
+		if Veb_check > 0.5: # Simple check for region for display
+			if Vcb_check > -0.4:
+				region = "SATURATION"
+			else:
+				region = "ACTIVE"
+
+	circuit.component_results[comp_id]["Ic"] = -Ic
+	circuit.component_results[comp_id]["Ib"] = Ib
+	circuit.component_results[comp_id]["Ie"] = Ie
+	circuit.component_results[comp_id]["region"] = region
 
 ## Applies the BJT's contribution to the MNA matrices based on its current operating region.
 func stamp(
-	_A: Array,
-	_b: Array,
-	_node_map: Dictionary,
+	A: Array,
+	b: Array,
+	node_map: Dictionary,
 	_vs_map: Dictionary,
 	_inductor_map: Dictionary,
-	_terminal_connections: Dictionary,
-	_comp_data: Dictionary,
+	terminal_connections: Dictionary,
+	comp_data: Dictionary,
 	_delta_time: float
 ):
-	# Placeholder for a full PNP Ebers-Moll model stamp.
-	# This would be similar to the NPN version but with voltages/currents reversed.
-	pass
+	# Simplified Ebers-Moll Model Stamp for PNP
+	var Veb = comp_data.properties.get("_internal_veb", 0.7)
+	var Vcb = comp_data.properties.get("_internal_vcb", 0.0)
+	var Is = saturation_current
+	var alpha_f = alpha_forward
+	var alpha_r = alpha_reverse
+	var Vt = THERMAL_VOLTAGE
+
+	# Linearize EB and CB diodes
+	var g_pi_pnp = (Is / Vt) * exp(Veb / Vt)
+	var I_eb_eq = Is * (exp(Veb / Vt) - 1.0) - g_pi_pnp * Veb
+	
+	var g_mu_pnp = (Is / Vt) * exp(Vcb / Vt)
+	var I_cb_eq = Is * (exp(Vcb / Vt) - 1.0) - g_mu_pnp * Vcb
+
+	# Transconductances
+	var gm_f_pnp = alpha_f * g_pi_pnp
+	var gm_r_pnp = alpha_r * g_mu_pnp
+
+	# Get node indices
+	var idx_e = node_map.get(terminal_connections.get(terminal_e.get_instance_id(), -1), -1)
+	var idx_b = node_map.get(terminal_connections.get(terminal_b.get_instance_id(), -1), -1)
+	var idx_c = node_map.get(terminal_connections.get(terminal_c.get_instance_id(), -1), -1)
+
+	# Stamp linearized model into MNA matrices (current directions are reversed for PNP)
+	if idx_b != -1:
+		A[idx_b][idx_b] += g_pi_pnp + g_mu_pnp
+		b[idx_b] -= I_eb_eq + I_cb_eq
+		if idx_e != -1: A[idx_b][idx_e] -= g_pi_pnp
+		if idx_c != -1: A[idx_b][idx_c] -= g_mu_pnp
+	
+	if idx_e != -1:
+		A[idx_e][idx_e] += g_pi_pnp + gm_f_pnp
+		b[idx_e] += I_eb_eq + alpha_f * I_eb_eq
+		if idx_b != -1: A[idx_e][idx_b] -= g_pi_pnp + gm_f_pnp
+	
+	if idx_c != -1:
+		A[idx_c][idx_c] += g_mu_pnp + gm_r_pnp
+		b[idx_c] += I_cb_eq + alpha_r * I_cb_eq
+		if idx_b != -1: A[idx_c][idx_b] -= g_mu_pnp + gm_r_pnp
