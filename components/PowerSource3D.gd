@@ -174,6 +174,25 @@ func stamp(
 		if neg_idx != -1:
 			b[neg_idx] -= actual_current_to_stamp 
 
+func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, F_v: Array, system: Dictionary, _delta_time: float):
+	var comp_data = graph.component_node_map.get(self)
+	var ps_op_mode = comp_data.properties.get("current_operating_mode", "CV")
+
+	if ps_op_mode == "CC":
+		var pos_node_id = graph.terminal_connections.get(terminal_pos.get_instance_id(), -1)
+		var neg_node_id = graph.terminal_connections.get(terminal_neg.get_instance_id(), -1)
+		
+		var I_target = comp_data.properties["target_current"] 
+		var direction_sign = comp_data.properties.get("cc_current_direction_sign", 1.0) 
+		var current = direction_sign * I_target
+
+		var idx_pos = system.node_map.get(pos_node_id, -1)
+		var idx_neg = system.node_map.get(neg_node_id, -1)
+		
+		# F_v is sum of currents LEAVING node. Current source pushes current INTO positive terminal.
+		if idx_pos != -1: F_v[idx_pos] -= current
+		if idx_neg != -1: F_v[idx_neg] += current
+
 ## Extracts and stores simulation results (current, voltage, mode) for this component.
 func gather_sim_results(
 		circuit      : CircuitGraph,
