@@ -122,10 +122,12 @@ func test_simple_powersupply_resistor_led_circuit() -> bool:
 	rig.cfg(res_node)
 
 	led_node.forward_voltage = 2.0
-	led_node.min_current_to_light = 0.001 
-	led_node.max_current_before_burn = 0.020 
+	led_node.saturation_current = 1e-12
+	led_node.ideality_factor = 1.5
+	led_node.min_current_to_light = 0.001
+	led_node.max_current_before_burn = 0.020
 	rig.cfg(led_node)
-
+	
 	rig.wire(ps_node.terminal_pos, res_node.terminal1)
 	rig.wire(res_node.terminal2, led_node.terminal_anode)
 	rig.wire(led_node.terminal_kathode, ps_node.terminal_neg)
@@ -151,7 +153,7 @@ func test_simple_powersupply_resistor_led_circuit() -> bool:
 
 		var led_graph_data
 		for comp_data in g.components:
-			if comp_data.component_node == led_node:
+			if comp_data.component_node == led_node && comp_data.type == "LED":
 				led_graph_data = comp_data
 				break
 		
@@ -188,6 +190,8 @@ func test_op_amp_inverting_amplifier() -> bool:
 	ps_vcc.target_voltage = 15.0; rig.cfg(ps_vcc)
 	ps_vee.target_voltage = 15.0; rig.cfg(ps_vee)
 	ps_vin.target_voltage = 1.0; rig.cfg(ps_vin)
+	opamp.open_loop_gain = 200000
+	rig.cfg(opamp)
 	r_in.resistance = 1000.0; rig.cfg(r_in)
 	r_f.resistance = 10000.0; rig.cfg(r_f)
 	
@@ -320,7 +324,9 @@ func test_diode_behavior() -> bool:
 	ps_node.target_voltage = 5.0; rig.cfg(ps_node)
 	res_node.resistance = 220.0; rig.cfg(res_node)
 	diode_node.forward_voltage = 0.7; rig.cfg(diode_node)
-	
+	diode_node.saturation_current = 1e-12
+	diode_node.ideality_factor = 1.0
+
 	rig.wire(ps_node.terminal_pos, res_node.terminal1)
 	rig.wire(res_node.terminal2, diode_node.terminal_anode)
 	rig.wire(diode_node.terminal_kathode, ps_node.terminal_neg)
@@ -997,6 +1003,8 @@ func test_zener_diode_behavior() -> bool:
 	graph_script.component_config_changed(res_fwd)
 	zener_fwd.forward_voltage = Vf_test
 	zener_fwd.zener_voltage = Vz_test
+	zener_fwd.saturation_current = 1e-12
+	zener_fwd.ideality_factor = 1.0
 	graph_script.component_config_changed(zener_fwd)
 
 	graph_script.connect_terminals(ps_fwd.terminal_pos, res_fwd.terminal1)
