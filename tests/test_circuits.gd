@@ -901,8 +901,9 @@ func test_pnp_bjt_regions() -> bool:
 	graph_script.component_config_changed(rc_pnp_active)
 	rb_pnp_active.resistance = 27000.0 
 	graph_script.component_config_changed(rb_pnp_active)
-	bjt_pnp_active.beta_dc = 100.0; bjt_pnp_active.veb_on = 0.7; bjt_pnp_active.vec_sat = 0.2
-	graph_script.component_config_changed(bjt_pnp_active)
+	bjt_pnp_active.saturation_current = 1e-15
+	bjt_pnp_active.alpha_forward = 0.99
+	bjt_pnp_active.alpha_reverse = 0.5
 
 	graph_script.connect_terminals(bjt_pnp_active.terminal_e, ps_pnp_active_vcc.terminal_pos) 
 	graph_script.connect_terminals(bjt_pnp_active.terminal_c, rc_pnp_active.terminal1)   
@@ -1246,6 +1247,8 @@ func test_led_burnout() -> bool:
 	ps_node.target_voltage = 5.0; ps_node.target_current = 0.5; rig.cfg(ps_node)
 	res_node.resistance = 10.0; rig.cfg(res_node)
 	led_node.forward_voltage = 2.0; led_node.max_current_before_burn = 0.020; rig.cfg(led_node)
+	led_node.saturation_current = 1e-12
+	led_node.ideality_factor = 1.5
 
 	rig.wire(ps_node.terminal_pos, res_node.terminal1)
 	rig.wire(res_node.terminal2, led_node.terminal_anode)
