@@ -167,8 +167,9 @@ func gather_sim_results(
 		current = Is * (exp(Vd / (n * V_thermal)) - 1.0)
 		comp_data.properties["_internal_voltage"] = Vd
 
-		if current > comp_data.properties["max_current"]:
-			comp_data.is_burned = true
+		if current > max_current_before_burn:
+			# record burn state back into the component‐data dict
+			comp_data["is_burned"] = true
 			current = 0.0
 	
 	circuit.component_results[comp_id]["current"] = current
