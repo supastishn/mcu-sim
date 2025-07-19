@@ -530,10 +530,22 @@ func _solve_newton_raphson(system: Dictionary, delta_time: float) -> bool:
 	var max_iter = 100
 	var v_tolerance = 1e-6
 	
+	# Initialize and maintain a full solution vector (x_k) for the iteration
+	var x_k = []
+	x_k.resize(system.N)
+	x_k.fill(0.0)
+	# Initialize voltages from the graph state
+	for node_id in system.node_map:
+		var idx = system.node_map[node_id]
+		if electrical_nodes.has(node_id):
+			x_k[idx] = electrical_nodes[node_id].get("voltage", 0.0)
+	# Currents for VS/Inductors start at 0
+
 	_last_solver_debug_info.clear()
 
 	for i in range(max_iter):
 		var iter_info = {"iteration": i}
+		iter_info["solution_vector_xk"] = x_k.duplicate()
 
 		var voltages_before = {}
 		for node_id in electrical_nodes:
@@ -551,7 +563,7 @@ func _solve_newton_raphson(system: Dictionary, delta_time: float) -> bool:
 
 		var matrices = _stamp_mna_matrices(system, delta_time)
 		var A = matrices.A
-		var b_error = _calculate_error_vector(system, matrices.b, delta_time)
+		var b_error = _calculate_error_vector(system, matrices.b, delta_time, x_k)
 		
 		iter_info["jacobian_A"] = A.duplicate(true)
 		iter_info["error_vector_neg_F"] = b_error.duplicate()
@@ -571,7 +583,6 @@ func _solve_newton_raphson(system: Dictionary, delta_time: float) -> bool:
 			assert(false, msg)
 			return false
 
-		# Adaptive damping for stability
 		var norm = sqrt(delta_x.reduce(func(acc, val): return acc + val*val, 0.0))
 		if not !is_nan(norm):
 			LinearSolver.print_matrix(A, "A on norm fail")
@@ -582,13 +593,19 @@ func _solve_newton_raphson(system: Dictionary, delta_time: float) -> bool:
 			msg += get_solver_debug_info_as_string()
 			assert(false, msg)
 			return false
+
 		var damping_factor = 1.0 - clamp(0.1 * log(norm + 1.0), 0.2, 0.9)
 		iter_info["damping_factor"] = damping_factor
-		var node_map = system.node_map
-		for node_id in node_map:
-			var index = node_map[node_id]
+		
+		# Update the full solution vector x_k
+		for j in range(system.N):
+			x_k[j] += damping_factor * delta_x[j]
+		
+		# THEN, update the graph's voltage state FROM the new x_k
+		for node_id in system.node_map:
+			var index = system.node_map[node_id]
 			if electrical_nodes.has(node_id):
-				electrical_nodes[node_id].voltage += damping_factor * delta_x[index]
+				electrical_nodes[node_id].voltage = x_k[index]
 
 		var voltages_after = {}
 		for node_id in electrical_nodes:
