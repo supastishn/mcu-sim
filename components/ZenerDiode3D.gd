@@ -157,12 +157,10 @@ func stamp(
 	# Forward-bias diode model
 	var exp_fwd = exp(Vd_limited_fwd / n_vt)
 	var G_fwd = (saturation_current / n_vt) * exp_fwd
-	var I_fwd_eq = saturation_current * (exp_fwd - 1.0) - G_fwd * Vd_last
 
 	# Zener breakdown model (simplified)
 	var exp_rev = exp(Vrev_limited / THERMAL_VOLTAGE)
 	var G_rev = (saturation_current / THERMAL_VOLTAGE) * exp_rev
-	var I_rev_eq = saturation_current * (exp_rev - 1.0) - G_rev * (-Vd_last)
 
 	# Total linearized model
 	var Geq = G_fwd + G_rev

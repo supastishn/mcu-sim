@@ -97,10 +97,9 @@ func stamp(
 	var Vcrit = n_vt * log(1e12) # A large but numerically stable conductance
 	var Vd_limited = min(Vd_last_iter, Vcrit)
 
-	# Linearized model from Shockley equation: Geq and Ieq
+	# Linearized model from Shockley equation: Geq
 	var exp_term = exp(Vd_limited / n_vt)
 	var Geq = (saturation_current / n_vt) * exp_term
-	var Ieq = saturation_current * (exp_term - 1.0) - Geq * Vd_last_iter
 
 	var na = terminal_connections.get(terminal_anode.get_instance_id(), -1)
 	var nk = terminal_connections.get(terminal_kathode.get_instance_id(), -1)

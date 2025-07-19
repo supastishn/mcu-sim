@@ -163,12 +163,11 @@ func stamp(
 	var Veb_limited = min(Veb, Vcrit)
 	var Vcb_limited = min(Vcb, Vcrit)
 
-	# Linearize EB and CB diodes
-	var g_pi_pnp = (Is / Vt) * exp(Veb_limited / Vt)
-	var I_eb_eq = Is * (exp(Veb_limited / Vt) - 1.0) - g_pi_pnp * Veb
-	
-	var g_mu_pnp = (Is / Vt) * exp(Vcb_limited / Vt)
-	var I_cb_eq = Is * (exp(Vcb_limited / Vt) - 1.0) - g_mu_pnp * Vcb
+	# Conductances of the EB and CB diodes
+	var I_es = Is / alpha_f
+	var I_cs = Is / alpha_r
+	var g_pi_pnp = (I_es / Vt) * exp(Veb_limited / Vt)
+	var g_mu_pnp = (I_cs / Vt) * exp(Vcb_limited / Vt)
 
 	# Transconductances
 	var gm_f_pnp = alpha_f * g_pi_pnp
@@ -179,19 +178,22 @@ func stamp(
 	var idx_b = node_map.get(terminal_connections.get(terminal_b.get_instance_id(), -1), -1)
 	var idx_c = node_map.get(terminal_connections.get(terminal_c.get_instance_id(), -1), -1)
 
-	# Stamp linearized model into MNA matrices (current directions are reversed for PNP)
-	if idx_b != -1:
-		A[idx_b][idx_b] += g_pi_pnp + g_mu_pnp
-		if idx_e != -1: A[idx_b][idx_e] -= g_pi_pnp
-		if idx_c != -1: A[idx_b][idx_c] -= g_mu_pnp
-	
+	# KCL Error vector F is [F_e, F_c, F_b] = [-Ie, Ic, Ib]. Stamp Jacobian dF/dV.
+	# Emitter Row: d(-Ie)/dV
 	if idx_e != -1:
-		A[idx_e][idx_e] += g_pi_pnp + gm_f_pnp
-		if idx_b != -1: A[idx_e][idx_b] -= g_pi_pnp + gm_f_pnp
-	
+		if idx_e != -1: A[idx_e][idx_e] -= g_pi_pnp
+		if idx_b != -1: A[idx_e][idx_b] += g_pi_pnp - gm_r_pnp
+		if idx_c != -1: A[idx_e][idx_c] += gm_r_pnp
+	# Collector Row: d(Ic)/dV
 	if idx_c != -1:
-		A[idx_c][idx_c] += g_mu_pnp + gm_r_pnp
-		if idx_b != -1: A[idx_c][idx_b] -= g_mu_pnp + gm_r_pnp
+		if idx_e != -1: A[idx_c][idx_e] += gm_f_pnp
+		if idx_b != -1: A[idx_c][idx_b] += g_mu_pnp - gm_f_pnp
+		if idx_c != -1: A[idx_c][idx_c] -= g_mu_pnp
+	# Base Row: d(Ib)/dV = d(Ie-Ic)/dV
+	if idx_b != -1:
+		if idx_e != -1: A[idx_b][idx_e] += g_pi_pnp - gm_f_pnp
+		if idx_b != -1: A[idx_b][idx_b] += gm_f_pnp - g_pi_pnp - g_mu_pnp + gm_r_pnp
+		if idx_c != -1: A[idx_b][idx_c] += g_mu_pnp - gm_r_pnp
 
 func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, F_v: Array, system: Dictionary, _delta_time: float):
 	var node_e_id = graph.terminal_connections.get(terminal_e.get_instance_id(), -1)

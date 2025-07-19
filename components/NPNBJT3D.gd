@@ -163,12 +163,11 @@ func stamp(
 	var Vbe_limited = min(Vbe, Vcrit)
 	var Vbc_limited = min(Vbc, Vcrit)
 	
-	# Linearize BE and BC diodes
-	var g_pi = (Is / Vt) * exp(Vbe_limited / Vt)
-	var I_be_eq = Is * (exp(Vbe_limited / Vt) - 1.0) - g_pi * Vbe
-	
-	var g_mu = (Is / Vt) * exp(Vbc_limited / Vt)
-	var I_bc_eq = Is * (exp(Vbc_limited / Vt) - 1.0) - g_mu * Vbc
+	# Conductances of the BE and BC diodes
+	var I_es = Is / alpha_f
+	var I_cs = Is / alpha_r
+	var g_pi = (I_es / Vt) * exp(Vbe_limited / Vt)
+	var g_mu = (I_cs / Vt) * exp(Vbc_limited / Vt)
 
 	# Transconductances
 	var gm_f = alpha_f * g_pi
@@ -179,21 +178,22 @@ func stamp(
 	var idx_b = node_map.get(terminal_connections.get(terminal_b.get_instance_id(), -1), -1)
 	var idx_e = node_map.get(terminal_connections.get(terminal_e.get_instance_id(), -1), -1)
 
-	# Stamp linearized model into MNA matrices
-	if idx_b != -1:
-		A[idx_b][idx_b] += g_pi + g_mu
-		if idx_e != -1: A[idx_b][idx_e] -= g_pi
-		if idx_c != -1: A[idx_b][idx_c] -= g_mu
-	
-	if idx_e != -1:
-		A[idx_e][idx_e] += g_pi + gm_f - gm_r
-		if idx_b != -1: A[idx_e][idx_b] -= g_pi + gm_f
-		if idx_c != -1: A[idx_e][idx_c] += gm_r
-	
+	# KCL Error vector F is [F_c, F_b, F_e] = [Ic, Ib, -Ie]. Stamp Jacobian dF/dV.
+	# Collector Row: d(Ic)/dV
 	if idx_c != -1:
-		A[idx_c][idx_c] += g_mu - gm_f + gm_r
-		if idx_b != -1: A[idx_c][idx_b] -= g_mu - gm_f
-		if idx_e != -1: A[idx_c][idx_e] -= -gm_r
+		if idx_c != -1: A[idx_c][idx_c] += g_mu
+		if idx_b != -1: A[idx_c][idx_b] += gm_f - g_mu
+		if idx_e != -1: A[idx_c][idx_e] -= gm_f
+	# Base Row: d(Ib)/dV = d(Ie-Ic)/dV
+	if idx_b != -1:
+		if idx_c != -1: A[idx_b][idx_c] += gm_r - g_mu
+		if idx_b != -1: A[idx_b][idx_b] += g_pi - gm_f + g_mu - gm_r
+		if idx_e != -1: A[idx_b][idx_e] += gm_f - g_pi
+	# Emitter Row: d(-Ie)/dV
+	if idx_e != -1:
+		if idx_c != -1: A[idx_e][idx_c] += -gm_r
+		if idx_b != -1: A[idx_e][idx_b] += gm_r - g_pi
+		if idx_e != -1: A[idx_e][idx_e] += g_pi
 
 func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, F_v: Array, system: Dictionary, _delta_time: float):
 	var node_c_id = graph.terminal_connections.get(terminal_c.get_instance_id(), -1)

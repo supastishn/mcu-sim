@@ -262,13 +262,25 @@ func stamp(
 			
 		elif region_nmos_mna_val == "SATURATION":
 			# Model with channel length modulation: Id = 0.5 * Kn * (Vgs-Vt)^2 * (1 + lambda*Vds)
-			# This linearizes to a current source and an output conductance g_ds.
+			# This linearizes to a current source, an output conductance g_ds, and a transconductance gm.
 			var Vds_last = comp_data.properties.get("_internal_Vds_stamp", 0.0)
-			var g_ds = 0.5 * kn_nmos_mna_prop * pow(max(0, Vgs_for_model_val - vt_nmos_mna_prop), 2.0) * lambda
-			CircuitGraph.stamp_conductance(A, g_ds, idx_d, idx_s)
+			var vgs_minus_vt = max(0, Vgs_for_model_val - vt_nmos_mna_prop)
 			
-			# The non-linear current source part of the model is handled by `get_kcl_contributions`
-			# for the Newton-Raphson solver. Only the linearized conductance (g_ds) is stamped here.
+			# Small-signal parameters (Jacobian elements)
+			var g_ds = 0.5 * kn_nmos_mna_prop * pow(vgs_minus_vt, 2.0) * lambda
+			var gm = kn_nmos_mna_prop * vgs_minus_vt * (1.0 + lambda * Vds_last)
+
+			# KCL error at Drain is Id, at Source is -Id.
+			# Stamp Drain row: d(Id)/dV
+			if idx_d != -1:
+				A[idx_d][idx_d] += g_ds
+				A[idx_d][idx_g] += gm
+				A[idx_d][idx_s] -= (gm + g_ds)
+			# Stamp Source row: d(-Id)/dV
+			if idx_s != -1:
+				A[idx_s][idx_d] -= g_ds
+				A[idx_s][idx_g] -= gm
+				A[idx_s][idx_s] += (gm + g_ds)
 
 func get_kcl_contributions(graph: CircuitGraph, all_node_voltages: Dictionary, F_v: Array, system: Dictionary, _delta_time: float):
 	var node_d_id = graph.terminal_connections.get(terminal_d.get_instance_id(), -1)
