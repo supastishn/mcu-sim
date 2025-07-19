@@ -10,9 +10,15 @@ class_name LinearSolver
 ## Solves a system of linear equations Ax = b using Gaussian elimination with partial pivoting.
 static func solve(A: Array, b: Array) -> Array:
 	var n = b.size()
-	assert(A.size() == n, "LinearSolver: Matrix A rows ({a_size}) does not match vector b size ({n_val}).".format({"a_size": A.size(), "n_val": n}))
+	if not (A.size() == n):
+		print_matrix(A, "A on solve() fail")
+		print_vector(b, "b on solve() fail")
+		assert(false, "LinearSolver: Matrix A rows ({a_size}) does not match vector b size ({n_val}).".format({"a_size": A.size(), "n_val": n}))
 	for row in A:
-		assert(row.size() == n, "LinearSolver: Matrix A is not square (row size {row_sz} vs expected {n_val}).".format({"row_sz": row.size(), "n_val": n}))
+		if not (row.size() == n):
+			print_matrix(A, "A on solve() fail")
+			print_vector(b, "b on solve() fail")
+			assert(false, "LinearSolver: Matrix A is not square (row size {row_sz} vs expected {n_val}).".format({"row_sz": row.size(), "n_val": n}))
 
 	# --- Enhanced singularity/nan detection ---
 	var matrix_norm = 0.0
@@ -37,7 +43,10 @@ static func solve(A: Array, b: Array) -> Array:
 			b[pivot_row] = temp_b
 
 		# Enhanced singularity/nan detection
-		assert(!is_nan(A[i][i]) and abs(A[i][i]) >= max(1e-12, 1e-12 * matrix_norm), "LinearSolver: Matrix is singular/invalid at pivots (row {step_i}). Pivot val: {p_val}".format({"step_i": i, "p_val": A[i][i]}))
+		if not (!is_nan(A[i][i]) and abs(A[i][i]) >= max(1e-12, 1e-12 * matrix_norm)):
+			print_matrix(A, "A on pivot fail")
+			print_vector(b, "b on pivot fail")
+			assert(false, "LinearSolver: Matrix is singular/invalid at pivots (row {step_i}). Pivot val: {p_val}".format({"step_i": i, "p_val": A[i][i]}))
 
 		for k in range(i + 1, n):
 			var factor = A[k][i] / A[i][i]
@@ -50,7 +59,10 @@ static func solve(A: Array, b: Array) -> Array:
 	x.resize(n)
 
 	for i in range(n - 1, -1, -1): 
-		assert(!is_nan(A[i][i]) and abs(A[i][i]) >= max(1e-12, 1e-12 * matrix_norm), "LinearSolver: Matrix became singular/invalid during back substitution at row {row_i}. Pivot val: {p_val}".format({"row_i": i, "p_val": A[i][i]}))
+		if not (!is_nan(A[i][i]) and abs(A[i][i]) >= max(1e-12, 1e-12 * matrix_norm)):
+			print_matrix(A, "A on back-sub fail")
+			print_vector(b, "b on back-sub fail")
+			assert(false, "LinearSolver: Matrix became singular/invalid during back substitution at row {row_i}. Pivot val: {p_val}".format({"row_i": i, "p_val": A[i][i]}))
 
 		var sum_ax = 0.0
 		for j in range(i + 1, n):

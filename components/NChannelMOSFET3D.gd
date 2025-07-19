@@ -2,6 +2,8 @@ extends Node3D
 
 class_name NChannelMOSFET3D
 
+const LinearSolver = preload("res://LinearSolver.gd")
+
 
 ## Emitted when a key property of the MOSFET changes.
 signal configuration_changed(component_node: Node3D)
@@ -306,9 +308,10 @@ func get_kcl_contributions(graph: CircuitGraph, all_node_voltages: Dictionary, F
 			Id = 0.5 * kn * pow(Vgs - vt, 2.0) * (1 + lambda * Vds)
 			region = "SATURATION"
 
-	assert(!is_nan(Id), "N-MOSFET {mos}: Id is NaN. Region={r}, Vgs={vgs}, Vds={vds}".format({
-		"mos": name, "r": region, "vgs": Vgs, "vds": Vds
-	}))
+	if not !is_nan(Id):
+		LinearSolver.print_matrix(system.A, "A on N-MOS kcl fail")
+		LinearSolver.print_vector(F_v, "F_v on N-MOS kcl fail")
+		assert(false, "N-MOSFET {mos}: Id is NaN. Region={r}, Vgs={vgs}, Vds={vds}".format({ "mos": name, "r": region, "vgs": Vgs, "vds": Vds }))
 
 	var idx_d = system.node_map.get(node_d_id, -1)
 	var idx_s = system.node_map.get(node_s_id, -1)

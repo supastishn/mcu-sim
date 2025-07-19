@@ -2,6 +2,8 @@ extends Node3D
 
 class_name Potentiometer3D
 
+const LinearSolver = preload("res://LinearSolver.gd")
+
 
 ## Emitted when the wiper position changes, usually via the UI slider.
 signal wiper_position_changed(pot_node: Node3D, new_position: float)
@@ -155,23 +157,23 @@ func gather_sim_results(
 	var V1 = circuit.electrical_nodes.get(node1_id, {}).get("voltage", NAN)
 	var V2 = circuit.electrical_nodes.get(node2_id, {}).get("voltage", NAN)
 	var VW = circuit.electrical_nodes.get(nodeW_id, {}).get("voltage", NAN)
-	assert(!is_nan(V1) and !is_nan(V2) and !is_nan(VW), "Potentiometer {p}: Terminal voltage is NaN. V1={v1}, V2={v2}, VW={vw}".format({
-		"p": name, "v1": V1, "v2": V2, "vw": VW
-	}))
+	if not (!is_nan(V1) and !is_nan(V2) and !is_nan(VW)):
+		LinearSolver.print_vector(_x, "x on Potentiometer results fail")
+		assert(false, "Potentiometer {p}: Terminal voltage is NaN. V1={v1}, V2={v2}, VW={vw}".format({ "p": name, "v1": V1, "v2": V2, "vw": VW }))
 
 	var current1W = NAN
 	if not is_nan(V1) and not is_nan(VW):
 		current1W = (V1 - VW) / R1_val if R1_val > 1e-12 else (V1 - VW) * 1e12
-		assert(!is_nan(current1W), "Potentiometer {p}: current1W is NaN. V1={v1}, VW={vw}, R1={r1}".format({
-			"p": name, "v1": V1, "vw": VW, "r1": R1_val
-		}))
+		if not !is_nan(current1W):
+			LinearSolver.print_vector(_x, "x on Potentiometer results fail")
+			assert(false, "Potentiometer {p}: current1W is NaN. V1={v1}, VW={vw}, R1={r1}".format({ "p": name, "v1": V1, "vw": VW, "r1": R1_val }))
 
 	var currentW2 = NAN
 	if not is_nan(VW) and not is_nan(V2):
 		currentW2 = (VW - V2) / R2_val if R2_val > 1e-12 else (VW - V2) * 1e12
-		assert(!is_nan(currentW2), "Potentiometer {p}: currentW2 is NaN. VW={vw}, V2={v2}, R2={r2}".format({
-			"p": name, "vw": VW, "v2": V2, "r2": R2_val
-		}))
+		if not !is_nan(currentW2):
+			LinearSolver.print_vector(_x, "x on Potentiometer results fail")
+			assert(false, "Potentiometer {p}: currentW2 is NaN. VW={vw}, V2={v2}, R2={r2}".format({ "p": name, "vw": VW, "v2": V2, "r2": R2_val }))
 
 	circuit.component_results[comp_id]["current_T1_W"] = current1W
 	circuit.component_results[comp_id]["current_W_T2"] = currentW2

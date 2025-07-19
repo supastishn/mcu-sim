@@ -2,6 +2,8 @@ extends Node3D
 
 class_name LED3D
 
+const LinearSolver = preload("res://LinearSolver.gd")
+
 
 ## The saturation current of the diode model.
 @export var saturation_current: float = 1.0e-12
@@ -164,7 +166,9 @@ func gather_sim_results(
 		current = 0.0
 	elif not is_nan(Va) and not is_nan(Vk):
 		var Vd = Va - Vk
-		assert(!is_nan(Vd), "LED {led}: Vd is NaN. Va={va}, Vk={vk}".format({"led": name, "va": Va, "vk": Vk}))
+		if not !is_nan(Vd):
+			LinearSolver.print_vector(x, "x on LED results fail")
+			assert(false, "LED {led}: Vd is NaN. Va={va}, Vk={vk}".format({"led": name, "va": Va, "vk": Vk}))
 		comp_data.properties["_internal_voltage"] = Vd
 
 		# Check for reverse breakdown
@@ -232,7 +236,10 @@ func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, 
 	var Vd_limited = min(Vd, Vcrit)
 	
 	var current = saturation_current * (exp(Vd_limited / n_vt) - 1.0)
-	assert(!is_nan(current), "LED {led}: Current is NaN. Vd_limited={vdl}".format({"led": name, "vdl": Vd_limited}))
+	if not !is_nan(current):
+		LinearSolver.print_matrix(system.A, "A on LED kcl fail")
+		LinearSolver.print_vector(F_v, "F_v on LED kcl fail")
+		assert(false, "LED {led}: Current is NaN. Vd_limited={vdl}".format({"led": name, "vdl": Vd_limited}))
 	
 	var ia = system.node_map.get(node_a_id, -1)
 	var ik = system.node_map.get(node_k_id, -1)

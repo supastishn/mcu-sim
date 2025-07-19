@@ -2,6 +2,8 @@ extends Node3D
 
 class_name Diode3D
 
+const LinearSolver = preload("res://LinearSolver.gd")
+
 
 ## The saturation current of the diode.
 @export var saturation_current: float = 1.0e-12
@@ -66,12 +68,14 @@ func gather_sim_results(
 	var V_thermal = THERMAL_VOLTAGE
 	
 	var current = NAN
-	assert(!is_nan(Va) and !is_nan(Vk), "Diode {d}: Terminal voltage is NaN. Va={va}, Vk={vk}".format({
-		"d": name, "va": Va, "vk": Vk
-	}))
+	if not (!is_nan(Va) and !is_nan(Vk)):
+		LinearSolver.print_vector(x, "x on diode results fail")
+		assert(false, "Diode {d}: Terminal voltage is NaN. Va={va}, Vk={vk}".format({ "d": name, "va": Va, "vk": Vk }))
 	var Vd = Va - Vk
 	current = saturation_current * (exp(Vd / (ideality_factor * THERMAL_VOLTAGE)) - 1.0)
-	assert(!is_nan(current), "Diode {d}: Current is NaN. Vd={vd}".format({"d": name, "vd": Vd}))
+	if not !is_nan(current):
+		LinearSolver.print_vector(x, "x on diode results fail")
+		assert(false, "Diode {d}: Current is NaN. Vd={vd}".format({"d": name, "vd": Vd}))
 	comp_data.properties["_internal_voltage"] = Vd
 
 	circuit.component_results[comp_id]["current"] = current
@@ -121,7 +125,10 @@ func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, 
 	var Vd_limited = min(Vd, Vcrit)
 	
 	var current = saturation_current * (exp(Vd_limited / n_vt) - 1.0)
-	assert(!is_nan(current), "Diode {d}: Current is NaN. Vd_limited={vdl}".format({"d": name, "vdl": Vd_limited}))
+	if not !is_nan(current):
+		LinearSolver.print_matrix(system.A, "A on diode kcl fail")
+		LinearSolver.print_vector(F_v, "F_v on diode kcl fail")
+		assert(false, "Diode {d}: Current is NaN. Vd_limited={vdl}".format({"d": name, "vdl": Vd_limited}))
 	
 	var ia = system.node_map.get(node_a_id, -1)
 	var ik = system.node_map.get(node_k_id, -1)

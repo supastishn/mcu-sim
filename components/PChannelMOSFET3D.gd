@@ -1,6 +1,8 @@
 extends Node3D
 class_name PChannelMOSFET3D
 
+const LinearSolver = preload("res://LinearSolver.gd")
+
 ## Emitted when a key property of the MOSFET changes.
 signal configuration_changed(component_node : Node3D)
 
@@ -204,9 +206,10 @@ func get_kcl_contributions(graph: CircuitGraph, all_node_voltages: Dictionary, F
 			Id = 0.5 * kp * pow(Vsg - vt, 2.0) * (1 + lambda * Vsd)
 			region = "SATURATION"
 	
-	assert(!is_nan(Id), "P-MOSFET {mos}: Id is NaN. Region={r}, Vsg={vsg}, Vsd={vsd}".format({
-		"mos": name, "r": region, "vsg": Vsg, "vsd": Vsd
-	}))
+	if not !is_nan(Id):
+		LinearSolver.print_matrix(system.A, "A on P-MOS kcl fail")
+		LinearSolver.print_vector(F_v, "F_v on P-MOS kcl fail")
+		assert(false, "P-MOSFET {mos}: Id is NaN. Region={r}, Vsg={vsg}, Vsd={vsd}".format({ "mos": name, "r": region, "vsg": Vsg, "vsd": Vsd }))
 
 	var idx_d = system.node_map.get(node_d_id, -1)
 	var idx_s = system.node_map.get(node_s_id, -1)
@@ -230,9 +233,9 @@ func gather_sim_results(circuit,comp_data,_x,_node_map,_vs_map,_inductor_map,_dt
 	var Vsd = -Vds
 	var Id  = NAN
 	var reg = comp_data.properties["operating_region"]
-	assert(!is_nan(Vsg) and !is_nan(Vsd), "P-MOSFET {p}: Terminal voltage is NaN. Vsg={vsg}, Vsd={vsd}".format({
-		"p": name, "vsg": Vsg, "vsd": Vsd
-	}))
+	if not (!is_nan(Vsg) and !is_nan(Vsd)):
+		LinearSolver.print_vector(_x, "x on P-MOS results fail")
+		assert(false, "P-MOSFET {p}: Terminal voltage is NaN. Vsg={vsg}, Vsd={vsd}".format({ "p": name, "vsg": Vsg, "vsd": Vsd }))
 	if not is_nan(Vsg) and not is_nan(Vsd):
 		if reg=="OFF":
 			Id = 0.0
@@ -240,9 +243,9 @@ func gather_sim_results(circuit,comp_data,_x,_node_map,_vs_map,_inductor_map,_dt
 			Id =  transconductance_parameter * ( (Vsg - vt) * Vsd - 0.5*pow(Vsd,2) ) * (1 + lambda * Vsd)
 		else: # SATURATION
 			Id = 0.5 * transconductance_parameter * pow(Vsg - vt,2) * (1 + lambda * Vsd)
-	assert(!is_nan(Id), "P-MOSFET {p}: Id is NaN. Region={r}, Vsg={vsg}, Vsd={vsd}".format({
-		"p": name, "r": reg, "vsg": Vsg, "vsd": Vsd
-	}))
+	if not !is_nan(Id):
+		LinearSolver.print_vector(_x, "x on P-MOS results fail")
+		assert(false, "P-MOSFET {p}: Id is NaN. Region={r}, Vsg={vsg}, Vsd={vsd}".format({ "p": name, "r": reg, "vsg": Vsg, "vsd": Vsd }))
 	# ensure we always store a positive current magnitude
 	if not is_nan(Id) and Id < 0.0:
 		Id = -Id

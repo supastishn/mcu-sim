@@ -2,6 +2,8 @@ extends Node3D
 
 class_name NonPolarizedCapacitor3D
 
+const LinearSolver = preload("res://LinearSolver.gd")
+
 
 ## Emitted when a key property (like capacitance or max voltage) of the capacitor changes.
 signal configuration_changed(component_node: Node3D)
@@ -190,14 +192,14 @@ func gather_sim_results(
 	var Vc_across_terminals = V1_t - V2_t if not is_nan(V1_t) and not is_nan(V2_t) else NAN
 	var Vc_ideal_t = V_internal_t - V2_t if not is_nan(V_internal_t) and not is_nan(V2_t) else NAN
 
-	assert(!is_nan(V1_t) and !is_nan(V2_t), "NonPolarizedCapacitor {c}: Terminal voltage is NaN. V1={v1}, V2={v2}".format({
-		"c": name, "v1": V1_t, "v2": V2_t
-	}))
+	if not (!is_nan(V1_t) and !is_nan(V2_t)):
+		LinearSolver.print_vector(x, "x on NP-Cap results fail")
+		assert(false, "NonPolarizedCapacitor {c}: Terminal voltage is NaN. V1={v1}, V2={v2}".format({ "c": name, "v1": V1_t, "v2": V2_t }))
 	if not is_nan(Vc_ideal_t):
 		current_np_cap = C_np_val * (Vc_ideal_t - Vc_prev_dt_np_val) / delta_time
-		assert(!is_nan(current_np_cap), "NonPolarizedCapacitor {c}: Current is NaN. Vc_ideal={vc}, Vc_prev={vp}, C={C}, dt={dt}".format({
-			"c": name, "vc": Vc_ideal_t, "vp": Vc_prev_dt_np_val, "C": C_np_val, "dt": delta_time
-		}))
+		if not !is_nan(current_np_cap):
+			LinearSolver.print_vector(x, "x on NP-Cap results fail")
+			assert(false, "NonPolarizedCapacitor {c}: Current is NaN. Vc_ideal={vc}, Vc_prev={vp}, C={C}, dt={dt}".format({ "c": name, "vc": Vc_ideal_t, "vp": Vc_prev_dt_np_val, "C": C_np_val, "dt": delta_time }))
 		comp_data.properties["voltage_across_cap_prev_dt"] = Vc_ideal_t
 		
 		if abs(Vc_ideal_t) > max_V_np_cap:

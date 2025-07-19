@@ -2,6 +2,8 @@ extends Node3D
 
 class_name PolarizedCapacitor3D
 
+const LinearSolver = preload("res://LinearSolver.gd")
+
 
 ## Emitted when a key property (like capacitance or max voltage) of the capacitor changes.
 signal configuration_changed(component_node: Node3D)
@@ -205,9 +207,9 @@ func gather_sim_results(
 	if comp_data.get("is_exploded", false):
 		current_cap = 0.0
 	elif not is_nan(V1_t) and not is_nan(V2_t) and not is_nan(V_internal_t):
-		assert(!is_nan(Vc_ideal_t), "PolarizedCapacitor {c}: Vc_ideal_t is NaN. V_int={vi}, V2={v2}".format({
-			"c": name, "vi": V_internal_t, "v2": V2_t
-		}))
+		if not !is_nan(Vc_ideal_t):
+			LinearSolver.print_vector(x, "x on P-Cap results fail")
+			assert(false, "PolarizedCapacitor {c}: Vc_ideal_t is NaN. V_int={vi}, V2={v2}".format({ "c": name, "vi": V_internal_t, "v2": V2_t }))
 		
 		var reverse_polarity_tolerance = -0.1
 		# Explosion check should be on the voltage across the ideal capacitor part.
