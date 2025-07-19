@@ -138,6 +138,39 @@ func gather_sim_results(
 	circuit.component_results[comp_id]["Ie"] = Ie
 	circuit.component_results[comp_id]["region"] = region
 
+## Updates the BJT's operating region based on an MNA iteration.
+func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter: Array, node_map_iter: Dictionary, _vs_map_iter: Dictionary) -> bool:
+	if x_iter.is_empty(): return false
+
+	var node_c_id = circuit.terminal_connections.get(terminal_c.get_instance_id(), -1)
+	var node_b_id = circuit.terminal_connections.get(terminal_b.get_instance_id(), -1)
+	var node_e_id = circuit.terminal_connections.get(terminal_e.get_instance_id(), -1)
+
+	var idx_c = node_map_iter.get(node_c_id, -1)
+	var idx_b = node_map_iter.get(node_b_id, -1)
+	var idx_e = node_map_iter.get(node_e_id, -1)
+
+	var Vc = x_iter[idx_c] if idx_c != -1 else (0.0 if node_c_id == circuit.ground_node_id else 0.0)
+	var Vb = x_iter[idx_b] if idx_b != -1 else (0.0 if node_b_id == circuit.ground_node_id else 0.0)
+	var Ve = x_iter[idx_e] if idx_e != -1 else (0.0 if node_e_id == circuit.ground_node_id else 0.0)
+
+	comp_data.properties["_internal_vbe"] = Vb - Ve
+	comp_data.properties["_internal_vbc"] = Vb - Vc
+
+	var previous_region = comp_data.properties["operating_region"]
+	var new_region = "OFF"
+	var Vth = 0.5
+	if (Vb - Ve) > Vth:
+		if (Vb - Vc) > 0: new_region = "SATURATION"
+		else: new_region = "ACTIVE"
+	elif (Vb - Vc) > Vth:
+		new_region = "INVERSE"
+
+	if new_region != previous_region:
+		comp_data.properties["operating_region"] = new_region
+		return true
+	return false
+
 ## Applies the BJT's contribution to the MNA matrices based on its current operating region.
 func stamp(
 	A: Array,
