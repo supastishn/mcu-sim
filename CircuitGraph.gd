@@ -53,7 +53,6 @@ var _needs_rebuild: bool = true
 
 # --- MNA System Caching for Performance ---
 var _cached_system: Dictionary = {}
-var _cached_delta_time: float = 0.0
 
 ## A counter to generate unique electrical node IDs.
 var _next_node_id: int = 0
@@ -485,15 +484,14 @@ func solve_single_time_step(delta_time: float) -> bool:
 
 	# --- MNA System Caching ---
 	var system
-	if not _needs_rebuild and is_equal_approx(delta_time, _cached_delta_time):
+	if not _needs_rebuild:
 		system = _cached_system
 	else:
-		system = _build_mna_system(delta_time)
+		system = _build_system_structure()
 		_cached_system = system
-		_cached_delta_time = delta_time
-		_needs_rebuild = false
+		# _needs_rebuild is set inside _build_system_structure
 
-	var converged = _solve_newton_raphson(delta_time)
+	var converged = _solve_newton_raphson(system, delta_time)
 	
 	if not converged:
 		printerr("Solver failed to converge.")
@@ -504,13 +502,13 @@ func solve_single_time_step(delta_time: float) -> bool:
 	_is_solved = true
 	# Re-build and solve the final system one last time to get correct currents
 	# for voltage sources and inductors, which are state variables.
-	var final_system = _build_mna_system(delta_time)
-	var final_solution = LinearSolver.solve(final_system.A, final_system.b)
+	var final_matrices = _stamp_mna_matrices(system, delta_time)
+	var final_solution = LinearSolver.solve(final_matrices.A, final_matrices.b)
 
 	if final_solution.is_empty():
 		printerr("Final linear solve failed after convergence. Results may be inaccurate.")
 		# Proceed with voltages from NR, but currents might be wrong.
-		final_solution.resize(final_system.A.size())
+		final_solution.resize(final_matrices.A.size())
 		final_solution.fill(NAN)
 
 	# Gather final results from all components
@@ -520,19 +518,19 @@ func solve_single_time_step(delta_time: float) -> bool:
 		if is_instance_valid(node) and node.has_method("gather_sim_results"):
 			var comp_id = node.get_instance_id()
 			if not comp_id in component_results: component_results[comp_id] = {}
-			node.gather_sim_results(self, comp_data_item, final_solution, final_system.node_map, final_system.vs_map, final_system.inductor_map, delta_time)
+			node.gather_sim_results(self, comp_data_item, final_solution, system.node_map, system.vs_map, system.inductor_map, delta_time)
 	
 	return true
 
-func _solve_newton_raphson(delta_time: float) -> bool:
+func _solve_newton_raphson(system: Dictionary, delta_time: float) -> bool:
 	var max_iter = 100
 	var v_tolerance = 1e-6
 	
 	for i in range(max_iter):
-		var system = _build_mna_system(delta_time)
-		var A = system.A
-		var b_error = _calculate_kcl_error_vector(system, delta_time)
-		
+		var matrices = _stamp_mna_matrices(system, delta_time)
+		var A = matrices.A
+		var b_error = _calculate_kcl_error_vector(system, matrices.b, delta_time)
+
 		if A.is_empty(): return true
 
 		# Newton-Raphson: Solve A * dV = F(V)
@@ -567,9 +565,10 @@ func _solve_newton_raphson(delta_time: float) -> bool:
 	printerr("NR failed to converge after {i} iterations.".format({"i": max_iter}))
 	return false
 
-func _calculate_kcl_error_vector(system: Dictionary, delta_time: float) -> Array:
-	if system.A.is_empty(): return []
-	var num_vars = system.A.size()
+func _calculate_kcl_error_vector(system: Dictionary, b: Array, delta_time: float) -> Array:
+	var N = system.get("N", 0)
+	if N == 0: return []
+	var num_vars = N
 	var error_vector: Array = []
 	error_vector.resize(num_vars)
 	error_vector.fill(0.0)
@@ -585,10 +584,10 @@ func _calculate_kcl_error_vector(system: Dictionary, delta_time: float) -> Array
 			comp_data.component_node.get_kcl_contributions(self, node_voltages, error_vector, system, delta_time)
 
 	# The Newton-Raphson update is J*dV = -F(V).
-	# `error_vector` currently holds F(V). `system.b` holds the independent sources.
-	# The full KCL error is `I_branch(V) - I_source`. Our `error_vector` is `I_branch(V)`. `system.b` is `I_source`.
+	# `error_vector` currently holds F(V). `b` holds the independent sources.
+	# The full KCL error is `I_branch(V) - I_source`. Our `error_vector` is `I_branch(V)`. `b` is `I_source`.
 	for i in range(num_vars):
-		error_vector[i] -= system.b[i]
+		error_vector[i] -= b[i]
 
 	var final_error = error_vector.map(func(v): return -v)
 	return final_error
@@ -651,8 +650,49 @@ func _update_all_nonlinear_states(system: Dictionary) -> bool:
 
 
 
-## Builds the Modified Nodal Analysis (MNA) system matrices (A, b) and corresponding node maps for the current state of the circuit.
-func _build_mna_system(delta_time: float) -> Dictionary:
+## Stamps the MNA matrices for the current operating point.
+func _stamp_mna_matrices(system: Dictionary, delta_time: float) -> Dictionary:
+	var N = system.N
+	if N == 0:
+		return {"A": [], "b": []}
+
+	var A: Array = []
+	A.resize(N)
+	for i in range(N):
+		A[i] = []
+		A[i].resize(N)
+		A[i].fill(0.0)
+	var b: Array = []
+	b.resize(N)
+	b.fill(0.0)
+
+	var node_id_to_matrix_index = system.node_map
+
+	# Add GMIN to ground for all nodes to aid convergence by preventing floating nodes.
+	for node_id in node_id_to_matrix_index:
+		var matrix_idx = node_id_to_matrix_index[node_id]
+		A[matrix_idx][matrix_idx] += GMIN
+
+	for comp_data_item in components:
+		var component_node = comp_data_item.component_node
+		if is_instance_valid(component_node) and component_node.has_method("stamp"):
+			component_node.stamp(
+				A,
+				b,
+				system.node_map,
+				system.vs_map,
+				system.opamp_map,
+				system.inductor_map,
+				terminal_connections,
+				comp_data_item,
+				delta_time
+			)
+			
+	return {"A": A, "b": b}
+
+
+## Builds the structural part of the MNA system (node maps, matrix sizes).
+func _build_system_structure() -> Dictionary:
 	var non_ground_nodes: Array[int] = []
 	for node_id in electrical_nodes:
 		if node_id != ground_node_id:
@@ -720,43 +760,15 @@ func _build_mna_system(delta_time: float) -> Dictionary:
 			electrical_nodes[internal_node_id] = {"terminals": [], "voltage": 0.0}
 		
 	N += num_internal_nodes
-		
-	if N == 0:
-		return {"A": [], "b": [], "node_map": node_id_to_matrix_index, "vs_map": active_vs_id_to_matrix_index, "opamp_map": opamp_id_to_matrix_index, "inductor_map": inductor_id_to_matrix_index}
 
-	var A: Array = []
-	A.resize(N)
-	for i in range(N):
-		A[i] = []
-		A[i].resize(N)
-		A[i].fill(0.0)
-	var b: Array = []
-	b.resize(N)
-	b.fill(0.0)
-
-	# Add GMIN to ground for all nodes to aid convergence by preventing floating nodes.
-	for node_id in node_id_to_matrix_index:
-		var matrix_idx = node_id_to_matrix_index[node_id]
-		if matrix_idx < N: # Should always be true
-			A[matrix_idx][matrix_idx] += GMIN
-
-	for comp_data_item in components:
-		var component_node = comp_data_item.component_node
-		if is_instance_valid(component_node) and component_node.has_method("stamp"):
-			component_node.stamp(
-				A,
-				b,
-				node_id_to_matrix_index,
-				active_vs_id_to_matrix_index,
-				opamp_id_to_matrix_index,
-				inductor_id_to_matrix_index,
-				terminal_connections,
-				comp_data_item,
-				delta_time
-			)
-			
 	_needs_rebuild = false
-	return { "A": A, "b": b, "node_map": node_id_to_matrix_index, "vs_map": active_vs_id_to_matrix_index, "opamp_map": opamp_id_to_matrix_index, "inductor_map": inductor_id_to_matrix_index }
+	return {
+		"N": N,
+		"node_map": node_id_to_matrix_index,
+		"vs_map": active_vs_id_to_matrix_index,
+		"opamp_map": opamp_id_to_matrix_index,
+		"inductor_map": inductor_id_to_matrix_index
+	}
 
 
 
