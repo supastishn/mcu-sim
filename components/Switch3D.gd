@@ -127,23 +127,12 @@ func stamp(
 	var idx_nc = node_map.get(node_nc_id_lookup, -1)
 	var idx_no = node_map.get(node_no_id_lookup, -1)
 
-	var _inline_stamp_conductance = func(matrix_A, g_val, idx1, idx2):
-		if idx1 != -1 and idx2 != -1:
-			matrix_A[idx1][idx1] += g_val
-			matrix_A[idx2][idx2] += g_val
-			matrix_A[idx1][idx2] -= g_val
-			matrix_A[idx2][idx1] -= g_val
-		elif idx1 != -1:
-			matrix_A[idx1][idx1] += g_val
-		elif idx2 != -1:
-			matrix_A[idx2][idx2] += g_val
-
 	if state_from_comp_data == Switch3D.State.CONNECTED_NC:
-		_inline_stamp_conductance.call(A, g_closed, idx_com, idx_nc)
-		_inline_stamp_conductance.call(A, g_open, idx_com, idx_no)
+		CircuitGraph.stamp_conductance(A, g_closed, idx_com, idx_nc)
+		CircuitGraph.stamp_conductance(A, g_open, idx_com, idx_no)
 	elif state_from_comp_data == Switch3D.State.CONNECTED_NO:
-		_inline_stamp_conductance.call(A, g_open, idx_com, idx_nc)
-		_inline_stamp_conductance.call(A, g_closed, idx_com, idx_no)
+		CircuitGraph.stamp_conductance(A, g_open, idx_com, idx_nc)
+		CircuitGraph.stamp_conductance(A, g_closed, idx_com, idx_no)
 
 ## Extracts and stores the current flowing through the active path of the switch.
 func gather_sim_results(

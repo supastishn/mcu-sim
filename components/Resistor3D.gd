@@ -68,15 +68,7 @@ func stamp(
 	var i2 = node_map.get(n2, -1)
 	
 	
-	if i1 != -1 and i2 != -1:
-		A[i1][i1] += g
-		A[i2][i2] += g
-		A[i1][i2] -= g
-		A[i2][i1] -= g
-	elif i1 != -1:
-		A[i1][i1] += g
-	elif i2 != -1:
-		A[i2][i2] += g
+	CircuitGraph.stamp_conductance(A, g, i1, i2)
 
 func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, F_v: Array, system: Dictionary, _delta_time: float):
 	var node1_id = graph.terminal_connections.get(terminal1.get_instance_id(), -1)
