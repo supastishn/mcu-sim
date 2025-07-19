@@ -70,22 +70,11 @@ func stamp(
 	
 	CircuitGraph.stamp_conductance(A, g, i1, i2)
 
-func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, F_v: Array, system: Dictionary, _delta_time: float):
-	var node1_id = graph.terminal_connections.get(terminal1.get_instance_id(), -1)
-	var node2_id = graph.terminal_connections.get(terminal2.get_instance_id(), -1)
-	var v1 = graph.electrical_nodes.get(node1_id, {}).get("voltage", 0.0)
-	var v2 = graph.electrical_nodes.get(node2_id, {}).get("voltage", 0.0)
-	var R = max(resistance, 1e-12)
-	var current = (v1 - v2) / R
-	assert(!is_nan(current), "Resistor {res}: Current is NaN. v1={v1}, v2={v2}, R={r}".format({
-		"res": name, "v1": v1, "v2": v2, "r": R
-	}))
-	
-	var i1 = system.node_map.get(node1_id, -1)
-	var i2 = system.node_map.get(node2_id, -1)
-
-	if i1 != -1: F_v[i1] += current
-	if i2 != -1: F_v[i2] -= current
+func get_kcl_contributions(_graph: CircuitGraph, _all_node_voltages: Dictionary, _F_v: Array, _system: Dictionary, _delta_time: float):
+	# A resistor is a linear component. Its contribution to KCL is fully
+	# captured by the MNA matrix A, which is built in the `stamp` function.
+	# This function is only for non-linear current sources.
+	pass
 
 ## Extracts and stores the current flowing through the resistor.
 func gather_sim_results(

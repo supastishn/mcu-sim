@@ -153,34 +153,11 @@ func stamp(
 	if internal_node_idx != -1: b[internal_node_idx] += I_eq_source
 	if t2_idx != -1: b[t2_idx] -= I_eq_source
 
-func get_kcl_contributions(graph: CircuitGraph, all_node_voltages: Dictionary, F_v: Array, system: Dictionary, delta_time: float):
-	var comp_data = graph.component_node_map.get(self)
-
-	var t1_node_id = graph.terminal_connections.get(terminal1.get_instance_id(), -1)
-	var t2_node_id = graph.terminal_connections.get(terminal2.get_instance_id(), -1)
-	var v1 = all_node_voltages.get(t1_node_id, 0.0)
-	var v2 = all_node_voltages.get(t2_node_id, 0.0)
-	var v_int = all_node_voltages.get(_internal_node_id, 0.0)
-
-	var esr = equivalent_series_resistance
-	if esr > 1e-9:
-		var I_esr = (v1 - v_int) / esr
-		var idx1 = system.node_map.get(t1_node_id, -1)
-		var idx_int = system.node_map.get(_internal_node_id, -1)
-		if idx1 != -1: F_v[idx1] += I_esr
-		if idx_int != -1: F_v[idx_int] -= I_esr
-	
-	var Vc_prev = comp_data.properties.get("voltage_across_cap_prev_dt", 0.0)
-	if delta_time < 1e-9: delta_time = 1e-9
-	var I_cap = capacitance * ( (v_int - v2) - Vc_prev) / delta_time
-	assert(!is_nan(I_cap), "NonPolarizedCapacitor {c}: I_cap is NaN. v_int={vi}, v2={v2}, Vc_prev={vp}, C={C}, dt={dt}".format({
-		"c": name, "vi": v_int, "v2": v2, "vp": Vc_prev, "C": capacitance, "dt": delta_time
-	}))
-
-	var idx_int_cap = system.node_map.get(_internal_node_id, -1)
-	var idx2 = system.node_map.get(t2_node_id, -1)
-	if idx_int_cap != -1: F_v[idx_int_cap] += I_cap
-	if idx2 != -1: F_v[idx2] -= I_cap
+func get_kcl_contributions(_graph: CircuitGraph, _all_node_voltages: Dictionary, _F_v: Array, _system: Dictionary, _delta_time: float):
+	# The capacitor's companion model is linear, so all its contributions
+	# are already handled by the `stamp` function in the MNA matrix A and vector b.
+	# This function is only for non-linear current sources.
+	pass
 
 ## Extracts and stores simulation results (current, voltage) for this component.
 func gather_sim_results(
