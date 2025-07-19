@@ -624,50 +624,56 @@ func _solve_newton_raphson(system: Dictionary, delta_time: float) -> bool:
 	assert(false, msg)
 	return false
 
-func _calculate_error_vector(system: Dictionary, b: Array, delta_time: float, x_k: Array) -> Array:
+func _calculate_error_vector(system: Dictionary, _b: Array, delta_time: float, x_k: Array) -> Array:
 	var N = system.get("N", 0)
 	if N == 0: return []
 	var F = [] # The full error vector F(x)
 	F.resize(N)
 	F.fill(0.0)
 
-	# 1. KCL part: sum of currents leaving each node
+	# Part 1: KCL Equations for each node.
+	# The error is the sum of all currents leaving the node, which should be zero.
 	for comp_data in components:
 		if comp_data.component_node.has_method("get_kcl_contributions"):
-			# This is where all branch currents are summed at their nodes.
 			comp_data.component_node.get_kcl_contributions(self, {}, F, system, delta_time)
 
-	# Finalize KCL error for nodes: sum(I_branch) - I_sources
-	# I_sources are in the 'b' vector for node rows.
-	for node_id in system.node_map:
-		var i = system.node_map[node_id]
-		F[i] -= b[i]
-
-	# 2. Voltage Source part
+	# Part 2: Branch Equations for Voltage Sources.
+	# The error is V_pos - V_neg - V_target, which should be zero.
 	for vs_id in system.vs_map:
 		var vs_idx = system.vs_map[vs_id]
 		var comp_data = component_node_map.get(vs_id)
 		if not comp_data: continue
 
-		var pos_term = comp_data.terminals.get("POS")
-		var neg_term = comp_data.terminals.get("NEG")
+		var pos_node_id = terminal_connections.get(comp_data.terminals.POS.get_instance_id(), -1)
+		var neg_node_id = terminal_connections.get(comp_data.terminals.NEG.get_instance_id(), -1)
+		var pos_idx = system.node_map.get(pos_node_id, -1)
+		var neg_idx = system.node_map.get(neg_node_id, -1)
+
+		var v_pos = x_k[pos_idx] if pos_idx != -1 else 0.0
+		var v_neg = x_k[neg_idx] if neg_idx != -1 else 0.0
 		var v_target = comp_data.properties.get("target_voltage", 0.0)
 
-		var pos_node_id = terminal_connections.get(pos_term.get_instance_id(), -1)
-		var neg_node_id = terminal_connections.get(neg_term.get_instance_id(), -1)
-
-		var v_pos = 0.0 if pos_node_id == ground_node_id else electrical_nodes.get(pos_node_id, {}).get("voltage", 0.0)
-		var v_neg = 0.0 if neg_node_id == ground_node_id else electrical_nodes.get(neg_node_id, {}).get("voltage", 0.0)
-
-		# Branch equation error: Vpos - Vneg - Vtarget = 0
 		F[vs_idx] = v_pos - v_neg - v_target
 
-	# For Inductor rows, their equations are linear and stamped directly into A and b.
-	# The error F(x) = A*x - b. For these linear rows, we assume the nonlinear part of F is 0.
-	# The current implementation effectively sets the error to -b[inductor_idx], which is incorrect.
-	# This will be left as-is for now, focusing on the VS fix.
+	# Part 3: Branch Equations for Inductors.
+	# The error is V_int - V_t2 - (L/dt)*I_L + (L/dt)*I_L_prev, which should be zero.
+	for ind_id in system.inductor_map:
+		var ind_idx = system.inductor_map[ind_id]
+		var comp_data = component_node_map.get(ind_id)
+		if not comp_data: continue
+		
+		var internal_node_idx = system.node_map.get(comp_data.component_node._internal_node_id, -1)
+		var t2_node_idx = system.node_map.get(terminal_connections.get(comp_data.terminals.T2.get_instance_id(), -1), -1)
+		
+		var v_int = x_k[internal_node_idx] if internal_node_idx != -1 else 0.0
+		var v_t2 = x_k[t2_node_idx] if t2_node_idx != -1 else 0.0
+		var i_L = x_k[ind_idx]
+		var L_div_dt = comp_data.properties.inductance / clamp(delta_time, 1e-12, 0.1)
+		var i_L_prev = comp_data.properties.get("current_through_L_prev_dt", 0.0)
+		
+		F[ind_idx] = v_int - v_t2 - (L_div_dt * i_L) + (L_div_dt * i_L_prev)
 
-	# The Newton-Raphson update is J*dx = -F(V).
+	# The Newton-Raphson update is J*dx = -F(x).
 	var final_error = F.map(func(v): return -v)
 	return final_error
 
