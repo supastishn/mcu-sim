@@ -114,17 +114,8 @@ func stamp(
 	var idx2 = node_map.get(node2_lookup_id, -1)
 	var idxW = node_map.get(nodeW_lookup_id, -1)
 
-	if idx1 != -1: A[idx1][idx1] += g1
-	if idxW != -1: A[idxW][idxW] += g1
-	if idx1 != -1 and idxW != -1:
-		A[idx1][idxW] -= g1
-		A[idxW][idx1] -= g1
-	
-	if idxW != -1: A[idxW][idxW] += g2
-	if idx2 != -1: A[idx2][idx2] += g2
-	if idxW != -1 and idx2 != -1:
-		A[idxW][idx2] -= g2
-		A[idx2][idxW] -= g2
+	CircuitGraph.stamp_conductance(A, g1, idx1, idxW)
+	CircuitGraph.stamp_conductance(A, g2, idxW, idx2)
 
 func get_kcl_contributions(graph: CircuitGraph, all_node_voltages: Dictionary, F_v: Array, system: Dictionary, _delta_time: float):
 	var t1_node_id = graph.terminal_connections.get(terminal1.get_instance_id(), -1)
