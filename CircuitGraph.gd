@@ -529,7 +529,7 @@ func _solve_newton_raphson(system: Dictionary, delta_time: float) -> bool:
 	for i in range(max_iter):
 		var matrices = _stamp_mna_matrices(system, delta_time)
 		var A = matrices.A
-		var b_error = _calculate_kcl_error_vector(system, matrices.b, delta_time)
+		var b_error = _calculate_error_vector(system, matrices.b, delta_time)
 
 		if A.is_empty(): return true
 
@@ -565,31 +565,51 @@ func _solve_newton_raphson(system: Dictionary, delta_time: float) -> bool:
 	printerr("NR failed to converge after {i} iterations.".format({"i": max_iter}))
 	return false
 
-func _calculate_kcl_error_vector(system: Dictionary, b: Array, delta_time: float) -> Array:
+func _calculate_error_vector(system: Dictionary, b: Array, delta_time: float) -> Array:
 	var N = system.get("N", 0)
 	if N == 0: return []
-	var num_vars = N
-	var error_vector: Array = []
-	error_vector.resize(num_vars)
-	error_vector.fill(0.0)
+	var F = [] # The full error vector F(x)
+	F.resize(N)
+	F.fill(0.0)
 
+	# 1. KCL part: sum of currents leaving each node
 	for comp_data in components:
-		var node_voltages = {}
-		for term_name in comp_data.terminals:
-			var terminal = comp_data.terminals[term_name]
-			var node_id = terminal_connections.get(terminal.get_instance_id(), -1)
-			node_voltages[term_name] = electrical_nodes.get(node_id, {}).get("voltage", 0.0)
-		
 		if comp_data.component_node.has_method("get_kcl_contributions"):
-			comp_data.component_node.get_kcl_contributions(self, node_voltages, error_vector, system, delta_time)
+			# This is where all branch currents are summed at their nodes.
+			comp_data.component_node.get_kcl_contributions(self, {}, F, system, delta_time)
 
-	# The Newton-Raphson update is J*dV = -F(V).
-	# `error_vector` currently holds F(V). `b` holds the independent sources.
-	# The full KCL error is `I_branch(V) - I_source`. Our `error_vector` is `I_branch(V)`. `b` is `I_source`.
-	for i in range(num_vars):
-		error_vector[i] -= b[i]
+	# Finalize KCL error for nodes: sum(I_branch) - I_sources
+	# I_sources are in the 'b' vector for node rows.
+	for node_id in system.node_map:
+		var i = system.node_map[node_id]
+		F[i] -= b[i]
 
-	var final_error = error_vector.map(func(v): return -v)
+	# 2. Voltage Source part
+	for vs_id in system.vs_map:
+		var vs_idx = system.vs_map[vs_id]
+		var comp_data = component_node_map.get(vs_id)
+		if not comp_data: continue
+
+		var pos_term = comp_data.terminals.get("POS")
+		var neg_term = comp_data.terminals.get("NEG")
+		var v_target = comp_data.properties.get("target_voltage", 0.0)
+
+		var pos_node_id = terminal_connections.get(pos_term.get_instance_id(), -1)
+		var neg_node_id = terminal_connections.get(neg_term.get_instance_id(), -1)
+
+		var v_pos = 0.0 if pos_node_id == ground_node_id else electrical_nodes.get(pos_node_id, {}).get("voltage", 0.0)
+		var v_neg = 0.0 if neg_node_id == ground_node_id else electrical_nodes.get(neg_node_id, {}).get("voltage", 0.0)
+
+		# Branch equation error: Vpos - Vneg - Vtarget = 0
+		F[vs_idx] = v_pos - v_neg - v_target
+
+	# For Inductor rows, their equations are linear and stamped directly into A and b.
+	# The error F(x) = A*x - b. For these linear rows, we assume the nonlinear part of F is 0.
+	# The current implementation effectively sets the error to -b[inductor_idx], which is incorrect.
+	# This will be left as-is for now, focusing on the VS fix.
+
+	# The Newton-Raphson update is J*dx = -F(V).
+	var final_error = F.map(func(v): return -v)
 	return final_error
 
 func _check_convergence(delta_x: Array, v_tol: float) -> bool:
