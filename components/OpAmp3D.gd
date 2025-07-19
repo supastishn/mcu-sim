@@ -154,6 +154,7 @@ func stamp(
 		b: Array,
 		node_map: Dictionary,
 		_vs_map: Dictionary,
+		opamp_map: Dictionary,
 		_inductor_map: Dictionary,
 		terminal_connections: Dictionary,
 		comp_data: Dictionary,
@@ -179,26 +180,20 @@ func stamp(
 
 	# Model output as a Norton equivalent: I_n in parallel with Ro
 	var g_out = 1.0 / output_resistance
-	var Gbig = 1e9 # Large conductance for voltage stamping
+	var Gbig = 1e9 # Large conductance for voltage stamping in saturation
 
 	if region == "OFF":
 		if vout_idx != -1:
 			A[vout_idx][vout_idx] += 1e-9 # High impedance to ground
 	elif region == "LINEAR":
-		# Add a new equation row for the VCVS: Vout - Aol*(Vp - Vn) = 0
-		var N = A.size()
-		A.resize(N + 1)
-		b.resize(N + 1)
-		A[N] = []
-		A[N].resize(N + 1)
-		A[N].fill(0.0)
-		for i in range(N):
-			A[i].resize(N + 1)
-		# Vout - Aol*(Vp - Vn) = 0
-		if vout_idx != -1: A[N][vout_idx] = 1.0
-		if vp_idx != -1:   A[N][vp_idx] = -open_loop_gain
-		if vn_idx != -1:   A[N][vn_idx] = open_loop_gain
-		b[N] = 0.0
+		# VCVS Stamp: Vout - gain*(Vp - Vn) = 0
+		var opamp_curr_idx = opamp_map.get(get_instance_id(), -1)
+		if opamp_curr_idx != -1:
+			if vout_idx != -1: A[opamp_curr_idx][vout_idx] = 1.0
+			if vp_idx != -1: A[opamp_curr_idx][vp_idx] = -open_loop_gain
+			if vn_idx != -1: A[opamp_curr_idx][vn_idx] = open_loop_gain
+			# Also stamp output conductance and KCL contribution
+			CircuitGraph.stamp_conductance(A, g_out, vout_idx, -1) # to ground
 	elif region == "SAT_HIGH":
 		# Enforce Vout = Vcc - rail_saturation_voltage
 		var sat_drop = comp_data.properties["rail_saturation_voltage"]

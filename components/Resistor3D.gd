@@ -77,17 +77,19 @@ func stamp(
 	elif i2 != -1:
 		A[i2][i2] += g
 
-func get_kcl_contributions(node_voltages: Dictionary, error_vector: Array, node_map: Dictionary):
-	var v1 = node_voltages.get("T1", 0.0)
-	var v2 = node_voltages.get("T2", 0.0)
+func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, F_v: Array, system: Dictionary, _delta_time: float):
+	var node1_id = graph.terminal_connections.get(terminal1.get_instance_id(), -1)
+	var node2_id = graph.terminal_connections.get(terminal2.get_instance_id(), -1)
+	var v1 = graph.electrical_nodes.get(node1_id, {}).get("voltage", 0.0)
+	var v2 = graph.electrical_nodes.get(node2_id, {}).get("voltage", 0.0)
 	var R = max(resistance, 1e-12)
 	var current = (v1 - v2) / R
 	
-	var i1 = node_map.get(terminal_connections.get(terminal1.get_instance_id(),-1), -1)
-	var i2 = node_map.get(terminal_connections.get(terminal2.get_instance_id(),-1), -1)
+	var i1 = system.node_map.get(node1_id, -1)
+	var i2 = system.node_map.get(node2_id, -1)
 
-	if i1 != -1: error_vector[i1] += current
-	if i2 != -1: error_vector[i2] -= current
+	if i1 != -1: F_v[i1] += current
+	if i2 != -1: F_v[i2] -= current
 
 ## Extracts and stores the current flowing through the resistor.
 func gather_sim_results(

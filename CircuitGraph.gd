@@ -500,27 +500,25 @@ func solve_single_time_step(delta_time: float) -> bool:
 		return false
 	
 	_is_solved = true
-	var final_system = system
+	# Re-build and solve the final system one last time to get correct currents
+	# for voltage sources and inductors, which are state variables.
+	var final_system = _build_mna_system(delta_time)
+	var final_solution = LinearSolver.solve(final_system.A, final_system.b)
 
-	var final_solution = []
-	final_solution.resize(final_system.A.size())
-	final_solution.fill(0.0)
-	for node_id in final_system.node_map:
-		var index = final_system.node_map[node_id]
-		final_solution[index] = electrical_nodes[node_id].voltage
-	# Populate current variables for VS and Inductors
-	# This part is complex and requires solving the final system one last time
-	# to get the current variables. For simplicity, we skip this and calculate
-	# currents in gather_sim_results where possible.
+	if final_solution.is_empty():
+		printerr("Final linear solve failed after convergence. Results may be inaccurate.")
+		# Proceed with voltages from NR, but currents might be wrong.
+		final_solution.resize(final_system.A.size())
+		final_solution.fill(NAN)
 
 	# Gather final results from all components
 	component_results.clear()
 	for comp_data_item in components:
 		var node = comp_data_item.component_node
-		var comp_id = node.get_instance_id()
-		if not comp_id in component_results: component_results[comp_id] = {}
 		if is_instance_valid(node) and node.has_method("gather_sim_results"):
-			node.gather_sim_results(self, comp_data_item, final_solution, final_system.node_map, final_system.vs_map, final_system.inductor_map, delta_time)
+			var comp_id = node.get_instance_id()
+			if not comp_id in component_results: component_results[comp_id] = {}
+			node.gather_sim_results(self, comp_data_item, final_solution, final_system.node_map, final_system.vs_map, final_system.opamp_map, final_system.inductor_map, delta_time)
 	
 	return true
 
@@ -562,23 +560,22 @@ func _calculate_kcl_error_vector(system: Dictionary) -> Array:
 	error_vector.resize(num_vars)
 	error_vector.fill(0.0)
 
-	# Independent sources are already in b, so just add component currents
-	error_vector = system.b.duplicate()
-
 	for comp_data in components:
-		if not comp_data.component_node.has_method("get_kcl_contributions"):
-			continue
-
 		var node_voltages = {}
 		for term_name in comp_data.terminals:
 			var terminal = comp_data.terminals[term_name]
 			var node_id = terminal_connections.get(terminal.get_instance_id(), -1)
 			node_voltages[term_name] = electrical_nodes.get(node_id, {}).get("voltage", 0.0)
 		
-		comp_data.component_node.get_kcl_contributions(node_voltages, error_vector, system.node_map)
+		if comp_data.component_node.has_method("get_kcl_contributions"):
+			comp_data.component_node.get_kcl_contributions(self, node_voltages, error_vector, system, 0.0)
 
-	# The vector we want is the error, which is the sum of currents at each node.
-	# The update is J*dV = -F(V), so we need to negate the final vector.
+	# The Newton-Raphson update is J*dV = -F(V).
+	# `error_vector` currently holds F(V). `system.b` holds the independent sources.
+	# The full KCL error is `I_branch(V) - I_source`. Our `error_vector` is `I_branch(V)`. `system.b` is `I_source`.
+	for i in range(num_vars):
+		error_vector[i] -= system.b[i]
+
 	return error_vector.map(func(v): return -v)
 
 func _update_voltages_from_solution(delta_x: Array, system: Dictionary):
@@ -631,16 +628,21 @@ func _build_mna_system(delta_time: float) -> Dictionary:
 		elif comp_data_item_vs.type == "PowerSource" and comp_data_item_vs.properties.get("current_operating_mode") == "CV":
 			active_voltage_sources.push_back(comp_data_item_vs)
 
+	var active_opamps: Array[Dictionary] = []
+	for comp_data_item_opamp in components:
+		if comp_data_item_opamp.type == "OpAmp" and comp_data_item_opamp.properties.get("operating_region") == "LINEAR":
+			active_opamps.push_back(comp_data_item_opamp)
+
 	var active_inductors: Array[Dictionary] = []
 	for comp_data_item_L in components: 
 		if comp_data_item_L.type == "Inductor":
 			active_inductors.push_back(comp_data_item_L)
 
-
 	var num_nodes = non_ground_nodes.size()
 	var num_active_vs = active_voltage_sources.size()
+	var num_opamps = active_opamps.size()
 	var num_inductors = active_inductors.size()
-	var N = num_nodes + num_active_vs + num_inductors
+	var N = num_nodes + num_active_vs + num_opamps + num_inductors
 
 	var node_id_to_matrix_index: Dictionary = {}
 	for i in range(num_nodes):
@@ -652,11 +654,17 @@ func _build_mna_system(delta_time: float) -> Dictionary:
 		var vs_id = vs_comp_data.component_node.get_instance_id()
 		active_vs_id_to_matrix_index[vs_id] = num_nodes + i 
 
+	var opamp_id_to_matrix_index: Dictionary = {}
+	for i in range(num_opamps):
+		var opamp_comp_data = active_opamps[i]
+		var opamp_id = opamp_comp_data.component_node.get_instance_id()
+		opamp_id_to_matrix_index[opamp_id] = num_nodes + num_active_vs + i
+
 	var inductor_id_to_matrix_index: Dictionary = {}
 	for i in range(num_inductors):
 		var ind_comp_data = active_inductors[i]
 		var ind_id = ind_comp_data.component_node.get_instance_id()
-		inductor_id_to_matrix_index[ind_id] = num_nodes + num_active_vs + i
+		inductor_id_to_matrix_index[ind_id] = num_nodes + num_active_vs + num_opamps + i
 	
 	# Discover internal nodes required by components
 	var internal_nodes: Array[int] = []
@@ -670,14 +678,14 @@ func _build_mna_system(delta_time: float) -> Dictionary:
 	var num_internal_nodes = internal_nodes.size()
 	for i in range(num_internal_nodes):
 		var internal_node_id = internal_nodes[i]
-		node_id_to_matrix_index[internal_node_id] = num_nodes + num_active_vs + num_inductors + i
+		node_id_to_matrix_index[internal_node_id] = num_nodes + num_active_vs + num_opamps + num_inductors + i
 		if not electrical_nodes.has(internal_node_id):
 			electrical_nodes[internal_node_id] = {"terminals": [], "voltage": 0.0}
 		
 	N += num_internal_nodes
 		
 	if N == 0:
-		return {"A": [], "b": [], "node_map": node_id_to_matrix_index, "vs_map": active_vs_id_to_matrix_index, "inductor_map": inductor_id_to_matrix_index}
+		return {"A": [], "b": [], "node_map": node_id_to_matrix_index, "vs_map": active_vs_id_to_matrix_index, "opamp_map": opamp_id_to_matrix_index, "inductor_map": inductor_id_to_matrix_index}
 
 	var A: Array = []
 	A.resize(N)
@@ -696,7 +704,8 @@ func _build_mna_system(delta_time: float) -> Dictionary:
 				A,
 				b,
 				node_id_to_matrix_index,
-				active_vs_id_to_matrix_index, 
+				active_vs_id_to_matrix_index,
+				opamp_id_to_matrix_index,
 				inductor_id_to_matrix_index,  
 				terminal_connections,
 				comp_data_item,        
@@ -704,7 +713,7 @@ func _build_mna_system(delta_time: float) -> Dictionary:
 			)
 			
 	_needs_rebuild = false
-	return { "A": A, "b": b, "node_map": node_id_to_matrix_index, "vs_map": active_vs_id_to_matrix_index, "inductor_map": inductor_id_to_matrix_index }
+	return { "A": A, "b": b, "node_map": node_id_to_matrix_index, "vs_map": active_vs_id_to_matrix_index, "opamp_map": opamp_id_to_matrix_index, "inductor_map": inductor_id_to_matrix_index }
 
 
 

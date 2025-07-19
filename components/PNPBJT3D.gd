@@ -115,7 +115,7 @@ func gather_sim_results(
 
 		Ie = I_es * (exp(Veb / Vt) - 1.0) - alpha_r * I_cs * (exp(Vcb / Vt) - 1.0)
 		Ic = alpha_f * I_es * (exp(Veb / Vt) - 1.0) - I_cs * (exp(Vcb / Vt) - 1.0)
-		Ib = -(Ie + Ic) # Current flows out of base for PNP
+		Ib = Ie - Ic # Current flows out of base for PNP
 
 	var region = "OFF"
 	var Vth = 0.5
@@ -187,10 +187,13 @@ func stamp(
 		b[idx_c] += I_cb_eq + alpha_r * I_cb_eq
 		if idx_b != -1: A[idx_c][idx_b] -= g_mu_pnp + gm_r_pnp
 
-func get_kcl_contributions(node_voltages: Dictionary, error_vector: Array, node_map: Dictionary):
-	var Ve = node_voltages.get("E", 0.0)
-	var Vb = node_voltages.get("B", 0.0)
-	var Vc = node_voltages.get("C", 0.0)
+func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, F_v: Array, system: Dictionary, _delta_time: float):
+	var node_e_id = graph.terminal_connections.get(terminal_e.get_instance_id(), -1)
+	var node_b_id = graph.terminal_connections.get(terminal_b.get_instance_id(), -1)
+	var node_c_id = graph.terminal_connections.get(terminal_c.get_instance_id(), -1)
+	var Ve = graph.electrical_nodes.get(node_e_id, {}).get("voltage", 0.0)
+	var Vb = graph.electrical_nodes.get(node_b_id, {}).get("voltage", 0.0)
+	var Vc = graph.electrical_nodes.get(node_c_id, {}).get("voltage", 0.0)
 
 	var Veb = Ve - Vb
 	var Vcb = Vc - Vb
@@ -203,12 +206,12 @@ func get_kcl_contributions(node_voltages: Dictionary, error_vector: Array, node_
 	var Ic_mag = alpha_forward * I_es * (exp(Veb / THERMAL_VOLTAGE) - 1.0) - I_cs * (exp(Vcb / THERMAL_VOLTAGE) - 1.0)
 	var Ib_mag = Ie_mag - Ic_mag
 
-	var idx_e = node_map.get(terminal_connections.get(terminal_e.get_instance_id(), -1), -1)
-	var idx_b = node_map.get(terminal_connections.get(terminal_b.get_instance_id(), -1), -1)
-	var idx_c = node_map.get(terminal_connections.get(terminal_c.get_instance_id(), -1), -1)
+	var idx_e = system.node_map.get(node_e_id, -1)
+	var idx_b = system.node_map.get(node_b_id, -1)
+	var idx_c = system.node_map.get(node_c_id, -1)
 
 	# For PNP: Ie flows IN, Ic and Ib flow OUT.
 	# KCL error vector is sum of currents LEAVING the node.
-	if idx_e != -1: error_vector[idx_e] -= Ie_mag
-	if idx_c != -1: error_vector[idx_c] += Ic_mag
-	if idx_b != -1: error_vector[idx_b] += Ib_mag
+	if idx_e != -1: F_v[idx_e] -= Ie_mag
+	if idx_c != -1: F_v[idx_c] += Ic_mag
+	if idx_b != -1: F_v[idx_b] += Ib_mag
