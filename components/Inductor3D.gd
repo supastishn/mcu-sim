@@ -162,13 +162,13 @@ func gather_sim_results(
 	assert(!is_nan(solved_current_L), "Solved inductor current is NaN.")
 	circuit.component_results[comp_id]["current"] = solved_current_L
 			
-			var term_1_L = comp_data.terminals["T1"]
-			var term_2_L = comp_data.terminals["T2"]
-			var V1_L = circuit.electrical_nodes.get(circuit.terminal_connections.get(term_1_L.get_instance_id(), -1), {}).get("voltage", NAN)
-			var V2_L = circuit.electrical_nodes.get(circuit.terminal_connections.get(term_2_L.get_instance_id(), -1), {}).get("voltage", NAN)
-			var actual_V_across_L = NAN
-			if not is_nan(V1_L) and not is_nan(V2_L): actual_V_across_L = V1_L - V2_L
-			circuit.component_results[comp_id]["voltage_across"] = actual_V_across_L
+	var term_1_L = comp_data.terminals["T1"]
+	var term_2_L = comp_data.terminals["T2"]
+	var V1_L = circuit.electrical_nodes.get(circuit.terminal_connections.get(term_1_L.get_instance_id(), -1), {}).get("voltage", NAN)
+	var V2_L = circuit.electrical_nodes.get(circuit.terminal_connections.get(term_2_L.get_instance_id(), -1), {}).get("voltage", NAN)
+	var actual_V_across_L = NAN
+	if not is_nan(V1_L) and not is_nan(V2_L): actual_V_across_L = V1_L - V2_L
+	circuit.component_results[comp_id]["voltage_across"] = actual_V_across_L
 
 	# Store current for next time-step (needed by stamp’s Backward-Euler)
 	if not is_nan(solved_current_L):

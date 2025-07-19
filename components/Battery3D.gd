@@ -163,10 +163,10 @@ func gather_sim_results(
 	assert(!is_nan(solved_current_mna), "Solved battery current is NaN.")
 	circuit.component_results[comp_id]["current"] = -solved_current_mna 
 			
-		var term_p_fv = comp_data.terminals["POS"]
-		var term_n_fv = comp_data.terminals["NEG"]
-		var Vp_fv = circuit.electrical_nodes.get(circuit.terminal_connections.get(term_p_fv.get_instance_id(), -1), {}).get("voltage", NAN)
-		var Vn_fv = circuit.electrical_nodes.get(circuit.terminal_connections.get(term_n_fv.get_instance_id(), -1), {}).get("voltage", NAN)
-		var actual_V_across_fv = NAN
-		if not is_nan(Vp_fv) and not is_nan(Vn_fv): actual_V_across_fv = Vp_fv - Vn_fv
-		circuit.component_results[comp_id]["voltage"] = actual_V_across_fv
+	var term_p_fv = comp_data.terminals["POS"]
+	var term_n_fv = comp_data.terminals["NEG"]
+	var Vp_fv = circuit.electrical_nodes.get(circuit.terminal_connections.get(term_p_fv.get_instance_id(), -1), {}).get("voltage", NAN)
+	var Vn_fv = circuit.electrical_nodes.get(circuit.terminal_connections.get(term_n_fv.get_instance_id(), -1), {}).get("voltage", NAN)
+	var actual_V_across_fv = NAN
+	if not is_nan(Vp_fv) and not is_nan(Vn_fv): actual_V_across_fv = Vp_fv - Vn_fv
+	circuit.component_results[comp_id]["voltage"] = actual_V_across_fv
