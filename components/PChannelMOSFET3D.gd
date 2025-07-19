@@ -248,9 +248,7 @@ func gather_sim_results(circuit,comp_data,_x,_node_map,_vs_map,_inductor_map,_dt
 	if not !is_nan(Id):
 		LinearSolver.print_vector(_x, "x on P-MOS results fail")
 		printerr("P-MOSFET {p}: Id is NaN. Region={r}, Vsg={vsg}, Vsd={vsd}".format({ "p": name, "r": reg, "vsg": Vsg, "vsd": Vsd }))
-	# ensure we always store a positive current magnitude
-	if not is_nan(Id) and Id < 0.0:
-		Id = -Id
+	
 	circuit.component_results[cid]["Id"]  = Id
 	circuit.component_results[cid]["Vgs"] = Vgs
 	circuit.component_results[cid]["Vds"] = Vds
