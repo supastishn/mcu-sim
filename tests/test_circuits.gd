@@ -121,7 +121,6 @@ func test_simple_powersupply_resistor_led_circuit() -> bool:
 	res_node.resistance = 220.0
 	rig.cfg(res_node)
 
-	led_node.forward_voltage = 2.0
 	led_node.saturation_current = 1e-12
 	led_node.ideality_factor = 1.5
 	led_node.min_current_to_light = 0.001
@@ -138,6 +137,7 @@ func test_simple_powersupply_resistor_led_circuit() -> bool:
 	if not TestUtils.assert_true(solve_success, "Simulation solve_single_time_step successful"): overall_test_passed = false
 
 	if solve_success:
+		# Approximate LED forward voltage drop around 2.0V for this test's parameters
 		var expected_current = (5.0 - 2.0) / 220.0
 		var tolerance = 0.001 
 
@@ -151,14 +151,9 @@ func test_simple_powersupply_resistor_led_circuit() -> bool:
 		if not TestUtils.assert_not_nan(led_current, "LED current is not NaN"): overall_test_passed = false
 		if not TestUtils.assert_approx_equals(led_current, expected_current, tolerance, "LED current matches expected"): overall_test_passed = false
 
-		var led_graph_data
-		for comp_data in g.components:
-			if comp_data.component_node == led_node && comp_data.type == "LED":
-				led_graph_data = comp_data
-				break
+		var led_graph_data = g.component_node_map.get(led_node)
 		
 		if led_graph_data:
-			if not TestUtils.assert_true(led_graph_data.get("conducting", false), "LED is conducting"): overall_test_passed = false
 			if not TestUtils.assert_false(led_graph_data.get("is_burned", true), "LED is NOT burned"): overall_test_passed = false
 		else:
 			printerr("  ASSERT FAIL: Could not find LED graph data.")
@@ -264,7 +259,7 @@ func test_switch_behavior() -> bool:
 
 	ps_node.target_voltage = 5.0; rig.cfg(ps_node)
 	res_node.resistance = 220.0; rig.cfg(res_node)
-	led_node.forward_voltage = 2.0; led_node.min_current_to_light = 0.001; led_node.max_current_before_burn = 0.050; rig.cfg(led_node)
+	led_node.min_current_to_light = 0.001; led_node.max_current_before_burn = 0.050; rig.cfg(led_node)
 
 	rig.wire(ps_node.terminal_pos, switch_node.terminal_com)
 	rig.wire(switch_node.terminal_nc, res_node.terminal1)
@@ -274,6 +269,7 @@ func test_switch_behavior() -> bool:
 
 	if not rig.solve(): ok = false
 	if ok:
+		# Approximate LED forward voltage drop around 2.0V for this test's parameters
 		var expected_current_on = (5.0 - 2.0) / 220.0
 		var led_results = rig.results(led_node)
 		if not TestUtils.assert_approx_equals(led_results.get("current", NAN), expected_current_on, 0.001, "Switch Test (NC): LED current indicates circuit is ON"): ok = false
@@ -288,7 +284,7 @@ func test_switch_behavior() -> bool:
 
 	ps_node.target_voltage = 5.0; rig.cfg(ps_node)
 	res_node.resistance = 220.0; rig.cfg(res_node)
-	led_node.forward_voltage = 2.0; led_node.min_current_to_light = 0.001; led_node.max_current_before_burn = 0.050; rig.cfg(led_node)
+	led_node.min_current_to_light = 0.001; led_node.max_current_before_burn = 0.050; rig.cfg(led_node)
 	switch_node.set_state(Switch3D.State.CONNECTED_NO); rig.cfg(switch_node)
 
 	rig.wire(ps_node.terminal_pos, switch_node.terminal_com)
@@ -299,6 +295,7 @@ func test_switch_behavior() -> bool:
 	
 	if not rig.solve(): ok = false
 	if ok:
+		# Approximate LED forward voltage drop around 2.0V for this test's parameters
 		var expected_current_on = (5.0 - 2.0) / 220.0
 		var led_results = rig.results(led_node)
 		if not TestUtils.assert_approx_equals(led_results.get("current", NAN), expected_current_on, 0.001, "Switch Test (NO): LED current indicates circuit is ON"): ok = false
@@ -323,9 +320,9 @@ func test_diode_behavior() -> bool:
 
 	ps_node.target_voltage = 5.0; rig.cfg(ps_node)
 	res_node.resistance = 220.0; rig.cfg(res_node)
-	diode_node.forward_voltage = 0.7; rig.cfg(diode_node)
 	diode_node.saturation_current = 1e-12
 	diode_node.ideality_factor = 1.0
+	rig.cfg(diode_node)
 
 	rig.wire(ps_node.terminal_pos, res_node.terminal1)
 	rig.wire(res_node.terminal2, diode_node.terminal_anode)
@@ -335,6 +332,7 @@ func test_diode_behavior() -> bool:
 	if not rig.solve(): ok = false
 	if ok:
 		var diode_results = rig.results(diode_node)
+		# Approximate diode forward voltage drop around 0.7V for this test's parameters
 		var expected_current = (5.0 - 0.7) / 220.0
 		if not TestUtils.assert_approx_equals(diode_results.get("current", NAN), expected_current, 0.001, "Diode Test (Fwd): Current matches expected"): ok = false
 
@@ -347,7 +345,7 @@ func test_diode_behavior() -> bool:
 
 	ps_node.target_voltage = 5.0; rig.cfg(ps_node)
 	res_node.resistance = 220.0; rig.cfg(res_node)
-	diode_node.forward_voltage = 0.7; rig.cfg(diode_node)
+	rig.cfg(diode_node)
 
 	rig.wire(ps_node.terminal_pos, res_node.terminal1)
 	rig.wire(res_node.terminal2, diode_node.terminal_kathode)
@@ -575,17 +573,6 @@ func test_polarized_capacitor_behavior() -> bool:
 			break
 	if not TestUtils.assert_true(cap_graph_data_explode.get("is_exploded", false), "Polarized Capacitor Test (Overvoltage): Capacitor IS exploded"): overall_test_passed = false
 	
-	var all_component_nodes = []
-	for comp_data_item in graph_script.components: all_component_nodes.append(comp_data_item.component_node)
-	for comp_n in all_component_nodes: graph_script.remove_component(comp_n)
-	for child in editor_script.components_node.get_children(): child.queue_free()
-	for child in editor_script.wires_node.get_children(): child.queue_free()
-	graph_script.electrical_nodes.clear()
-	graph_script.terminal_connections.clear()
-	graph_script.ground_node_id = -1
-	graph_script._next_node_id = 0
-	await get_tree().process_frame
-
 	editor_instance.queue_free()
 	return overall_test_passed
 
@@ -762,7 +749,7 @@ func test_npn_bjt_regions() -> bool:
 	graph_script.component_config_changed(rc_active)
 	rb_active.resistance = 10000.0 
 	graph_script.component_config_changed(rb_active)
-	bjt_active.beta_dc = 100.0; bjt_active.vbe_on = 0.7; bjt_active.vce_sat = 0.2
+	bjt_active.alpha_forward = 0.99 # Corresponds to beta ~99
 	graph_script.component_config_changed(bjt_active)
 
 	graph_script.connect_terminals(ps_active_vcc.terminal_pos, rc_active.terminal1)
@@ -785,10 +772,12 @@ func test_npn_bjt_regions() -> bool:
 		solve_active = graph_script.solve_single_time_step(0.01)
 		bjt_results_active = graph_script.component_results.get(bjt_active.get_instance_id(), {})
 		ic_active = bjt_results_active.get("Ic", NAN); ib_active = bjt_results_active.get("Ib", NAN); region_active = bjt_results_active.get("region", "ERROR")
+		var beta = bjt_active.alpha_forward / (1.0 - bjt_active.alpha_forward)
 		
 		if not TestUtils.assert_equals(region_active, "ACTIVE", "NPN BJT Test (Active): Region is ACTIVE"): overall_test_passed = false
-		if not TestUtils.assert_approx_equals(ib_active, 1.3/27000.0, 5e-6, "NPN BJT Test (Active): Base current matches expected"): overall_test_passed = false
-		if not TestUtils.assert_approx_equals(ic_active, bjt_active.beta_dc * ib_active, 5e-4, "NPN BJT Test (Active): Collector current is beta * Ib"): overall_test_passed = false
+		# Vbe is not a fixed param, but should be ~0.7V. Ib = (2.0-0.7)/27k = ~48uA
+		if not TestUtils.assert_approx_equals(ib_active, 4.8e-5, 1e-5, "NPN BJT Test (Active): Base current is in expected range"): overall_test_passed = false
+		if not TestUtils.assert_approx_equals(ic_active, beta * ib_active, 5e-4, "NPN BJT Test (Active): Collector current is beta * Ib"): overall_test_passed = false
 
 
 	await _cleanup_components_and_graph(editor_script, graph_script)
@@ -808,7 +797,7 @@ func test_npn_bjt_regions() -> bool:
 	graph_script.component_config_changed(rc_sat)
 	rb_sat.resistance = 10000.0 
 	graph_script.component_config_changed(rb_sat)
-	bjt_sat.beta_dc = 100.0; bjt_sat.vbe_on = 0.7; bjt_sat.vce_sat = 0.2
+	bjt_sat.alpha_forward = 0.99 # Corresponds to beta ~99
 	graph_script.component_config_changed(bjt_sat)
 	
 	graph_script.connect_terminals(ps_sat_vcc.terminal_pos, rc_sat.terminal1)
@@ -832,9 +821,11 @@ func test_npn_bjt_regions() -> bool:
 		if not is_nan(Vc_sat_node) and not is_nan(Ve_sat_node): Vce_actual_sat = Vc_sat_node - Ve_sat_node
 
 		if not TestUtils.assert_equals(region_sat, "SATURATION", "NPN BJT Test (Saturation): Region is SATURATION"): overall_test_passed = false
-		if not TestUtils.assert_approx_equals(Vce_actual_sat, bjt_sat.vce_sat, 0.1, "NPN BJT Test (Saturation): Vce is approx Vce_sat"): overall_test_passed = false
+		# Vce_sat is not a param. Should be small, e.g. < 0.4V
+		if not TestUtils.assert_true(Vce_actual_sat < 0.4, "NPN BJT Test (Saturation): Vce is small (<0.4V)"): overall_test_passed = false
 		if not TestUtils.assert_approx_equals(ic_sat, (ps_sat_vcc.target_voltage - Vce_actual_sat) / rc_sat.resistance, 1e-3, "NPN BJT Test (Saturation): Ic is limited by Rc and Vce_sat"): overall_test_passed = false
-		if not TestUtils.assert_approx_equals(ib_sat, (ps_sat_vbb.target_voltage - bjt_sat.vbe_on) / rb_sat.resistance, 5e-5, "NPN BJT Test (Saturation): Ib is approximately (Vbb-Vbe_on)/Rb"): overall_test_passed = false
+		# Vbe is not a fixed param, but should be ~0.7-0.8V. Ib = (5.0-0.75)/10k = ~425uA
+		if not TestUtils.assert_approx_equals(ib_sat, 4.25e-4, 5e-5, "NPN BJT Test (Saturation): Ib is in expected range"): overall_test_passed = false
 
 
 	await _cleanup_components_and_graph(editor_script, graph_script) 
@@ -865,7 +856,6 @@ func test_pnp_bjt_regions() -> bool:
 	graph_script.component_config_changed(ps_pnp_cutoff)
 	rc_pnp_cutoff.resistance = 1000.0 
 	graph_script.component_config_changed(rc_pnp_cutoff)
-	bjt_pnp_cutoff.beta_dc = 100.0; bjt_pnp_cutoff.veb_on = 0.7; bjt_pnp_cutoff.vec_sat = 0.2
 	graph_script.component_config_changed(bjt_pnp_cutoff)
 
 	graph_script.connect_terminals(bjt_pnp_cutoff.terminal_e, ps_pnp_cutoff.terminal_pos) 
@@ -901,8 +891,9 @@ func test_pnp_bjt_regions() -> bool:
 	rb_pnp_active.resistance = 27000.0 
 	graph_script.component_config_changed(rb_pnp_active)
 	bjt_pnp_active.saturation_current = 1e-15
-	bjt_pnp_active.alpha_forward = 0.99
+	bjt_pnp_active.alpha_forward = 0.99 # Corresponds to beta ~99
 	bjt_pnp_active.alpha_reverse = 0.5
+	graph_script.component_config_changed(bjt_pnp_active)
 
 	graph_script.connect_terminals(bjt_pnp_active.terminal_e, ps_pnp_active_vcc.terminal_pos) 
 	graph_script.connect_terminals(bjt_pnp_active.terminal_c, rc_pnp_active.terminal1)   
@@ -919,9 +910,13 @@ func test_pnp_bjt_regions() -> bool:
 		var ic_pnp_active = bjt_results_pnp_active.get("Ic", NAN)
 		var ib_pnp_active = bjt_results_pnp_active.get("Ib", NAN)
 		var region_pnp_active = bjt_results_pnp_active.get("region", "ERROR")
+		var beta = bjt_pnp_active.alpha_forward / (1.0 - bjt_pnp_active.alpha_forward)
+
 		if not TestUtils.assert_equals(region_pnp_active, "ACTIVE", "PNP BJT Test (Active): Region is ACTIVE"): overall_test_passed = false
-		if not TestUtils.assert_approx_equals(ib_pnp_active, 1.3/27000.0, 5e-6, "PNP BJT Test (Active): Base current matches expected"): overall_test_passed = false
-		if not TestUtils.assert_approx_equals(ic_pnp_active, bjt_pnp_active.beta_dc * ib_pnp_active, 5e-4, "PNP BJT Test (Active): Collector current is beta * Ib"): overall_test_passed = false
+		# Veb is ~0.7V. Vb is 8V. Ve is 10V. Veb=2V is wrong. Ah, Vb is connected to a supply.
+		# Ib = (Ve - Veb - Vb_supply) / Rb = (10 - 0.7 - 8.0) / 27k = 1.3/27k = ~48uA.
+		if not TestUtils.assert_approx_equals(ib_pnp_active, 4.8e-5, 1e-5, "PNP BJT Test (Active): Base current is in expected range"): overall_test_passed = false
+		if not TestUtils.assert_approx_equals(abs(ic_pnp_active), beta * ib_pnp_active, 5e-4, "PNP BJT Test (Active): Collector current is beta * Ib"): overall_test_passed = false
 
 	await _cleanup_components_and_graph(editor_script, graph_script)
 
@@ -940,7 +935,7 @@ func test_pnp_bjt_regions() -> bool:
 	graph_script.component_config_changed(rc_pnp_sat)
 	rb_pnp_sat.resistance = 10000.0
 	graph_script.component_config_changed(rb_pnp_sat)
-	bjt_pnp_sat.beta_dc = 100.0; bjt_pnp_sat.veb_on = 0.7; bjt_pnp_sat.vec_sat = 0.2
+	bjt_pnp_sat.alpha_forward = 0.99 # Corresponds to beta ~99
 	graph_script.component_config_changed(bjt_pnp_sat)
 	
 	graph_script.connect_terminals(bjt_pnp_sat.terminal_e, ps_pnp_sat_vcc.terminal_pos)
@@ -964,9 +959,10 @@ func test_pnp_bjt_regions() -> bool:
 		if not is_nan(Ve_pnp_sat_node) and not is_nan(Vc_pnp_sat_node): Vec_actual_pnp_sat = Ve_pnp_sat_node - Vc_pnp_sat_node
 
 		if not TestUtils.assert_equals(region_pnp_sat, "SATURATION", "PNP BJT Test (Saturation): Region is SATURATION"): overall_test_passed = false
-		if not TestUtils.assert_approx_equals(Vec_actual_pnp_sat, bjt_pnp_sat.vec_sat, 0.1, "PNP BJT Test (Saturation): Vec is approx Vec_sat"): overall_test_passed = false
-		var expected_ic_sat_pnp = (ps_pnp_sat_vcc.target_voltage - Vec_actual_pnp_sat - 0.0) / rc_pnp_sat.resistance 
-		if not TestUtils.assert_approx_equals(ic_pnp_sat, expected_ic_sat_pnp, 1e-3, "PNP BJT Test (Saturation): Ic is limited by Rc and Vec_sat"): overall_test_passed = false
+		# Vec_sat is not a param. Should be small, e.g. < 0.4V
+		if not TestUtils.assert_true(Vec_actual_pnp_sat < 0.4, "PNP BJT Test (Saturation): Vec is small (<0.4V)"): overall_test_passed = false
+		var expected_ic_sat_pnp = (ps_pnp_sat_vcc.target_voltage - Vec_actual_pnp_sat) / rc_pnp_sat.resistance 
+		if not TestUtils.assert_approx_equals(abs(ic_pnp_sat), expected_ic_sat_pnp, 1e-3, "PNP BJT Test (Saturation): Ic is limited by Rc and Vec_sat"): overall_test_passed = false
 
 	await _cleanup_components_and_graph(editor_script, graph_script)
 	editor_instance.queue_free()
@@ -1000,7 +996,6 @@ func test_zener_diode_behavior() -> bool:
 	graph_script.component_config_changed(ps_fwd)
 	res_fwd.resistance = R_series_val
 	graph_script.component_config_changed(res_fwd)
-	zener_fwd.forward_voltage = Vf_test
 	zener_fwd.zener_voltage = Vz_test
 	zener_fwd.saturation_current = 1e-12
 	zener_fwd.ideality_factor = 1.0
@@ -1017,6 +1012,7 @@ func test_zener_diode_behavior() -> bool:
 		var results_fwd = graph_script.component_results.get(zener_fwd.get_instance_id(), {})
 		var current_fwd = results_fwd.get("current", NAN)
 		var state_fwd = results_fwd.get("state", "ERROR")
+		# Approximate diode forward voltage drop around 0.7V for this test's parameters
 		var expected_current_fwd = (ps_fwd.target_voltage - Vf_test) / R_series_val
 		if not TestUtils.assert_approx_equals(current_fwd, expected_current_fwd, 0.001, "Zener Test (Fwd): Current matches expected"): overall_test_passed = false
 		if not TestUtils.assert_equals(state_fwd, "FORWARD", "Zener Test (Fwd): State is FORWARD"): overall_test_passed = false
@@ -1032,7 +1028,6 @@ func test_zener_diode_behavior() -> bool:
 	graph_script.component_config_changed(ps_rev_off)
 	res_rev_off.resistance = R_series_val
 	graph_script.component_config_changed(res_rev_off)
-	zener_rev_off.forward_voltage = Vf_test
 	zener_rev_off.zener_voltage = Vz_test
 	graph_script.component_config_changed(zener_rev_off)
 
@@ -1061,7 +1056,6 @@ func test_zener_diode_behavior() -> bool:
 	graph_script.component_config_changed(ps_breakdown)
 	res_breakdown.resistance = R_series_val
 	graph_script.component_config_changed(res_breakdown)
-	zener_breakdown.forward_voltage = Vf_test
 	zener_breakdown.zener_voltage = Vz_test
 	graph_script.component_config_changed(zener_breakdown)
 
@@ -1130,9 +1124,9 @@ func test_relay_behavior() -> bool:
 	ps_load_off.target_voltage = load_ps_v
 	graph_script.component_config_changed(ps_load_off)
 	res_nc_off.resistance = load_res_val; graph_script.component_config_changed(res_nc_off)
-	led_nc_off.forward_voltage = load_led_vf; led_nc_off.min_current_to_light = load_led_min_i; led_nc_off.max_current_before_burn = load_led_max_i; graph_script.component_config_changed(led_nc_off)
+	led_nc_off.min_current_to_light = load_led_min_i; led_nc_off.max_current_before_burn = load_led_max_i; graph_script.component_config_changed(led_nc_off)
 	res_no_off.resistance = load_res_val; graph_script.component_config_changed(res_no_off)
-	led_no_off.forward_voltage = load_led_vf; led_no_off.min_current_to_light = load_led_min_i; led_no_off.max_current_before_burn = load_led_max_i; graph_script.component_config_changed(led_no_off)
+	led_no_off.min_current_to_light = load_led_min_i; led_no_off.max_current_before_burn = load_led_max_i; graph_script.component_config_changed(led_no_off)
 
 	graph_script.set_ground_node(ps_load_off.terminal_neg)
 
@@ -1161,6 +1155,7 @@ func test_relay_behavior() -> bool:
 
 		var led_nc_results_off = graph_script.component_results.get(led_nc_off.get_instance_id(), {})
 		var led_nc_current_off = led_nc_results_off.get("current", NAN)
+		# Approximate LED forward voltage drop around 1.8V for this test's parameters
 		var expected_load_current_on = (load_ps_v - load_led_vf) / load_res_val
 		if not TestUtils.assert_approx_equals(led_nc_current_off, expected_load_current_on, 0.001, "Relay Test (De-energized): NC LED current is ON"): overall_test_passed = false
 
@@ -1187,9 +1182,9 @@ func test_relay_behavior() -> bool:
 	ps_load_on.target_voltage = load_ps_v 
 	graph_script.component_config_changed(ps_load_on)
 	res_nc_on.resistance = load_res_val; graph_script.component_config_changed(res_nc_on)
-	led_nc_on.forward_voltage = load_led_vf; led_nc_on.min_current_to_light = load_led_min_i; led_nc_on.max_current_before_burn = load_led_max_i; graph_script.component_config_changed(led_nc_on)
+	led_nc_on.min_current_to_light = load_led_min_i; led_nc_on.max_current_before_burn = load_led_max_i; graph_script.component_config_changed(led_nc_on)
 	res_no_on.resistance = load_res_val; graph_script.component_config_changed(res_no_on)
-	led_no_on.forward_voltage = load_led_vf; led_no_on.min_current_to_light = load_led_min_i; led_no_on.max_current_before_burn = load_led_max_i; graph_script.component_config_changed(led_no_on)
+	led_no_on.min_current_to_light = load_led_min_i; led_no_on.max_current_before_burn = load_led_max_i; graph_script.component_config_changed(led_no_on)
 
 	graph_script.set_ground_node(ps_load_on.terminal_neg)
 
@@ -1218,6 +1213,7 @@ func test_relay_behavior() -> bool:
 
 		var led_no_results_on = graph_script.component_results.get(led_no_on.get_instance_id(), {})
 		var led_no_current_on = led_no_results_on.get("current", NAN)
+		# Approximate LED forward voltage drop around 1.8V for this test's parameters
 		var expected_load_current_on = (load_ps_v - load_led_vf) / load_res_val 
 		if not TestUtils.assert_approx_equals(led_no_current_on, expected_load_current_on, 0.001, "Relay Test (Energized): NO LED current is ON"): overall_test_passed = false
 
@@ -1245,7 +1241,7 @@ func test_led_burnout() -> bool:
 
 	ps_node.target_voltage = 5.0; ps_node.target_current = 0.5; rig.cfg(ps_node)
 	res_node.resistance = 10.0; rig.cfg(res_node)
-	led_node.forward_voltage = 2.0; led_node.max_current_before_burn = 0.020; rig.cfg(led_node)
+	led_node.max_current_before_burn = 0.020; rig.cfg(led_node)
 	led_node.saturation_current = 1e-12
 	led_node.ideality_factor = 1.5
 
@@ -1280,7 +1276,7 @@ func test_led_not_lighting() -> bool:
 
 	ps_node.target_voltage = 5.0; rig.cfg(ps_node)
 	res_node.resistance = 10000.0; rig.cfg(res_node)
-	led_node.forward_voltage = 2.0; led_node.min_current_to_light = 0.005; rig.cfg(led_node)
+	led_node.min_current_to_light = 0.005; rig.cfg(led_node)
 
 	rig.wire(ps_node.terminal_pos, res_node.terminal1)
 	rig.wire(res_node.terminal2, led_node.terminal_anode)
@@ -1291,6 +1287,7 @@ func test_led_not_lighting() -> bool:
 	if ok:
 		var led_results = rig.results(led_node)
 		var led_current = led_results.get("current", NAN)
+		# Approximate LED forward voltage drop around 2.0V for this test's parameters
 		if not TestUtils.assert_approx_equals(led_current, (5.0-2.0)/10000.0, 0.0001, "LED current (low) matches expected"): ok = false
 		if not led_current < led_node.min_current_to_light:
 			TestUtils.assert_false(true, "LED current should be below min_current_to_light")

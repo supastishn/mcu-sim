@@ -105,7 +105,6 @@ func add_component(component: Node3D):
 		component_data.properties["ideality_factor"] = component.ideality_factor
 		component_data.terminals["A"] = component.terminal_anode
 		component_data.terminals["K"] = component.terminal_kathode
-		component_data["conducting"] = false 
 		component_data.is_burned = false 
 	elif component is Diode3D:
 		component_data.type = "Diode"
@@ -113,7 +112,6 @@ func add_component(component: Node3D):
 		component_data.properties["ideality_factor"] = component.ideality_factor
 		component_data.terminals["A"] = component.terminal_anode
 		component_data.terminals["K"] = component.terminal_kathode
-		component_data["conducting"] = false 
 	elif component is Switch3D:
 		component_data.type = "Switch"
 		component_data.state = component.current_state 
@@ -156,25 +154,26 @@ func add_component(component: Node3D):
 		component_data.terminals["T2"] = component.terminal2
 	elif component is NPNBJT3D:
 		component_data.type = "NPNBJT"
-		component_data.properties["beta_dc"] = component.beta_dc
-		component_data.properties["vbe_on"] = component.vbe_on
-		component_data.properties["vce_sat"] = component.vce_sat
+		component_data.properties["saturation_current"] = component.saturation_current
+		component_data.properties["alpha_forward"] = component.alpha_forward
+		component_data.properties["alpha_reverse"] = component.alpha_reverse
 		component_data.properties["operating_region"] = "OFF" 
 		component_data.terminals["C"] = component.terminal_c
 		component_data.terminals["B"] = component.terminal_b
 		component_data.terminals["E"] = component.terminal_e
 	elif component is PNPBJT3D:
 		component_data.type = "PNPBJT"
-		component_data.properties["beta_dc"] = component.beta_dc
-		component_data.properties["veb_on"] = component.veb_on 
-		component_data.properties["vec_sat"] = component.vec_sat 
+		component_data.properties["saturation_current"] = component.saturation_current
+		component_data.properties["alpha_forward"] = component.alpha_forward
+		component_data.properties["alpha_reverse"] = component.alpha_reverse
 		component_data.properties["operating_region"] = "OFF"
 		component_data.terminals["E"] = component.terminal_e 
 		component_data.terminals["B"] = component.terminal_b 
 		component_data.terminals["C"] = component.terminal_c 
 	elif component is ZenerDiode3D:
 		component_data.type = "ZenerDiode"
-		component_data.properties["forward_voltage"] = component.forward_voltage
+		component_data.properties["saturation_current"] = component.saturation_current
+		component_data.properties["ideality_factor"] = component.ideality_factor
 		component_data.properties["zener_voltage"] = component.zener_voltage
 		component_data.properties["operating_state"] = "OFF" 
 		component_data.terminals["A"] = component.terminal_anode
@@ -418,17 +417,18 @@ func component_config_changed(component_node: Node3D):
 		found_component_data.properties["inductance"] = component_node.inductance
 		found_component_data.properties["current_through_L_prev_dt"] = 0.0 
 	elif comp_type == "NPNBJT" and component_node is NPNBJT3D:
-		found_component_data.properties["beta_dc"] = component_node.beta_dc
-		found_component_data.properties["vbe_on"] = component_node.vbe_on
-		found_component_data.properties["vce_sat"] = component_node.vce_sat
+		found_component_data.properties["saturation_current"] = component_node.saturation_current
+		found_component_data.properties["alpha_forward"] = component_node.alpha_forward
+		found_component_data.properties["alpha_reverse"] = component_node.alpha_reverse
 		found_component_data.properties["operating_region"] = "OFF" 
 	elif comp_type == "PNPBJT" and component_node is PNPBJT3D:
-		found_component_data.properties["beta_dc"] = component_node.beta_dc
-		found_component_data.properties["veb_on"] = component_node.veb_on
-		found_component_data.properties["vec_sat"] = component_node.vec_sat
+		found_component_data.properties["saturation_current"] = component_node.saturation_current
+		found_component_data.properties["alpha_forward"] = component_node.alpha_forward
+		found_component_data.properties["alpha_reverse"] = component_node.alpha_reverse
 		found_component_data.properties["operating_region"] = "OFF" 
 	elif comp_type == "ZenerDiode" and component_node is ZenerDiode3D:
-		found_component_data.properties["forward_voltage"] = component_node.forward_voltage
+		found_component_data.properties["saturation_current"] = component_node.saturation_current
+		found_component_data.properties["ideality_factor"] = component_node.ideality_factor
 		found_component_data.properties["zener_voltage"] = component_node.zener_voltage
 		found_component_data.properties["operating_state"] = "OFF" 
 	elif comp_type == "NChannelMOSFET" and component_node is NChannelMOSFET3D:
@@ -518,7 +518,7 @@ func solve_single_time_step(delta_time: float) -> bool:
 		if is_instance_valid(node) and node.has_method("gather_sim_results"):
 			var comp_id = node.get_instance_id()
 			if not comp_id in component_results: component_results[comp_id] = {}
-			node.gather_sim_results(self, comp_data_item, final_solution, final_system.node_map, final_system.vs_map, final_system.opamp_map, final_system.inductor_map, delta_time)
+			node.gather_sim_results(self, comp_data_item, final_solution, final_system.node_map, final_system.vs_map, final_system.inductor_map, delta_time)
 	
 	return true
 

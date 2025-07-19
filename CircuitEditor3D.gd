@@ -770,15 +770,15 @@ func _select_component(component: Node3D):
 
 	elif selected_component is NPNBJT3D:
 		var selected_t : NPNBJT3D = selected_component
-		_add_line_edit_property("Is (A):", selected_t.saturation_current, func(new_val): selected_t.saturation_current = new_val)
-		_add_line_edit_property("Alpha Fwd:", selected_t.alpha_forward, func(new_val): selected_t.alpha_forward = new_val)
-		_add_line_edit_property("Alpha Rev:", selected_t.alpha_reverse, func(new_val): selected_t.alpha_reverse = new_val)
+		_add_line_edit_property("Is (A):", selected_t.saturation_current, func(new_val): selected_t.set("saturation_current", new_val))
+		_add_line_edit_property("Alpha Fwd:", selected_t.alpha_forward, func(new_val): selected_t.set("alpha_forward", new_val))
+		_add_line_edit_property("Alpha Rev:", selected_t.alpha_reverse, func(new_val): selected_t.set("alpha_reverse", new_val))
 		
 	elif selected_component is PNPBJT3D:
 		var selected_t : PNPBJT3D = selected_component
-		_add_line_edit_property("Is (A):", selected_t.saturation_current, func(new_val): selected_t.saturation_current = new_val)
-		_add_line_edit_property("Alpha Fwd:", selected_t.alpha_forward, func(new_val): selected_t.alpha_forward = new_val)
-		_add_line_edit_property("Alpha Rev:", selected_t.alpha_reverse, func(new_val): selected_t.alpha_reverse = new_val)
+		_add_line_edit_property("Is (A):", selected_t.saturation_current, func(new_val): selected_t.set("saturation_current", new_val))
+		_add_line_edit_property("Alpha Fwd:", selected_t.alpha_forward, func(new_val): selected_t.set("alpha_forward", new_val))
+		_add_line_edit_property("Alpha Rev:", selected_t.alpha_reverse, func(new_val): selected_t.set("alpha_reverse", new_val))
 	
 	elif selected_component is NChannelMOSFET3D:
 		var selected_t : NChannelMOSFET3D = selected_component
