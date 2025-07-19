@@ -252,7 +252,7 @@ func add_component(component: Node3D):
 
 		if not term_id_ensure_node in terminal_connections: 
 			var new_node_id_for_floating_term = _get_new_node_id()
-			electrical_nodes[new_node_id_for_floating_term] = { "terminals": [terminal_ensure_node], "voltage": NAN }
+			electrical_nodes[new_node_id_for_floating_term] = { "terminals": [terminal_ensure_node], "voltage": 0.0 }
 			terminal_connections[term_id_ensure_node] = new_node_id_for_floating_term
 			
 	components.push_back(component_data)
@@ -308,7 +308,7 @@ func connect_terminals(terminal_a: Area3D, terminal_b: Area3D):
 
 	if node_a == -1 and node_b == -1:
 		var new_node_id = _get_new_node_id()
-		electrical_nodes[new_node_id] = { "terminals": [terminal_a, terminal_b], "voltage": NAN }
+		electrical_nodes[new_node_id] = { "terminals": [terminal_a, terminal_b], "voltage": 0.0 }
 		terminal_connections[a_id] = new_node_id
 		terminal_connections[b_id] = new_node_id
 	elif node_a != -1 and node_b == -1:
@@ -362,7 +362,7 @@ func register_dynamic_terminals(component_node: Node3D, terminals: Array):
 				var term_id = terminal.get_instance_id()
 				if not terminal_connections.has(term_id):
 					var new_node_id = _get_new_node_id()
-					electrical_nodes[new_node_id] = { "terminals": [terminal], "voltage": NAN }
+					electrical_nodes[new_node_id] = { "terminals": [terminal], "voltage": 0.0 }
 					terminal_connections[term_id] = new_node_id
 
 
@@ -559,7 +559,9 @@ func _solve_newton_raphson(delta_time: float) -> bool:
 			if electrical_nodes.has(node_id):
 				electrical_nodes[node_id].voltage += damping_factor * delta_x[index]
 
-		if _check_convergence(delta_x, v_tolerance):
+		var state_changed = _update_all_nonlinear_states(system)
+		
+		if _check_convergence(delta_x, v_tolerance) and not state_changed:
 			if DEBUG: print("  NR converged in {i} iterations.".format({"i": i + 1}))
 			return true
 
@@ -568,6 +570,7 @@ func _solve_newton_raphson(delta_time: float) -> bool:
 
 func _calculate_kcl_error_vector(system: Dictionary, delta_time: float) -> Array:
 	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
+	if system.A.is_empty(): return []
 	var num_vars = system.A.size()
 	var error_vector: Array = []
 	error_vector.resize(num_vars)
@@ -593,37 +596,59 @@ func _calculate_kcl_error_vector(system: Dictionary, delta_time: float) -> Array
 	if DEBUG and num_vars > 0 : LinearSolver.print_vector(final_error, "    Final KCL error vector (-F(V))")
 	return final_error
 
-func _update_voltages_from_solution(delta_x: Array, system: Dictionary):
-	var node_map = system.node_map
-	for node_id in node_map:
-		var index = node_map[node_id]
-		if index < delta_x.size():
-			if not electrical_nodes.has(node_id): electrical_nodes[node_id] = {"terminals": [], "voltage": 0.0}
-			electrical_nodes[node_id].voltage += delta_x[index]
-	
-	# Update internal component voltages for next linearization
-	for comp_data in components:
-		var comp_type = comp_data.type
-		if comp_type in ["Diode", "LED", "ZenerDiode"]:
-			var va = electrical_nodes.get(terminal_connections.get(comp_data.terminals.A.get_instance_id(), -1), {}).get("voltage", 0.0)
-			var vk = electrical_nodes.get(terminal_connections.get(comp_data.terminals.K.get_instance_id(), -1), {}).get("voltage", 0.0)
-			comp_data.properties["_internal_voltage"] = va - vk
-		elif comp_type == "NPNBJT":
-			var vb = electrical_nodes.get(terminal_connections.get(comp_data.terminals.B.get_instance_id(), -1), {}).get("voltage", 0.0)
-			var ve = electrical_nodes.get(terminal_connections.get(comp_data.terminals.E.get_instance_id(), -1), {}).get("voltage", 0.0)
-			var vc = electrical_nodes.get(terminal_connections.get(comp_data.terminals.C.get_instance_id(), -1), {}).get("voltage", 0.0)
-			comp_data.properties["_internal_vbe"] = vb - ve
-			comp_data.properties["_internal_vbc"] = vb - vc
-		elif comp_type == "PNPBJT":
-			var ve = electrical_nodes.get(terminal_connections.get(comp_data.terminals.E.get_instance_id(), -1), {}).get("voltage", 0.0)
-			var vb = electrical_nodes.get(terminal_connections.get(comp_data.terminals.B.get_instance_id(), -1), {}).get("voltage", 0.0)
-			var vc = electrical_nodes.get(terminal_connections.get(comp_data.terminals.C.get_instance_id(), -1), {}).get("voltage", 0.0)
-			comp_data.properties["_internal_veb"] = ve - vb
-			comp_data.properties["_internal_vcb"] = vc - vb
-
 func _check_convergence(delta_x: Array, v_tol: float) -> bool:
 	var norm = delta_x.reduce(func(acc, val): return acc + val*val, 0.0)
 	return sqrt(norm) < v_tol
+
+func _update_all_nonlinear_states(system: Dictionary) -> bool:
+	var any_state_changed := false
+	var x_iter_voltages_only := []
+	x_iter_voltages_only.resize(system.A.size())
+	x_iter_voltages_only.fill(NAN)
+	for node_id in system.node_map:
+		var idx = system.node_map[node_id]
+		x_iter_voltages_only[idx] = electrical_nodes.get(node_id, {}).get("voltage", 0.0)
+
+	for comp_data in components:
+		var node = comp_data.component_node
+		if not is_instance_valid(node): continue
+
+		# For components with discrete states, call update_nonlinear_state
+		if node.has_method("update_nonlinear_state"):
+			if node.update_nonlinear_state(self, comp_data, x_iter_voltages_only, system.node_map, system.vs_map):
+				any_state_changed = true
+		
+		# For "simpler" non-linear components, just update their internal voltages for linearization
+		var comp_type = comp_data.type
+		if comp_type in ["Diode", "LED", "ZenerDiode"]:
+			var term_A = comp_data.terminals.get("A")
+			var term_K = comp_data.terminals.get("K")
+			if term_A and term_K:
+				var va_node = terminal_connections.get(term_A.get_instance_id(), -1)
+				var vk_node = terminal_connections.get(term_K.get_instance_id(), -1)
+				var va = electrical_nodes.get(va_node, {}).get("voltage", 0.0)
+				var vk = electrical_nodes.get(vk_node, {}).get("voltage", 0.0)
+				comp_data.properties["_internal_voltage"] = va - vk
+		elif comp_type == "NPNBJT":
+			var Vb_node = terminal_connections.get(comp_data.terminals.B.get_instance_id(), -1)
+			var Ve_node = terminal_connections.get(comp_data.terminals.E.get_instance_id(), -1)
+			var Vc_node = terminal_connections.get(comp_data.terminals.C.get_instance_id(), -1)
+			var Vb = electrical_nodes.get(Vb_node, {}).get("voltage", 0.0)
+			var Ve = electrical_nodes.get(Ve_node, {}).get("voltage", 0.0)
+			var Vc = electrical_nodes.get(Vc_node, {}).get("voltage", 0.0)
+			comp_data.properties["_internal_vbe"] = Vb - Ve
+			comp_data.properties["_internal_vbc"] = Vb - Vc
+		elif comp_type == "PNPBJT":
+			var Ve_node = terminal_connections.get(comp_data.terminals.E.get_instance_id(), -1)
+			var Vb_node = terminal_connections.get(comp_data.terminals.B.get_instance_id(), -1)
+			var Vc_node = terminal_connections.get(comp_data.terminals.C.get_instance_id(), -1)
+			var Ve = electrical_nodes.get(Ve_node, {}).get("voltage", 0.0)
+			var Vb = electrical_nodes.get(Vb_node, {}).get("voltage", 0.0)
+			var Vc = electrical_nodes.get(Vc_node, {}).get("voltage", 0.0)
+			comp_data.properties["_internal_veb"] = Ve - Vb
+			comp_data.properties["_internal_vcb"] = Vc - Vb
+			
+	return any_state_changed
 
 
 
