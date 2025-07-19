@@ -669,395 +669,292 @@ func test_npn_bjt_regions() -> bool:
 
 ## Tests the PNP BJT model in its three main operating regions: Cutoff, Active, and Saturation.
 func test_pnp_bjt_regions() -> bool:
-	var overall_test_passed = true
-	var editor_instance: Node3D = CircuitEditorScene.instantiate()
-	add_child(editor_instance)
-	await get_tree().process_frame
+	var ok := true
+	var rig := TestRig.new()
+	add_child(rig)
+	await rig.init()
+	var g = rig.graph
+	var ed = rig.editor
 
-	var editor_script: CircuitEditor3D = editor_instance as CircuitEditor3D
-	var graph_script: CircuitGraph = editor_instance.circuit_graph
-	if not is_instance_valid(editor_script) or not is_instance_valid(graph_script):
-		printerr("  SETUP FAIL: PNP BJT Test - Editor/Graph script invalid.")
-		if is_instance_valid(editor_instance): editor_instance.queue_free()
-		return false
-
+	# --- Cutoff Region ---
 	print("  PNP BJT Test: Cutoff Region.")
-	var ps_pnp_cutoff: PowerSource3D = editor_script._add_component(editor_script.PowerSourceScene, Vector3.ZERO) as PowerSource3D
-	var rc_pnp_cutoff: Resistor3D = editor_script._add_component(editor_script.ResistorScene, Vector3(1,0,0)) as Resistor3D
-	var bjt_pnp_cutoff: PNPBJT3D = editor_script._add_component(editor_script.PNPBJTScene, Vector3(2,0,0)) as PNPBJT3D
+	var ps_pnp_cutoff: PowerSource3D = rig.add(ed.PowerSourceScene)
+	var rc_pnp_cutoff: Resistor3D = rig.add(ed.ResistorScene, Vector3(1,0,0))
+	var bjt_pnp_cutoff: PNPBJT3D = rig.add(ed.PNPBJTScene, Vector3(2,0,0))
 
-	ps_pnp_cutoff.target_voltage = 10.0 
-	graph_script.component_config_changed(ps_pnp_cutoff)
-	rc_pnp_cutoff.resistance = 1000.0 
-	graph_script.component_config_changed(rc_pnp_cutoff)
-	graph_script.component_config_changed(bjt_pnp_cutoff)
+	ps_pnp_cutoff.target_voltage = 10.0; rig.cfg(ps_pnp_cutoff)
+	rc_pnp_cutoff.resistance = 1000.0; rig.cfg(rc_pnp_cutoff)
+	rig.cfg(bjt_pnp_cutoff)
 
-	graph_script.connect_terminals(bjt_pnp_cutoff.terminal_e, ps_pnp_cutoff.terminal_pos) 
-	graph_script.connect_terminals(bjt_pnp_cutoff.terminal_c, rc_pnp_cutoff.terminal1)   
-	graph_script.connect_terminals(rc_pnp_cutoff.terminal2, ps_pnp_cutoff.terminal_neg) 
-	graph_script.connect_terminals(bjt_pnp_cutoff.terminal_b, ps_pnp_cutoff.terminal_pos) 
-	graph_script.set_ground_node(ps_pnp_cutoff.terminal_neg)
+	rig.wire(bjt_pnp_cutoff.terminal_e, ps_pnp_cutoff.terminal_pos)
+	rig.wire(bjt_pnp_cutoff.terminal_c, rc_pnp_cutoff.terminal1)
+	rig.wire(rc_pnp_cutoff.terminal2, ps_pnp_cutoff.terminal_neg)
+	rig.wire(bjt_pnp_cutoff.terminal_b, ps_pnp_cutoff.terminal_pos)
+	rig.ground(ps_pnp_cutoff.terminal_neg)
 
-	var solve_pnp_cutoff = graph_script.solve_single_time_step(0.01)
-	if not TestUtils.assert_true(solve_pnp_cutoff, "PNP BJT Test (Cutoff): Solve successful"): overall_test_passed = false
-	if solve_pnp_cutoff:
-		var bjt_results_pnp_cutoff = graph_script.component_results.get(bjt_pnp_cutoff.get_instance_id(), {})
-		var ic_pnp_cutoff = bjt_results_pnp_cutoff.get("Ic", NAN) 
-		var region_pnp_cutoff = bjt_results_pnp_cutoff.get("region", "ERROR")
-		if not TestUtils.assert_equals(region_pnp_cutoff, "OFF", "PNP BJT Test (Cutoff): Region is OFF"): overall_test_passed = false
-		if not TestUtils.assert_approx_equals(ic_pnp_cutoff, 0.0, 1e-6, "PNP BJT Test (Cutoff): Collector current is near zero"): overall_test_passed = false
-	
-	await _cleanup_components_and_graph(editor_script, graph_script)
+	if not rig.solve(): ok = false
+	if ok:
+		var results = rig.results(bjt_pnp_cutoff)
+		if not TestUtils.assert_equals(results.get("region", "ERROR"), "OFF", "PNP BJT Test (Cutoff): Region is OFF"): ok = false
+		if not TestUtils.assert_approx_equals(results.get("Ic", NAN), 0.0, 1e-6, "PNP BJT Test (Cutoff): Collector current is near zero"): ok = false
 
+	# --- Active Region ---
 	print("  PNP BJT Test: Active Region.")
-	var ps_pnp_active_vcc: PowerSource3D = editor_script._add_component(editor_script.PowerSourceScene, Vector3.ZERO) as PowerSource3D
-	var ps_pnp_active_vb_supply: PowerSource3D = editor_script._add_component(editor_script.PowerSourceScene, Vector3(0,0,1)) as PowerSource3D
-	var rc_pnp_active: Resistor3D = editor_script._add_component(editor_script.ResistorScene, Vector3(1,0,0)) as Resistor3D
-	var rb_pnp_active: Resistor3D = editor_script._add_component(editor_script.ResistorScene, Vector3(1,0,1)) as Resistor3D
-	var bjt_pnp_active: PNPBJT3D = editor_script._add_component(editor_script.PNPBJTScene, Vector3(2,0,0)) as PNPBJT3D
+	await rig.reset_graph()
+	var ps_pnp_active_vcc: PowerSource3D = rig.add(ed.PowerSourceScene)
+	var ps_pnp_active_vb_supply: PowerSource3D = rig.add(ed.PowerSourceScene, Vector3(0,0,1))
+	var rc_pnp_active: Resistor3D = rig.add(ed.ResistorScene, Vector3(1,0,0))
+	var rb_pnp_active: Resistor3D = rig.add(ed.ResistorScene, Vector3(1,0,1))
+	var bjt_pnp_active: PNPBJT3D = rig.add(ed.PNPBJTScene, Vector3(2,0,0))
 	
-	ps_pnp_active_vcc.target_voltage = 10.0
-	graph_script.component_config_changed(ps_pnp_active_vcc)
-	ps_pnp_active_vb_supply.target_voltage = 8.0 
-	graph_script.component_config_changed(ps_pnp_active_vb_supply)
-	rc_pnp_active.resistance = 1000.0
-	graph_script.component_config_changed(rc_pnp_active)
-	rb_pnp_active.resistance = 27000.0 
-	graph_script.component_config_changed(rb_pnp_active)
-	bjt_pnp_active.saturation_current = 1e-15
-	bjt_pnp_active.alpha_forward = 0.99 # Corresponds to beta ~99
-	bjt_pnp_active.alpha_reverse = 0.5
-	graph_script.component_config_changed(bjt_pnp_active)
+	ps_pnp_active_vcc.target_voltage = 10.0; rig.cfg(ps_pnp_active_vcc)
+	ps_pnp_active_vb_supply.target_voltage = 8.0; rig.cfg(ps_pnp_active_vb_supply)
+	rc_pnp_active.resistance = 1000.0; rig.cfg(rc_pnp_active)
+	rb_pnp_active.resistance = 27000.0; rig.cfg(rb_pnp_active)
+	bjt_pnp_active.saturation_current = 1e-15; bjt_pnp_active.alpha_forward = 0.99; bjt_pnp_active.alpha_reverse = 0.5; rig.cfg(bjt_pnp_active)
 
-	graph_script.connect_terminals(bjt_pnp_active.terminal_e, ps_pnp_active_vcc.terminal_pos) 
-	graph_script.connect_terminals(bjt_pnp_active.terminal_c, rc_pnp_active.terminal1)   
-	graph_script.connect_terminals(rc_pnp_active.terminal2, ps_pnp_active_vcc.terminal_neg) 
-	graph_script.connect_terminals(bjt_pnp_active.terminal_b, rb_pnp_active.terminal1)   
-	graph_script.connect_terminals(rb_pnp_active.terminal2, ps_pnp_active_vb_supply.terminal_pos) 
-	graph_script.connect_terminals(ps_pnp_active_vb_supply.terminal_neg, ps_pnp_active_vcc.terminal_neg) 
-	graph_script.set_ground_node(ps_pnp_active_vcc.terminal_neg)
+	rig.wire(bjt_pnp_active.terminal_e, ps_pnp_active_vcc.terminal_pos)
+	rig.wire(bjt_pnp_active.terminal_c, rc_pnp_active.terminal1)
+	rig.wire(rc_pnp_active.terminal2, ps_pnp_active_vcc.terminal_neg)
+	rig.wire(bjt_pnp_active.terminal_b, rb_pnp_active.terminal1)
+	rig.wire(rb_pnp_active.terminal2, ps_pnp_active_vb_supply.terminal_pos)
+	rig.wire(ps_pnp_active_vb_supply.terminal_neg, ps_pnp_active_vcc.terminal_neg)
+	rig.ground(ps_pnp_active_vcc.terminal_neg)
 
-	var solve_pnp_active = graph_script.solve_single_time_step(0.01)
-	if not TestUtils.assert_true(solve_pnp_active, "PNP BJT Test (Active): Solve successful"): overall_test_passed = false
-	if solve_pnp_active:
-		var bjt_results_pnp_active = graph_script.component_results.get(bjt_pnp_active.get_instance_id(), {})
-		var ic_pnp_active = bjt_results_pnp_active.get("Ic", NAN)
-		var ib_pnp_active = bjt_results_pnp_active.get("Ib", NAN)
-		var region_pnp_active = bjt_results_pnp_active.get("region", "ERROR")
+	if not rig.solve(): ok = false
+	if ok:
+		var results = rig.results(bjt_pnp_active)
+		var ic = results.get("Ic", NAN)
+		var ib = results.get("Ib", NAN)
 		var beta = bjt_pnp_active.alpha_forward / (1.0 - bjt_pnp_active.alpha_forward)
+		if not TestUtils.assert_equals(results.get("region", "ERROR"), "ACTIVE", "PNP BJT Test (Active): Region is ACTIVE"): ok = false
+		if not TestUtils.assert_approx_equals(abs(ib), 4.8e-5, 1e-5, "PNP BJT Test (Active): Base current in range"): ok = false
+		if not TestUtils.assert_approx_equals(abs(ic), beta * abs(ib), 5e-4, "PNP BJT Test (Active): Collector current is beta * Ib"): ok = false
 
-		if not TestUtils.assert_equals(region_pnp_active, "ACTIVE", "PNP BJT Test (Active): Region is ACTIVE"): overall_test_passed = false
-		# Veb is ~0.7V. Vb is 8V. Ve is 10V. Veb=2V is wrong. Ah, Vb is connected to a supply.
-		# Ib = (Ve - Veb - Vb_supply) / Rb = (10 - 0.7 - 8.0) / 27k = 1.3/27k = ~48uA.
-		if not TestUtils.assert_approx_equals(ib_pnp_active, 4.8e-5, 1e-5, "PNP BJT Test (Active): Base current is in expected range"): overall_test_passed = false
-		if not TestUtils.assert_approx_equals(abs(ic_pnp_active), beta * ib_pnp_active, 5e-4, "PNP BJT Test (Active): Collector current is beta * Ib"): overall_test_passed = false
-
-	await _cleanup_components_and_graph(editor_script, graph_script)
-
+	# --- Saturation Region ---
 	print("  PNP BJT Test: Saturation Region.")
-	var ps_pnp_sat_vcc: PowerSource3D = editor_script._add_component(editor_script.PowerSourceScene, Vector3.ZERO) as PowerSource3D
-	var ps_pnp_sat_vb_supply: PowerSource3D = editor_script._add_component(editor_script.PowerSourceScene, Vector3(0,0,1)) as PowerSource3D
-	var rc_pnp_sat: Resistor3D = editor_script._add_component(editor_script.ResistorScene, Vector3(1,0,0)) as Resistor3D
-	var rb_pnp_sat: Resistor3D = editor_script._add_component(editor_script.ResistorScene, Vector3(1,0,1)) as Resistor3D
-	var bjt_pnp_sat: PNPBJT3D = editor_script._add_component(editor_script.PNPBJTScene, Vector3(2,0,0)) as PNPBJT3D
+	await rig.reset_graph()
+	var ps_pnp_sat_vcc: PowerSource3D = rig.add(ed.PowerSourceScene)
+	var ps_pnp_sat_vb_supply: PowerSource3D = rig.add(ed.PowerSourceScene, Vector3(0,0,1))
+	var rc_pnp_sat: Resistor3D = rig.add(ed.ResistorScene, Vector3(1,0,0))
+	var rb_pnp_sat: Resistor3D = rig.add(ed.ResistorScene, Vector3(1,0,1))
+	var bjt_pnp_sat: PNPBJT3D = rig.add(ed.PNPBJTScene, Vector3(2,0,0))
 
-	ps_pnp_sat_vcc.target_voltage = 10.0
-	graph_script.component_config_changed(ps_pnp_sat_vcc)
-	ps_pnp_sat_vb_supply.target_voltage = 5.0
-	graph_script.component_config_changed(ps_pnp_sat_vb_supply)
-	rc_pnp_sat.resistance = 1000.0
-	graph_script.component_config_changed(rc_pnp_sat)
-	rb_pnp_sat.resistance = 10000.0
-	graph_script.component_config_changed(rb_pnp_sat)
-	bjt_pnp_sat.alpha_forward = 0.99 # Corresponds to beta ~99
-	graph_script.component_config_changed(bjt_pnp_sat)
+	ps_pnp_sat_vcc.target_voltage = 10.0; rig.cfg(ps_pnp_sat_vcc)
+	ps_pnp_sat_vb_supply.target_voltage = 5.0; rig.cfg(ps_pnp_sat_vb_supply)
+	rc_pnp_sat.resistance = 1000.0; rig.cfg(rc_pnp_sat)
+	rb_pnp_sat.resistance = 10000.0; rig.cfg(rb_pnp_sat)
+	bjt_pnp_sat.alpha_forward = 0.99; rig.cfg(bjt_pnp_sat)
 	
-	graph_script.connect_terminals(bjt_pnp_sat.terminal_e, ps_pnp_sat_vcc.terminal_pos)
-	graph_script.connect_terminals(bjt_pnp_sat.terminal_c, rc_pnp_sat.terminal1)
-	graph_script.connect_terminals(rc_pnp_sat.terminal2, ps_pnp_sat_vcc.terminal_neg)
-	graph_script.connect_terminals(bjt_pnp_sat.terminal_b, rb_pnp_sat.terminal1)
-	graph_script.connect_terminals(rb_pnp_sat.terminal2, ps_pnp_sat_vb_supply.terminal_pos)
-	graph_script.connect_terminals(ps_pnp_sat_vb_supply.terminal_neg, ps_pnp_sat_vcc.terminal_neg)
-	graph_script.set_ground_node(ps_pnp_sat_vcc.terminal_neg)
+	rig.wire(bjt_pnp_sat.terminal_e, ps_pnp_sat_vcc.terminal_pos)
+	rig.wire(bjt_pnp_sat.terminal_c, rc_pnp_sat.terminal1)
+	rig.wire(rc_pnp_sat.terminal2, ps_pnp_sat_vcc.terminal_neg)
+	rig.wire(bjt_pnp_sat.terminal_b, rb_pnp_sat.terminal1)
+	rig.wire(rb_pnp_sat.terminal2, ps_pnp_sat_vb_supply.terminal_pos)
+	rig.wire(ps_pnp_sat_vb_supply.terminal_neg, ps_pnp_sat_vcc.terminal_neg)
+	rig.ground(ps_pnp_sat_vcc.terminal_neg)
 
-	var solve_pnp_sat = graph_script.solve_single_time_step(0.01)
-	if not TestUtils.assert_true(solve_pnp_sat, "PNP BJT Test (Saturation): Solve successful"): overall_test_passed = false
-	if solve_pnp_sat:
-		var bjt_results_pnp_sat = graph_script.component_results.get(bjt_pnp_sat.get_instance_id(), {})
-		var ic_pnp_sat = bjt_results_pnp_sat.get("Ic", NAN)
-		var region_pnp_sat = bjt_results_pnp_sat.get("region", "ERROR")
+	if not rig.solve(): ok = false
+	if ok:
+		var results = rig.results(bjt_pnp_sat)
+		var ic_sat = results.get("Ic", NAN)
 
-		var Ve_pnp_sat_node = graph_script.electrical_nodes.get(graph_script.terminal_connections.get(bjt_pnp_sat.terminal_e.get_instance_id()), {}).get("voltage", NAN)
-		var Vc_pnp_sat_node = graph_script.electrical_nodes.get(graph_script.terminal_connections.get(bjt_pnp_sat.terminal_c.get_instance_id()), {}).get("voltage", NAN)
-		var Vec_actual_pnp_sat = NAN
-		if not is_nan(Ve_pnp_sat_node) and not is_nan(Vc_pnp_sat_node): Vec_actual_pnp_sat = Ve_pnp_sat_node - Vc_pnp_sat_node
+		var node_e_id = g.terminal_connections.get(bjt_pnp_sat.terminal_e.get_instance_id(),-1)
+		var node_c_id = g.terminal_connections.get(bjt_pnp_sat.terminal_c.get_instance_id(),-1)
+		var ve = g.electrical_nodes.get(node_e_id, {}).get("voltage", NAN)
+		var vc = g.electrical_nodes.get(node_c_id, {}).get("voltage", NAN)
+		var vec = ve - vc
 
-		if not TestUtils.assert_equals(region_pnp_sat, "SATURATION", "PNP BJT Test (Saturation): Region is SATURATION"): overall_test_passed = false
-		# Vec_sat is not a param. Should be small, e.g. < 0.4V
-		if not TestUtils.assert_true(Vec_actual_pnp_sat < 0.4, "PNP BJT Test (Saturation): Vec is small (<0.4V)"): overall_test_passed = false
-		var expected_ic_sat_pnp = (ps_pnp_sat_vcc.target_voltage - Vec_actual_pnp_sat) / rc_pnp_sat.resistance 
-		if not TestUtils.assert_approx_equals(abs(ic_pnp_sat), expected_ic_sat_pnp, 1e-3, "PNP BJT Test (Saturation): Ic is limited by Rc and Vec_sat"): overall_test_passed = false
+		if not TestUtils.assert_equals(results.get("region", "ERROR"), "SATURATION", "PNP BJT Test (Saturation): Region is SATURATION"): ok = false
+		if not TestUtils.assert_true(vec < 0.4, "PNP BJT Test (Saturation): Vec is small (<0.4V)"): ok = false
+		var expected_ic = (ps_pnp_sat_vcc.target_voltage - vec) / rc_pnp_sat.resistance
+		if not TestUtils.assert_approx_equals(abs(ic_sat), expected_ic, 1e-3, "PNP BJT Test (Saturation): Ic is limited by Rc"): ok = false
 
-	await _cleanup_components_and_graph(editor_script, graph_script)
-	editor_instance.queue_free()
-	return overall_test_passed
+	rig.cleanup()
+	return ok
 
 
 ## Tests the Zener Diode in its three main states: Forward-biased, reverse-biased (off), and Zener breakdown.
 func test_zener_diode_behavior() -> bool:
-	var overall_test_passed = true
-	var editor_instance: Node3D = CircuitEditorScene.instantiate()
-	add_child(editor_instance)
-	await get_tree().process_frame
-
-	var editor_script: CircuitEditor3D = editor_instance as CircuitEditor3D
-	var graph_script: CircuitGraph = editor_instance.circuit_graph
-	if not is_instance_valid(editor_script) or not is_instance_valid(graph_script):
-		printerr("  SETUP FAIL: Zener Diode Test - Editor/Graph script invalid.")
-		if is_instance_valid(editor_instance): editor_instance.queue_free()
-		return false
+	var ok := true
+	var rig := TestRig.new()
+	add_child(rig)
+	await rig.init()
+	var ed = rig.editor
 
 	var Vf_test = 0.7
 	var Vz_test = 5.1
-	var R_series_val = 100.0 
+	var R_series_val = 100.0
 
+	# --- Forward Bias ---
 	print("  Zener Diode Test: Forward Bias.")
-	var ps_fwd: PowerSource3D = editor_script._add_component(editor_script.PowerSourceScene, Vector3.ZERO) as PowerSource3D
-	var res_fwd: Resistor3D = editor_script._add_component(editor_script.ResistorScene, Vector3(1,0,0)) as Resistor3D
-	var zener_fwd: ZenerDiode3D = editor_script._add_component(editor_script.ZenerDiodeScene, Vector3(2,0,0)) as ZenerDiode3D
+	var ps_fwd: PowerSource3D = rig.add(ed.PowerSourceScene)
+	var res_fwd: Resistor3D = rig.add(ed.ResistorScene, Vector3(1,0,0))
+	var zener_fwd: ZenerDiode3D = rig.add(ed.ZenerDiodeScene, Vector3(2,0,0))
 
-	ps_fwd.target_voltage = 5.0
-	graph_script.component_config_changed(ps_fwd)
-	res_fwd.resistance = R_series_val
-	graph_script.component_config_changed(res_fwd)
-	zener_fwd.zener_voltage = Vz_test
-	zener_fwd.saturation_current = 1e-12
-	zener_fwd.ideality_factor = 1.0
-	graph_script.component_config_changed(zener_fwd)
+	ps_fwd.target_voltage = 5.0; rig.cfg(ps_fwd)
+	res_fwd.resistance = R_series_val; rig.cfg(res_fwd)
+	zener_fwd.zener_voltage = Vz_test; zener_fwd.saturation_current = 1e-12; zener_fwd.ideality_factor = 1.0; rig.cfg(zener_fwd)
 
-	graph_script.connect_terminals(ps_fwd.terminal_pos, res_fwd.terminal1)
-	graph_script.connect_terminals(res_fwd.terminal2, zener_fwd.terminal_anode)
-	graph_script.connect_terminals(zener_fwd.terminal_kathode, ps_fwd.terminal_neg)
-	graph_script.set_ground_node(ps_fwd.terminal_neg)
+	rig.wire(ps_fwd.terminal_pos, res_fwd.terminal1)
+	rig.wire(res_fwd.terminal2, zener_fwd.terminal_anode)
+	rig.wire(zener_fwd.terminal_kathode, ps_fwd.terminal_neg)
+	rig.ground(ps_fwd.terminal_neg)
 
-	var solve_fwd_z = graph_script.solve_single_time_step(0.01)
-	if not TestUtils.assert_true(solve_fwd_z, "Zener Test (Fwd): Solve successful"): overall_test_passed = false
-	if solve_fwd_z:
-		var results_fwd = graph_script.component_results.get(zener_fwd.get_instance_id(), {})
-		var current_fwd = results_fwd.get("current", NAN)
-		var state_fwd = results_fwd.get("state", "ERROR")
-		# Approximate diode forward voltage drop around 0.7V for this test's parameters
-		var expected_current_fwd = (ps_fwd.target_voltage - Vf_test) / R_series_val
-		if not TestUtils.assert_approx_equals(current_fwd, expected_current_fwd, 0.001, "Zener Test (Fwd): Current matches expected"): overall_test_passed = false
-		if not TestUtils.assert_equals(state_fwd, "FORWARD", "Zener Test (Fwd): State is FORWARD"): overall_test_passed = false
-	
-	await _cleanup_components_and_graph(editor_script, graph_script)
+	if not rig.solve(): ok = false
+	if ok:
+		var results = rig.results(zener_fwd)
+		var expected_current = (ps_fwd.target_voltage - Vf_test) / R_series_val
+		if not TestUtils.assert_approx_equals(results.get("current", NAN), expected_current, 0.001, "Zener Test (Fwd): Current matches"): ok = false
+		if not TestUtils.assert_equals(results.get("state", "ERROR"), "FORWARD", "Zener Test (Fwd): State is FORWARD"): ok = false
 
+	# --- Reverse Bias (OFF) ---
 	print("  Zener Diode Test: Reverse Bias (OFF).")
-	var ps_rev_off: PowerSource3D = editor_script._add_component(editor_script.PowerSourceScene, Vector3.ZERO) as PowerSource3D
-	var res_rev_off: Resistor3D = editor_script._add_component(editor_script.ResistorScene, Vector3(1,0,0)) as Resistor3D
-	var zener_rev_off: ZenerDiode3D = editor_script._add_component(editor_script.ZenerDiodeScene, Vector3(2,0,0)) as ZenerDiode3D
+	await rig.reset_graph()
+	var ps_rev_off: PowerSource3D = rig.add(ed.PowerSourceScene)
+	var res_rev_off: Resistor3D = rig.add(ed.ResistorScene, Vector3(1,0,0))
+	var zener_rev_off: ZenerDiode3D = rig.add(ed.ZenerDiodeScene, Vector3(2,0,0))
 
-	ps_rev_off.target_voltage = 3.0 
-	graph_script.component_config_changed(ps_rev_off)
-	res_rev_off.resistance = R_series_val
-	graph_script.component_config_changed(res_rev_off)
-	zener_rev_off.zener_voltage = Vz_test
-	graph_script.component_config_changed(zener_rev_off)
+	ps_rev_off.target_voltage = 3.0; rig.cfg(ps_rev_off)
+	res_rev_off.resistance = R_series_val; rig.cfg(res_rev_off)
+	zener_rev_off.zener_voltage = Vz_test; rig.cfg(zener_rev_off)
 
-	graph_script.connect_terminals(ps_rev_off.terminal_pos, res_rev_off.terminal1)
-	graph_script.connect_terminals(res_rev_off.terminal2, zener_rev_off.terminal_kathode)
-	graph_script.connect_terminals(zener_rev_off.terminal_anode, ps_rev_off.terminal_neg)
-	graph_script.set_ground_node(ps_rev_off.terminal_neg)
+	rig.wire(ps_rev_off.terminal_pos, res_rev_off.terminal1)
+	rig.wire(res_rev_off.terminal2, zener_rev_off.terminal_kathode)
+	rig.wire(zener_rev_off.terminal_anode, ps_rev_off.terminal_neg)
+	rig.ground(ps_rev_off.terminal_neg)
 
-	var solve_rev_off_z = graph_script.solve_single_time_step(0.01)
-	if not TestUtils.assert_true(solve_rev_off_z, "Zener Test (Rev OFF): Solve successful"): overall_test_passed = false
-	if solve_rev_off_z:
-		var results_rev_off = graph_script.component_results.get(zener_rev_off.get_instance_id(), {})
-		var current_rev_off = results_rev_off.get("current", NAN) 
-		var state_rev_off = results_rev_off.get("state", "ERROR")
-		if not TestUtils.assert_approx_equals(current_rev_off, 0.0, 1e-6, "Zener Test (Rev OFF): Current is near zero"): overall_test_passed = false
-		if not TestUtils.assert_equals(state_rev_off, "OFF", "Zener Test (Rev OFF): State is OFF"): overall_test_passed = false
-	
-	await _cleanup_components_and_graph(editor_script, graph_script)
+	if not rig.solve(): ok = false
+	if ok:
+		var results = rig.results(zener_rev_off)
+		if not TestUtils.assert_approx_equals(results.get("current", NAN), 0.0, 1e-6, "Zener Test (Rev OFF): Current is near zero"): ok = false
+		if not TestUtils.assert_equals(results.get("state", "ERROR"), "OFF", "Zener Test (Rev OFF): State is OFF"): ok = false
 
+	# --- Reverse Bias (ZENER Breakdown) ---
 	print("  Zener Diode Test: Reverse Bias (ZENER Breakdown).")
-	var ps_breakdown: PowerSource3D = editor_script._add_component(editor_script.PowerSourceScene, Vector3.ZERO) as PowerSource3D
-	var res_breakdown: Resistor3D = editor_script._add_component(editor_script.ResistorScene, Vector3(1,0,0)) as Resistor3D
-	var zener_breakdown: ZenerDiode3D = editor_script._add_component(editor_script.ZenerDiodeScene, Vector3(2,0,0)) as ZenerDiode3D
+	await rig.reset_graph()
+	var ps_breakdown: PowerSource3D = rig.add(ed.PowerSourceScene)
+	var res_breakdown: Resistor3D = rig.add(ed.ResistorScene, Vector3(1,0,0))
+	var zener_breakdown: ZenerDiode3D = rig.add(ed.ZenerDiodeScene, Vector3(2,0,0))
 
-	ps_breakdown.target_voltage = 10.0 
-	graph_script.component_config_changed(ps_breakdown)
-	res_breakdown.resistance = R_series_val
-	graph_script.component_config_changed(res_breakdown)
-	zener_breakdown.zener_voltage = Vz_test
-	graph_script.component_config_changed(zener_breakdown)
+	ps_breakdown.target_voltage = 10.0; rig.cfg(ps_breakdown)
+	res_breakdown.resistance = R_series_val; rig.cfg(res_breakdown)
+	zener_breakdown.zener_voltage = Vz_test; rig.cfg(zener_breakdown)
 
-	graph_script.connect_terminals(ps_breakdown.terminal_pos, res_breakdown.terminal1)
-	graph_script.connect_terminals(res_breakdown.terminal2, zener_breakdown.terminal_kathode)
-	graph_script.connect_terminals(zener_breakdown.terminal_anode, ps_breakdown.terminal_neg)
-	graph_script.set_ground_node(ps_breakdown.terminal_neg)
+	rig.wire(ps_breakdown.terminal_pos, res_breakdown.terminal1)
+	rig.wire(res_breakdown.terminal2, zener_breakdown.terminal_kathode)
+	rig.wire(zener_breakdown.terminal_anode, ps_breakdown.terminal_neg)
+	rig.ground(ps_breakdown.terminal_neg)
+	
+	if not rig.solve(): ok = false
+	if ok:
+		var results = rig.results(zener_breakdown)
+		var expected_current = -((ps_breakdown.target_voltage - Vz_test) / R_series_val)
+		if not TestUtils.assert_approx_equals(results.get("voltage_ak", NAN), -Vz_test, 0.1, "Zener Test (Breakdown): Voltage Vak is approx -Vz"): ok = false
+		if not TestUtils.assert_approx_equals(results.get("current", NAN), expected_current, 0.001, "Zener Test (Breakdown): Current matches"): ok = false
+		if not TestUtils.assert_equals(results.get("state", "ERROR"), "ZENER", "Zener Test (Breakdown): State is ZENER"): ok = false
 
-	var solve_breakdown_z = graph_script.solve_single_time_step(0.01)
-	if not TestUtils.assert_true(solve_breakdown_z, "Zener Test (Breakdown): Solve successful"): overall_test_passed = false
-	if solve_breakdown_z:
-		var results_breakdown = graph_script.component_results.get(zener_breakdown.get_instance_id(), {})
-		var current_breakdown = results_breakdown.get("current", NAN) 
-		var vak_breakdown = results_breakdown.get("voltage_ak", NAN) 
-		var state_breakdown = results_breakdown.get("state", "ERROR")
-		
-		var expected_current_breakdown = - ( (ps_breakdown.target_voltage - Vz_test) / R_series_val )
-		
-		if not TestUtils.assert_approx_equals(vak_breakdown, -Vz_test, 0.1, "Zener Test (Breakdown): Voltage Vak is approx -Vz"): overall_test_passed = false
-		if not TestUtils.assert_approx_equals(current_breakdown, expected_current_breakdown, 0.001, "Zener Test (Breakdown): Current matches expected"): overall_test_passed = false
-		if not TestUtils.assert_equals(state_breakdown, "ZENER", "Zener Test (Breakdown): State is ZENER"): overall_test_passed = false
-
-	await _cleanup_components_and_graph(editor_script, graph_script)
-	editor_instance.queue_free()
-	return overall_test_passed
+	rig.cleanup()
+	return ok
 
 
 ## Tests the Relay component, verifying that the correct switch path (NC or NO) is active when de-energized and energized.
 func test_relay_behavior() -> bool:
-	var overall_test_passed = true
-	var editor_instance: Node3D = CircuitEditorScene.instantiate()
-	add_child(editor_instance)
-	await get_tree().process_frame
+	var ok := true
+	var rig := TestRig.new()
+	add_child(rig)
+	await rig.init()
+	var ed = rig.editor
 
-	var editor_script: CircuitEditor3D = editor_instance as CircuitEditor3D
-	var graph_script: CircuitGraph = editor_instance.circuit_graph
-	if not is_instance_valid(editor_script) or not is_instance_valid(graph_script):
-		printerr("  SETUP FAIL: Relay Test - Editor/Graph script invalid.")
-		if is_instance_valid(editor_instance): editor_instance.queue_free()
-		return false
-
-	var relay_signal_voltage_threshold_v = 5.0 
-	var relay_coil_resistance_val = 100.0 
+	var relay_signal_voltage_threshold_v = 5.0
+	var relay_coil_resistance_val = 100.0
 	var load_led_vf = 1.8
 	var load_led_min_i = 0.001
 	var load_led_max_i = 0.020
 	var load_res_val = 220.0
-	var load_ps_v = 5.0 
-	var signal_supply_v_off = 3.0 
-	var signal_supply_v_on = 6.0  
+	var load_ps_v = 5.0
+	var signal_supply_v_off = 3.0
+	var signal_supply_v_on = 6.0
 
+	# --- De-energized ---
 	print("  Relay Test: De-energized (NC path active).")
-	var ps_signal_supply_off: PowerSource3D = editor_script._add_component(editor_script.PowerSourceScene, Vector3(0,0,-1)) as PowerSource3D 
-	var relay_node_off: Relay3D = editor_script._add_component(editor_script.RelayScene, Vector3.ZERO) as Relay3D
-	var ps_load_off: PowerSource3D = editor_script._add_component(editor_script.PowerSourceScene, Vector3(0,0,1)) as PowerSource3D
-	var res_nc_off: Resistor3D = editor_script._add_component(editor_script.ResistorScene, Vector3(1,0,1)) as Resistor3D
-	var led_nc_off: LED3D = editor_script._add_component(editor_script.LEDScene, Vector3(2,0,1)) as LED3D
-	var res_no_off: Resistor3D = editor_script._add_component(editor_script.ResistorScene, Vector3(1,1,1)) as Resistor3D 
-	var led_no_off: LED3D = editor_script._add_component(editor_script.LEDScene, Vector3(2,1,1)) as LED3D       
+	var ps_signal_supply_off: PowerSource3D = rig.add(ed.PowerSourceScene, Vector3(0,0,-1))
+	var relay_node_off: Relay3D = rig.add(ed.RelayScene, Vector3.ZERO)
+	var ps_load_off: PowerSource3D = rig.add(ed.PowerSourceScene, Vector3(0,0,1))
+	var res_nc_off: Resistor3D = rig.add(ed.ResistorScene, Vector3(1,0,1))
+	var led_nc_off: LED3D = rig.add(ed.LEDScene, Vector3(2,0,1))
+	var res_no_off: Resistor3D = rig.add(ed.ResistorScene, Vector3(1,1,1))
+	var led_no_off: LED3D = rig.add(ed.LEDScene, Vector3(2,1,1))
 
-	ps_signal_supply_off.target_voltage = signal_supply_v_off 
-	graph_script.component_config_changed(ps_signal_supply_off)
-	relay_node_off.signal_voltage_threshold = relay_signal_voltage_threshold_v 
-	relay_node_off.coil_resistance = relay_coil_resistance_val 
-	graph_script.component_config_changed(relay_node_off)
-	ps_load_off.target_voltage = load_ps_v
-	graph_script.component_config_changed(ps_load_off)
-	res_nc_off.resistance = load_res_val; graph_script.component_config_changed(res_nc_off)
-	led_nc_off.min_current_to_light = load_led_min_i; led_nc_off.max_current_before_burn = load_led_max_i; graph_script.component_config_changed(led_nc_off)
-	res_no_off.resistance = load_res_val; graph_script.component_config_changed(res_no_off)
-	led_no_off.min_current_to_light = load_led_min_i; led_no_off.max_current_before_burn = load_led_max_i; graph_script.component_config_changed(led_no_off)
+	ps_signal_supply_off.target_voltage = signal_supply_v_off; rig.cfg(ps_signal_supply_off)
+	relay_node_off.signal_voltage_threshold = relay_signal_voltage_threshold_v; relay_node_off.coil_resistance = relay_coil_resistance_val; rig.cfg(relay_node_off)
+	ps_load_off.target_voltage = load_ps_v; rig.cfg(ps_load_off)
+	res_nc_off.resistance = load_res_val; rig.cfg(res_nc_off)
+	led_nc_off.min_current_to_light = load_led_min_i; led_nc_off.max_current_before_burn = load_led_max_i; rig.cfg(led_nc_off)
+	res_no_off.resistance = load_res_val; rig.cfg(res_no_off)
+	led_no_off.min_current_to_light = load_led_min_i; led_no_off.max_current_before_burn = load_led_max_i; rig.cfg(led_no_off)
 
-	graph_script.set_ground_node(ps_load_off.terminal_neg)
+	rig.ground(ps_load_off.terminal_neg)
+	rig.wire(ps_signal_supply_off.terminal_pos, relay_node_off.terminal_signal)
+	rig.wire(ps_signal_supply_off.terminal_neg, ps_load_off.terminal_neg)
+	rig.wire(ps_load_off.terminal_pos, relay_node_off.terminal_vcc)
+	rig.wire(relay_node_off.terminal_gnd, ps_load_off.terminal_neg)
+	rig.wire(ps_load_off.terminal_pos, relay_node_off.terminal_com)
+	rig.wire(relay_node_off.terminal_nc, res_nc_off.terminal1)
+	rig.wire(res_nc_off.terminal2, led_nc_off.terminal_anode)
+	rig.wire(led_nc_off.terminal_kathode, ps_load_off.terminal_neg)
+	rig.wire(relay_node_off.terminal_no, res_no_off.terminal1)
+	rig.wire(res_no_off.terminal2, led_no_off.terminal_anode)
+	rig.wire(led_no_off.terminal_kathode, ps_load_off.terminal_neg)
 
-	graph_script.connect_terminals(ps_signal_supply_off.terminal_pos, relay_node_off.terminal_signal)
-	graph_script.connect_terminals(ps_signal_supply_off.terminal_neg, ps_load_off.terminal_neg) 
+	if not rig.solve(): ok = false
+	if ok:
+		if not TestUtils.assert_false(rig.results(relay_node_off).get("is_energized", true), "Relay Test (De-energized): Relay is not energized"): ok = false
+		var expected_current_on = (load_ps_v - load_led_vf) / load_res_val
+		if not TestUtils.assert_approx_equals(rig.results(led_nc_off).get("current", NAN), expected_current_on, 0.001, "Relay Test (De-energized): NC LED is ON"): ok = false
+		if not TestUtils.assert_approx_equals(rig.results(led_no_off).get("current", NAN), 0.0, 1e-6, "Relay Test (De-energized): NO LED is OFF"): ok = false
 
-	graph_script.connect_terminals(ps_load_off.terminal_pos, relay_node_off.terminal_vcc) 
-	graph_script.connect_terminals(relay_node_off.terminal_gnd, ps_load_off.terminal_neg) 
-	
-	graph_script.connect_terminals(ps_load_off.terminal_pos, relay_node_off.terminal_com)
-	graph_script.connect_terminals(relay_node_off.terminal_nc, res_nc_off.terminal1)
-	graph_script.connect_terminals(res_nc_off.terminal2, led_nc_off.terminal_anode)
-	graph_script.connect_terminals(led_nc_off.terminal_kathode, ps_load_off.terminal_neg) 
-	graph_script.connect_terminals(relay_node_off.terminal_no, res_no_off.terminal1) 
-	graph_script.connect_terminals(res_no_off.terminal2, led_no_off.terminal_anode)
-	graph_script.connect_terminals(led_no_off.terminal_kathode, ps_load_off.terminal_neg) 
-
-
-	var solve_off_state = graph_script.solve_single_time_step(0.01)
-	if not TestUtils.assert_true(solve_off_state, "Relay Test (De-energized): Solve successful"): overall_test_passed = false
-	
-	if solve_off_state:
-		var relay_results_off = graph_script.component_results.get(relay_node_off.get_instance_id(), {})
-		var is_energized_off = relay_results_off.get("is_energized", true) 
-		if not TestUtils.assert_false(is_energized_off, "Relay Test (De-energized): Relay is_energized is false"): overall_test_passed = false
-
-		var led_nc_results_off = graph_script.component_results.get(led_nc_off.get_instance_id(), {})
-		var led_nc_current_off = led_nc_results_off.get("current", NAN)
-		# Approximate LED forward voltage drop around 1.8V for this test's parameters
-		var expected_load_current_on = (load_ps_v - load_led_vf) / load_res_val
-		if not TestUtils.assert_approx_equals(led_nc_current_off, expected_load_current_on, 0.001, "Relay Test (De-energized): NC LED current is ON"): overall_test_passed = false
-
-		var led_no_results_off = graph_script.component_results.get(led_no_off.get_instance_id(), {})
-		var led_no_current_off = led_no_results_off.get("current", NAN)
-		if not TestUtils.assert_approx_equals(led_no_current_off, 0.0, 1e-6, "Relay Test (De-energized): NO LED current is OFF"): overall_test_passed = false
-
-	await _cleanup_components_and_graph(editor_script, graph_script)
-
+	# --- Energized ---
 	print("  Relay Test: Energized (NO path active).")
-	var ps_signal_supply_on: PowerSource3D = editor_script._add_component(editor_script.PowerSourceScene, Vector3(0,0,-1)) as PowerSource3D 
-	var relay_node_on: Relay3D = editor_script._add_component(editor_script.RelayScene, Vector3.ZERO) as Relay3D
-	var ps_load_on: PowerSource3D = editor_script._add_component(editor_script.PowerSourceScene, Vector3(0,0,1)) as PowerSource3D
-	var res_nc_on: Resistor3D = editor_script._add_component(editor_script.ResistorScene, Vector3(1,0,1)) as Resistor3D 
-	var led_nc_on: LED3D = editor_script._add_component(editor_script.LEDScene, Vector3(2,0,1)) as LED3D       
-	var res_no_on: Resistor3D = editor_script._add_component(editor_script.ResistorScene, Vector3(1,1,1)) as Resistor3D
-	var led_no_on: LED3D = editor_script._add_component(editor_script.LEDScene, Vector3(2,1,1)) as LED3D
+	await rig.reset_graph()
+	var ps_signal_supply_on: PowerSource3D = rig.add(ed.PowerSourceScene, Vector3(0,0,-1))
+	var relay_node_on: Relay3D = rig.add(ed.RelayScene, Vector3.ZERO)
+	var ps_load_on: PowerSource3D = rig.add(ed.PowerSourceScene, Vector3(0,0,1))
+	var res_nc_on: Resistor3D = rig.add(ed.ResistorScene, Vector3(1,0,1))
+	var led_nc_on: LED3D = rig.add(ed.LEDScene, Vector3(2,0,1))
+	var res_no_on: Resistor3D = rig.add(ed.ResistorScene, Vector3(1,1,1))
+	var led_no_on: LED3D = rig.add(ed.LEDScene, Vector3(2,1,1))
 
-	ps_signal_supply_on.target_voltage = signal_supply_v_on 
-	graph_script.component_config_changed(ps_signal_supply_on)
-	relay_node_on.signal_voltage_threshold = relay_signal_voltage_threshold_v 
-	relay_node_on.coil_resistance = relay_coil_resistance_val 
-	graph_script.component_config_changed(relay_node_on)
-	ps_load_on.target_voltage = load_ps_v 
-	graph_script.component_config_changed(ps_load_on)
-	res_nc_on.resistance = load_res_val; graph_script.component_config_changed(res_nc_on)
-	led_nc_on.min_current_to_light = load_led_min_i; led_nc_on.max_current_before_burn = load_led_max_i; graph_script.component_config_changed(led_nc_on)
-	res_no_on.resistance = load_res_val; graph_script.component_config_changed(res_no_on)
-	led_no_on.min_current_to_light = load_led_min_i; led_no_on.max_current_before_burn = load_led_max_i; graph_script.component_config_changed(led_no_on)
+	ps_signal_supply_on.target_voltage = signal_supply_v_on; rig.cfg(ps_signal_supply_on)
+	relay_node_on.signal_voltage_threshold = relay_signal_voltage_threshold_v; relay_node_on.coil_resistance = relay_coil_resistance_val; rig.cfg(relay_node_on)
+	ps_load_on.target_voltage = load_ps_v; rig.cfg(ps_load_on)
+	res_nc_on.resistance = load_res_val; rig.cfg(res_nc_on)
+	led_nc_on.min_current_to_light = load_led_min_i; led_nc_on.max_current_before_burn = load_led_max_i; rig.cfg(led_nc_on)
+	res_no_on.resistance = load_res_val; rig.cfg(res_no_on)
+	led_no_on.min_current_to_light = load_led_min_i; led_no_on.max_current_before_burn = load_led_max_i; rig.cfg(led_no_on)
 
-	graph_script.set_ground_node(ps_load_on.terminal_neg)
+	rig.ground(ps_load_on.terminal_neg)
+	rig.wire(ps_signal_supply_on.terminal_pos, relay_node_on.terminal_signal)
+	rig.wire(ps_signal_supply_on.terminal_neg, ps_load_on.terminal_neg)
+	rig.wire(ps_load_on.terminal_pos, relay_node_on.terminal_vcc)
+	rig.wire(relay_node_on.terminal_gnd, ps_load_on.terminal_neg)
+	rig.wire(ps_load_on.terminal_pos, relay_node_on.terminal_com)
+	rig.wire(relay_node_on.terminal_nc, res_nc_on.terminal1)
+	rig.wire(res_nc_on.terminal2, led_nc_on.terminal_anode)
+	rig.wire(led_nc_on.terminal_kathode, ps_load_on.terminal_neg)
+	rig.wire(relay_node_on.terminal_no, res_no_on.terminal1)
+	rig.wire(res_no_on.terminal2, led_no_on.terminal_anode)
+	rig.wire(led_no_on.terminal_kathode, ps_load_on.terminal_neg)
 
-	graph_script.connect_terminals(ps_signal_supply_on.terminal_pos, relay_node_on.terminal_signal)
-	graph_script.connect_terminals(ps_signal_supply_on.terminal_neg, ps_load_on.terminal_neg) 
+	if not rig.solve(): ok = false
+	if ok:
+		if not TestUtils.assert_true(rig.results(relay_node_on).get("is_energized", false), "Relay Test (Energized): Relay is energized"): ok = false
+		var expected_current_on = (load_ps_v - load_led_vf) / load_res_val
+		if not TestUtils.assert_approx_equals(rig.results(led_no_on).get("current", NAN), expected_current_on, 0.001, "Relay Test (Energized): NO LED is ON"): ok = false
+		if not TestUtils.assert_approx_equals(rig.results(led_nc_on).get("current", NAN), 0.0, 1e-6, "Relay Test (Energized): NC LED is OFF"): ok = false
 
-	graph_script.connect_terminals(ps_load_on.terminal_pos, relay_node_on.terminal_vcc) 
-	graph_script.connect_terminals(relay_node_on.terminal_gnd, ps_load_on.terminal_neg) 
-
-	graph_script.connect_terminals(ps_load_on.terminal_pos, relay_node_on.terminal_com) 
-	graph_script.connect_terminals(relay_node_on.terminal_nc, res_nc_on.terminal1)
-	graph_script.connect_terminals(res_nc_on.terminal2, led_nc_on.terminal_anode)
-	graph_script.connect_terminals(led_nc_on.terminal_kathode, ps_load_on.terminal_neg) 
-	graph_script.connect_terminals(relay_node_on.terminal_no, res_no_on.terminal1) 
-	graph_script.connect_terminals(res_no_on.terminal2, led_no_on.terminal_anode)
-	graph_script.connect_terminals(led_no_on.terminal_kathode, ps_load_on.terminal_neg) 
-
-
-	var solve_on_state = graph_script.solve_single_time_step(0.01)
-	if not TestUtils.assert_true(solve_on_state, "Relay Test (Energized): Solve successful"): overall_test_passed = false
-	
-	if solve_on_state:
-		var relay_results_on = graph_script.component_results.get(relay_node_on.get_instance_id(), {})
-		var is_energized_on = relay_results_on.get("is_energized", false) 
-		if not TestUtils.assert_true(is_energized_on, "Relay Test (Energized): Relay is_energized is true"): overall_test_passed = false
-
-		var led_no_results_on = graph_script.component_results.get(led_no_on.get_instance_id(), {})
-		var led_no_current_on = led_no_results_on.get("current", NAN)
-		# Approximate LED forward voltage drop around 1.8V for this test's parameters
-		var expected_load_current_on = (load_ps_v - load_led_vf) / load_res_val 
-		if not TestUtils.assert_approx_equals(led_no_current_on, expected_load_current_on, 0.001, "Relay Test (Energized): NO LED current is ON"): overall_test_passed = false
-
-		var led_nc_results_on = graph_script.component_results.get(led_nc_on.get_instance_id(), {})
-		var led_nc_current_on = led_nc_results_on.get("current", NAN)
-		if not TestUtils.assert_approx_equals(led_nc_current_on, 0.0, 1e-6, "Relay Test (Energized): NC LED current is OFF"): overall_test_passed = false
-
-	await _cleanup_components_and_graph(editor_script, graph_script)
-	editor_instance.queue_free()
-	return overall_test_passed
+	rig.cleanup()
+	return ok
 
 
 ## Tests that an LED correctly enters the "burned" state when subjected to excessive current.
@@ -1134,103 +1031,96 @@ func test_led_not_lighting() -> bool:
 ## Tests the N-Channel MOSFET model in its three main operating regions: OFF, TRIODE, and SATURATION.
 func test_nmosfet_regions() -> bool:
 	var ok := true
-	var ed_inst : Node3D = CircuitEditorScene.instantiate()
-	add_child(ed_inst)
-	await get_tree().process_frame
-	var ed : CircuitEditor3D = ed_inst
-	var g  : CircuitGraph   = ed.circuit_graph
-	if not (is_instance_valid(ed) and is_instance_valid(g)):
-		printerr("  SETUP FAIL: N-MOSFET Test – editor/graph invalid.")
-		if is_instance_valid(ed_inst): ed_inst.queue_free()
-		return false
+	var rig := TestRig.new()
+	add_child(rig)
+	await rig.init()
+	var ed = rig.editor
 
 	# ---------- OFF (cut-off) ----------
 	print("  N-MOSFET Test: OFF region.")
-	var ps_d_off  : PowerSource3D     = ed._add_component(ed.PowerSourceScene, Vector3.ZERO)
-	var ps_g_off  : PowerSource3D     = ed._add_component(ed.PowerSourceScene, Vector3(0,0,1))
-	var r_off     : Resistor3D        = ed._add_component(ed.ResistorScene,     Vector3(1,0,0))
-	var mos_off   : NChannelMOSFET3D  = ed._add_component(ed.NChannelMOSFETScene, Vector3(2,0,0))
+	var ps_d_off: PowerSource3D = rig.add(ed.PowerSourceScene)
+	var ps_g_off: PowerSource3D = rig.add(ed.PowerSourceScene, Vector3(0,0,1))
+	var r_off: Resistor3D = rig.add(ed.ResistorScene, Vector3(1,0,0))
+	var mos_off: NChannelMOSFET3D = rig.add(ed.NChannelMOSFETScene, Vector3(2,0,0))
 
-	ps_d_off.target_voltage = 5.0 ; g.component_config_changed(ps_d_off)
-	ps_g_off.target_voltage = 0.0 ; g.component_config_changed(ps_g_off)
-	r_off.resistance        = 1000.0 ; g.component_config_changed(r_off)
+	ps_d_off.target_voltage = 5.0; rig.cfg(ps_d_off)
+	ps_g_off.target_voltage = 0.0; rig.cfg(ps_g_off)
+	r_off.resistance = 1000.0; rig.cfg(r_off)
 
-	g.connect_terminals(ps_d_off.terminal_pos, r_off.terminal1)
-	g.connect_terminals(r_off.terminal2, mos_off.terminal_d)
-	g.connect_terminals(mos_off.terminal_g,  ps_g_off.terminal_pos)
-	g.connect_terminals(mos_off.terminal_s,  ps_d_off.terminal_neg) # common GND
-	g.connect_terminals(ps_g_off.terminal_neg, ps_d_off.terminal_neg)
-	g.set_ground_node(ps_d_off.terminal_neg)
+	rig.wire(ps_d_off.terminal_pos, r_off.terminal1)
+	rig.wire(r_off.terminal2, mos_off.terminal_d)
+	rig.wire(mos_off.terminal_g, ps_g_off.terminal_pos)
+	rig.wire(mos_off.terminal_s, ps_d_off.terminal_neg)
+	rig.wire(ps_g_off.terminal_neg, ps_d_off.terminal_neg)
+	rig.ground(ps_d_off.terminal_neg)
 
-	var solved := g.solve_single_time_step(0.01)
-	if not TestUtils.assert_true(solved, "NMOS Test (OFF): Solve successful"): ok = false
-	if solved:
-		var res = g.component_results.get(mos_off.get_instance_id(), {})
+	if not rig.solve(): ok = false
+	if ok:
+		var res = rig.results(mos_off)
 		if not TestUtils.assert_equals(res.get("region",""), "OFF", "NMOS Test (OFF): Region is OFF"): ok = false
 		if not TestUtils.assert_approx_equals(res.get("Id", NAN), 0.0, 1e-6, "NMOS Test (OFF): Id ~ 0"): ok = false
 
-	await _cleanup_components_and_graph(ed, g)
-
 	# ---------- TRIODE ----------
 	print("  N-MOSFET Test: TRIODE region.")
-	var ps_d_tri : PowerSource3D     = ed._add_component(ed.PowerSourceScene, Vector3.ZERO)
-	var ps_g_tri : PowerSource3D     = ed._add_component(ed.PowerSourceScene, Vector3(0,0,1))
-	var mos_tri  : NChannelMOSFET3D  = ed._add_component(ed.NChannelMOSFETScene, Vector3(2,0,0))
+	await rig.reset_graph()
+	var ps_d_tri: PowerSource3D = rig.add(ed.PowerSourceScene)
+	var ps_g_tri: PowerSource3D = rig.add(ed.PowerSourceScene, Vector3(0,0,1))
+	var mos_tri: NChannelMOSFET3D = rig.add(ed.NChannelMOSFETScene, Vector3(2,0,0))
 
-	ps_d_tri.target_voltage = 2.0 ; g.component_config_changed(ps_d_tri)
-	ps_g_tri.target_voltage = 5.0 ; g.component_config_changed(ps_g_tri)
+	ps_d_tri.target_voltage = 2.0; rig.cfg(ps_d_tri)
+	ps_g_tri.target_voltage = 5.0; rig.cfg(ps_g_tri)
 
-	g.connect_terminals(ps_d_tri.terminal_pos, mos_tri.terminal_d)
-	g.connect_terminals(mos_tri.terminal_g,  ps_g_tri.terminal_pos)
-	g.connect_terminals(mos_tri.terminal_s,  ps_d_tri.terminal_neg)
-	g.connect_terminals(ps_g_tri.terminal_neg, ps_d_tri.terminal_neg)
-	g.set_ground_node(ps_d_tri.terminal_neg)
+	rig.wire(ps_d_tri.terminal_pos, mos_tri.terminal_d)
+	rig.wire(mos_tri.terminal_g, ps_g_tri.terminal_pos)
+	rig.wire(mos_tri.terminal_s, ps_d_tri.terminal_neg)
+	rig.wire(ps_g_tri.terminal_neg, ps_d_tri.terminal_neg)
+	rig.ground(ps_d_tri.terminal_neg)
 
-	solved = g.solve_single_time_step(0.01)
-	if not TestUtils.assert_true(solved, "NMOS Test (TRI): Solve successful"): ok = false
-	if solved:
-		var res_tri = g.component_results.get(mos_tri.get_instance_id(), {})
-		var region  = res_tri.get("region", "")
-		var Id_tri  = res_tri.get("Id", NAN)
-		if not TestUtils.assert_equals(region, "TRIODE", "NMOS Test (TRI): Region is TRIODE"): ok = false
+	if not rig.solve(): ok = false
+	if ok:
+		var res_tri = rig.results(mos_tri)
+		if not TestUtils.assert_equals(res_tri.get("region", ""), "TRIODE", "NMOS Test (TRI): Region is TRIODE"): ok = false
 
-		var Vd = g.electrical_nodes.get(g.terminal_connections.get(mos_tri.terminal_d.get_instance_id(), -1), {}).get("voltage", NAN)
-		var Vgs := ps_g_tri.target_voltage
-		var Vds = Vd
-		var kn  := mos_tri.transconductance_parameter
-		var vt  := mos_tri.threshold_voltage
-		var Id_expect = kn * ( (Vgs - vt) * Vds - 0.5 * pow(Vds, 2) )
+		var Vgs = res_tri.get("Vgs", NAN)
+		var Vds = res_tri.get("Vds", NAN)
+		var Id_tri = res_tri.get("Id", NAN)
+		var kn = mos_tri.transconductance_parameter
+		var vt = mos_tri.threshold_voltage
+		var p_lambda = mos_tri.lambda
+		var Id_expect = kn * ((Vgs - vt) * Vds - 0.5 * pow(Vds, 2)) * (1.0 + p_lambda * Vds)
 		if Id_expect < 0: Id_expect = 0
 		if not TestUtils.assert_approx_equals(Id_tri, Id_expect, 0.01, "NMOS Test (TRI): Id matches expected"): ok = false
 
-	await _cleanup_components_and_graph(ed, g)
-
 	# ---------- SATURATION ----------
 	print("  N-MOSFET Test: SATURATION region.")
-	var ps_d_sat : PowerSource3D     = ed._add_component(ed.PowerSourceScene, Vector3.ZERO)
-	var ps_g_sat : PowerSource3D     = ed._add_component(ed.PowerSourceScene, Vector3(0,0,1))
-	var mos_sat  : NChannelMOSFET3D  = ed._add_component(ed.NChannelMOSFETScene, Vector3(2,0,0))
+	await rig.reset_graph()
+	var ps_d_sat: PowerSource3D = rig.add(ed.PowerSourceScene)
+	var ps_g_sat: PowerSource3D = rig.add(ed.PowerSourceScene, Vector3(0,0,1))
+	var mos_sat: NChannelMOSFET3D = rig.add(ed.NChannelMOSFETScene, Vector3(2,0,0))
 
-	ps_d_sat.target_voltage = 10.0 ; g.component_config_changed(ps_d_sat)
-	ps_g_sat.target_voltage = 5.0  ; g.component_config_changed(ps_g_sat)
+	ps_d_sat.target_voltage = 10.0; rig.cfg(ps_d_sat)
+	ps_g_sat.target_voltage = 5.0; rig.cfg(ps_g_sat)
 
-	g.connect_terminals(ps_d_sat.terminal_pos, mos_sat.terminal_d)
-	g.connect_terminals(mos_sat.terminal_g,  ps_g_sat.terminal_pos)
-	g.connect_terminals(mos_sat.terminal_s,  ps_d_sat.terminal_neg)
-	g.connect_terminals(ps_g_sat.terminal_neg, ps_d_sat.terminal_neg)
-	g.set_ground_node(ps_d_sat.terminal_neg)
+	rig.wire(ps_d_sat.terminal_pos, mos_sat.terminal_d)
+	rig.wire(mos_sat.terminal_g, ps_g_sat.terminal_pos)
+	rig.wire(mos_sat.terminal_s, ps_d_sat.terminal_neg)
+	rig.wire(ps_g_sat.terminal_neg, ps_d_sat.terminal_neg)
+	rig.ground(ps_d_sat.terminal_neg)
 
-	solved = g.solve_single_time_step(0.01)
-	if not TestUtils.assert_true(solved, "NMOS Test (SAT): Solve successful"): ok = false
-	if solved:
-		var res_sat = g.component_results.get(mos_sat.get_instance_id(), {})
+	if not rig.solve(): ok = false
+	if ok:
+		var res_sat = rig.results(mos_sat)
 		if not TestUtils.assert_equals(res_sat.get("region",""), "SATURATION", "NMOS Test (SAT): Region is SATURATION"): ok = false
 		var Id_sat = res_sat.get("Id", NAN)
-		var Id_expected_sat := 0.5 * mos_sat.transconductance_parameter * pow(ps_g_sat.target_voltage - mos_sat.threshold_voltage, 2)
+		var Vgs_sat = res_sat.get("Vgs", NAN)
+		var Vds_sat = res_sat.get("Vds", NAN)
+		var kn_sat = mos_sat.transconductance_parameter
+		var vt_sat = mos_sat.threshold_voltage
+		var p_lambda_sat = mos_sat.lambda
+		var Id_expected_sat = 0.5 * kn_sat * pow(Vgs_sat - vt_sat, 2) * (1.0 + p_lambda_sat * Vds_sat)
 		if not TestUtils.assert_approx_equals(Id_sat, Id_expected_sat, 0.01, "NMOS Test (SAT): Id matches expected"): ok = false
 
-	await _cleanup_components_and_graph(ed, g)
-	ed_inst.queue_free()
+	rig.cleanup()
 	return ok
 
 ## Tests the P-Channel MOSFET model in its three main operating regions: OFF, TRIODE, and SATURATION.
