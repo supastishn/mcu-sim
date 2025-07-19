@@ -201,8 +201,8 @@ func get_kcl_contributions(graph: CircuitGraph, all_node_voltages: Dictionary, F
 func gather_sim_results(
 	circuit      : CircuitGraph,
 	comp_data    : Dictionary,
-	_x            : Array,
-	_node_map     : Dictionary,
+	x            : Array,
+	node_map     : Dictionary,
 	_vs_map       : Dictionary,
 	_inductor_map : Dictionary,
 	delta_time   : float) -> void:
@@ -213,36 +213,39 @@ func gather_sim_results(
 	var max_V_cap = comp_data.properties["max_voltage"]
 	var Vc_prev_dt_val = comp_data.properties.get("voltage_across_cap_prev_dt", 0.0)
 
-	var term1_cap_node = comp_data.terminals["T1"]
-	var term2_cap_node = comp_data.terminals["T2"]
-	var node1_id_cap_val = circuit.terminal_connections.get(term1_cap_node.get_instance_id(), -1)
-	var node2_id_cap_val = circuit.terminal_connections.get(term2_cap_node.get_instance_id(), -1)
+	var node1_id = circuit.terminal_connections.get(comp_data.terminals["T1"].get_instance_id(), -1)
+	var node2_id = circuit.terminal_connections.get(comp_data.terminals["T2"].get_instance_id(), -1)
 
-	var V1_cap_t = circuit.electrical_nodes.get(node1_id_cap_val, {}).get("voltage", NAN)
-	var V2_cap_t = circuit.electrical_nodes.get(node2_id_cap_val, {}).get("voltage", NAN)
+	var V1_t = circuit.electrical_nodes.get(node1_id, {}).get("voltage", NAN)
+	var V2_t = circuit.electrical_nodes.get(node2_id, {}).get("voltage", NAN)
+	
+	var V_internal_t = NAN
+	var internal_node_idx = node_map.get(_internal_node_id, -1)
+	if internal_node_idx != -1 and internal_node_idx < x.size():
+		V_internal_t = x[internal_node_idx]
 	
 	var current_cap = NAN
-	var Vc_t = NAN
+	var Vc_across_terminals = V1_t - V2_t if not is_nan(V1_t) and not is_nan(V2_t) else NAN
+	var Vc_ideal_t = V_internal_t - V2_t if not is_nan(V_internal_t) and not is_nan(V2_t) else NAN
 
 	if comp_data.get("is_exploded", false):
 		current_cap = 0.0
-		if not is_nan(V1_cap_t) and not is_nan(V2_cap_t): Vc_t = V1_cap_t - V2_cap_t
-	elif not is_nan(V1_cap_t) and not is_nan(V2_cap_t):
-		Vc_t = V1_cap_t - V2_cap_t
-		assert(!is_nan(Vc_t), "PolarizedCapacitor {c}: Vc_t is NaN. V1={v1}, V2={v2}".format({
-			"c": name, "v1": V1_cap_t, "v2": V2_cap_t
+	elif not is_nan(V1_t) and not is_nan(V2_t) and not is_nan(V_internal_t):
+		assert(!is_nan(Vc_ideal_t), "PolarizedCapacitor {c}: Vc_ideal_t is NaN. V_int={vi}, V2={v2}".format({
+			"c": name, "vi": V_internal_t, "v2": V2_t
 		}))
 		
 		var reverse_polarity_tolerance = -0.1
-		if Vc_t > max_V_cap or Vc_t < reverse_polarity_tolerance:
+		# Explosion check should be on the voltage across the ideal capacitor part.
+		if Vc_ideal_t > max_V_cap or Vc_ideal_t < reverse_polarity_tolerance:
 			comp_data.is_exploded = true
 			current_cap = 0.0
 		else:
-			current_cap = C_val * (Vc_t - Vc_prev_dt_val) / delta_time
-			comp_data.properties["voltage_across_cap_prev_dt"] = Vc_t
+			current_cap = C_val * (Vc_ideal_t - Vc_prev_dt_val) / delta_time
+			comp_data.properties["voltage_across_cap_prev_dt"] = Vc_ideal_t
 	else:
 		pass
 	
 	circuit.component_results[comp_id]["current"] = current_cap
-	circuit.component_results[comp_id]["voltage_across"] = Vc_t
+	circuit.component_results[comp_id]["voltage_across"] = Vc_across_terminals
 	circuit.component_results[comp_id]["is_exploded"] = comp_data.get("is_exploded", false)

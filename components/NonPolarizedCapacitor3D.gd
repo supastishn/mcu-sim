@@ -186,8 +186,8 @@ func get_kcl_contributions(graph: CircuitGraph, all_node_voltages: Dictionary, F
 func gather_sim_results(
 		circuit      : CircuitGraph,
 		comp_data    : Dictionary,
-		_x            : Array,
-		_node_map     : Dictionary,
+		x            : Array,
+		node_map     : Dictionary,
 		_vs_map       : Dictionary,
 		_inductor_map : Dictionary,
 		delta_time   : float) -> void:
@@ -198,33 +198,35 @@ func gather_sim_results(
 	var max_V_np_cap = comp_data.properties["max_voltage"]
 	var Vc_prev_dt_np_val = comp_data.properties.get("voltage_across_cap_prev_dt", 0.0)
 
-	var term1_np_cap_node = comp_data.terminals["T1"]
-	var term2_np_cap_node = comp_data.terminals["T2"]
-	var node1_id_np_cap_val = circuit.terminal_connections.get(term1_np_cap_node.get_instance_id(), -1)
-	var node2_id_np_cap_val = circuit.terminal_connections.get(term2_np_cap_node.get_instance_id(), -1)
+	var node1_id = circuit.terminal_connections.get(comp_data.terminals["T1"].get_instance_id(), -1)
+	var node2_id = circuit.terminal_connections.get(comp_data.terminals["T2"].get_instance_id(), -1)
 
-	var V1_np_cap_t = circuit.electrical_nodes.get(node1_id_np_cap_val, {}).get("voltage", NAN)
-	var V2_np_cap_t = circuit.electrical_nodes.get(node2_id_np_cap_val, {}).get("voltage", NAN)
-	
+	var V1_t = circuit.electrical_nodes.get(node1_id, {}).get("voltage", NAN)
+	var V2_t = circuit.electrical_nodes.get(node2_id, {}).get("voltage", NAN)
+
+	var V_internal_t = NAN
+	var internal_node_idx = node_map.get(_internal_node_id, -1)
+	if internal_node_idx != -1 and internal_node_idx < x.size():
+		V_internal_t = x[internal_node_idx]
+
 	var current_np_cap = NAN
-	var Vc_np_t = NAN
+	var Vc_across_terminals = V1_t - V2_t if not is_nan(V1_t) and not is_nan(V2_t) else NAN
+	var Vc_ideal_t = V_internal_t - V2_t if not is_nan(V_internal_t) and not is_nan(V2_t) else NAN
 
-	assert(!is_nan(V1_np_cap_t) and !is_nan(V2_np_cap_t), "NonPolarizedCapacitor {c}: Terminal voltage is NaN. V1={v1}, V2={v2}".format({
-		"c": name, "v1": V1_np_cap_t, "v2": V2_np_cap_t
+	assert(!is_nan(V1_t) and !is_nan(V2_t), "NonPolarizedCapacitor {c}: Terminal voltage is NaN. V1={v1}, V2={v2}".format({
+		"c": name, "v1": V1_t, "v2": V2_t
 	}))
-	if not is_nan(V1_np_cap_t) and not is_nan(V2_np_cap_t):
-		Vc_np_t = V1_np_cap_t - V2_np_cap_t
-		current_np_cap = C_np_val * (Vc_np_t - Vc_prev_dt_np_val) / delta_time
-		assert(!is_nan(current_np_cap), "NonPolarizedCapacitor {c}: Current is NaN. Vc={vc}, Vc_prev={vp}, C={C}, dt={dt}".format({
-			"c": name, "vc": Vc_np_t, "vp": Vc_prev_dt_np_val, "C": C_np_val, "dt": delta_time
+	if not is_nan(Vc_ideal_t):
+		current_np_cap = C_np_val * (Vc_ideal_t - Vc_prev_dt_np_val) / delta_time
+		assert(!is_nan(current_np_cap), "NonPolarizedCapacitor {c}: Current is NaN. Vc_ideal={vc}, Vc_prev={vp}, C={C}, dt={dt}".format({
+			"c": name, "vc": Vc_ideal_t, "vp": Vc_prev_dt_np_val, "C": C_np_val, "dt": delta_time
 		}))
-		comp_data.properties["voltage_across_cap_prev_dt"] = Vc_np_t
+		comp_data.properties["voltage_across_cap_prev_dt"] = Vc_ideal_t
 		
-		if abs(Vc_np_t) > max_V_np_cap:
+		if abs(Vc_ideal_t) > max_V_np_cap:
 			pass
-
 	else:
 		pass
 
 	circuit.component_results[comp_id]["current"] = current_np_cap
-	circuit.component_results[comp_id]["voltage_across"] = Vc_np_t
+	circuit.component_results[comp_id]["voltage_across"] = Vc_across_terminals
