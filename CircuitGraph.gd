@@ -467,10 +467,8 @@ func _reset_voltages():
 
 ## Solves the circuit for a single transient time step using a Newton-Raphson solver.
 func solve_single_time_step(delta_time: float) -> bool:
-	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
-	if DEBUG: print("\n--- CircuitGraph: solve_single_time_step (dt={dt}) ---".format({"dt": delta_time}))
 	_is_solved = false
-	if ground_node_id == -1: return false
+	assert(ground_node_id != -1, "Ground node must be set before solving.")
 
 	# Reset stateful components that have state machines
 	for comp_data_item in components:
@@ -525,34 +523,24 @@ func solve_single_time_step(delta_time: float) -> bool:
 	return true
 
 func _solve_newton_raphson(delta_time: float) -> bool:
-	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
 	var max_iter = 100
 	var v_tolerance = 1e-6
 	
-	if DEBUG: print("  Starting Newton-Raphson solver.")
-
 	for i in range(max_iter):
-		if DEBUG: print("  NR Iteration {i}".format({"i": i}))
 		var system = _build_mna_system(delta_time)
 		var A = system.A
 		var b_error = _calculate_kcl_error_vector(system, delta_time)
 		
 		if A.is_empty(): return true
 
-		if DEBUG and (i < 3 or i > max_iter - 3):
-			LinearSolver.print_matrix(A, "NR A matrix iter {i}".format({"i": i}))
-			LinearSolver.print_vector(b_error, "NR F(V) vector iter {i}".format({"i": i}))
-			
 		# Newton-Raphson: Solve A * dV = F(V)
 		var delta_x = LinearSolver.solve(A, b_error)
 
-		if delta_x.is_empty():
-			printerr("LinearSolver failed in Newton-Raphson iteration.")
-			return false
+		assert(!delta_x.is_empty(), "Linear solver failed during Newton-Raphson iteration.")
 
 		# Adaptive damping for stability
 		var norm = sqrt(delta_x.reduce(func(acc, val): return acc + val*val, 0.0))
-		if DEBUG: print("    NR delta_x norm: {n}".format({"n": norm}))
+		assert(!is_nan(norm), "Solver update vector norm is NaN.")
 		var damping_factor = clamp(0.1 * log(norm + 1) + 0.3, 0.1, 0.8)
 		var node_map = system.node_map
 		for node_id in node_map:
@@ -563,14 +551,12 @@ func _solve_newton_raphson(delta_time: float) -> bool:
 		var state_changed = _update_all_nonlinear_states(system)
 		
 		if _check_convergence(delta_x, v_tolerance) and not state_changed:
-			if DEBUG: print("  NR converged in {i} iterations.".format({"i": i + 1}))
 			return true
 
-	if DEBUG: printerr("  NR failed to converge after {i} iterations.".format({"i": max_iter}))
+	printerr("NR failed to converge after {i} iterations.".format({"i": max_iter}))
 	return false
 
 func _calculate_kcl_error_vector(system: Dictionary, delta_time: float) -> Array:
-	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
 	if system.A.is_empty(): return []
 	var num_vars = system.A.size()
 	var error_vector: Array = []
@@ -594,7 +580,6 @@ func _calculate_kcl_error_vector(system: Dictionary, delta_time: float) -> Array
 		error_vector[i] -= system.b[i]
 
 	var final_error = error_vector.map(func(v): return -v)
-	if DEBUG and num_vars > 0 : LinearSolver.print_vector(final_error, "    Final KCL error vector (-F(V))")
 	return final_error
 
 func _check_convergence(delta_x: Array, v_tol: float) -> bool:
@@ -657,8 +642,6 @@ func _update_all_nonlinear_states(system: Dictionary) -> bool:
 
 ## Builds the Modified Nodal Analysis (MNA) system matrices (A, b) and corresponding node maps for the current state of the circuit.
 func _build_mna_system(delta_time: float) -> Dictionary:
-	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
-	if DEBUG: print("  Building MNA system...")
 	var non_ground_nodes: Array[int] = []
 	for node_id in electrical_nodes:
 		if node_id != ground_node_id:
@@ -762,7 +745,6 @@ func _build_mna_system(delta_time: float) -> Dictionary:
 			)
 			
 	_needs_rebuild = false
-	if DEBUG: print("  MNA system build complete. Size: {N}x{N}".format({"N": N}))
 	return { "A": A, "b": b, "node_map": node_id_to_matrix_index, "vs_map": active_vs_id_to_matrix_index, "opamp_map": opamp_id_to_matrix_index, "inductor_map": inductor_id_to_matrix_index }
 
 

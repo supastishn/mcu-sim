@@ -96,7 +96,6 @@ func stamp(
 	comp_data: Dictionary, # Used for inductance, current_through_L_prev_dt
 	delta_time: float
 ):
-	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
 	# --- Numerical stability: clamp delta_time ---
 	delta_time = clamp(delta_time, 1e-12, 0.1)
 
@@ -120,9 +119,7 @@ func stamp(
 	var t2_instance_id = terminal2.get_instance_id() if is_instance_valid(terminal2) else -1
 	
 	var self_instance_id = self.get_instance_id()
-	if not inductor_map.has(self_instance_id):
-		printerr("Critical Error: Inductor {ind_id_str} not found in inductor_map.".format({"ind_id_str": self_instance_id}))
-		return
+	assert(inductor_map.has(self_instance_id), "Inductor {ind_id_str} not found in inductor_map.".format({"ind_id_str": self_instance_id}))
 	var idx_I_L_val = inductor_map[self_instance_id]
 
 	# Inductor equation: V1 - V2 - L * d(I_L)/dt = 0
@@ -135,8 +132,6 @@ func stamp(
 	else:
 		L_div_dt = L_val_prop / delta_time
 	
-	if DEBUG: print("      Inductor Stamp: L/dt={ldt}, I_prev={iprev}".format({"ldt": L_div_dt, "iprev": I_L_prev_dt_val_prop}))
-
 	if internal_node_idx != -1: A[idx_I_L_val][internal_node_idx] = 1.0
 	if t2_idx != -1: A[idx_I_L_val][t2_idx] = -1.0
 	A[idx_I_L_val][idx_I_L_val] = -L_div_dt
@@ -160,11 +155,12 @@ func gather_sim_results(
 	var comp_id = comp_node.get_instance_id()
 	var solved_current_L : float = NAN # holds I_L for later reuse
 
-	if inductor_map.has(comp_id): 
-		var matrix_idx_curr_L_final = inductor_map[comp_id]
-		if matrix_idx_curr_L_final < x.size():
-			solved_current_L = x[matrix_idx_curr_L_final]
-			circuit.component_results[comp_id]["current"] = solved_current_L
+	assert(inductor_map.has(comp_id), "Inductor {id} not found in inductor_map.".format({"id": comp_id}))
+	var matrix_idx_curr_L_final = inductor_map[comp_id]
+	assert(matrix_idx_curr_L_final < x.size(), "Inductor current index out of bounds in solution vector.")
+	solved_current_L = x[matrix_idx_curr_L_final]
+	assert(!is_nan(solved_current_L), "Solved inductor current is NaN.")
+	circuit.component_results[comp_id]["current"] = solved_current_L
 			
 			var term_1_L = comp_data.terminals["T1"]
 			var term_2_L = comp_data.terminals["T2"]

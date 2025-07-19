@@ -34,10 +34,6 @@ pointing/android/enable_long_press_as_right_click=true
 
 features/enable_beta_components=false
 
-[mcu_sim_debug]
-
-solver/logging_enabled=true
-
 [rendering]
 
 renderer/rendering_method="gl_compatibility"

@@ -87,7 +87,6 @@ func get_terminal_info() -> Dictionary:
 # MNA Functions
 ## Updates the regulator's operating status (REGULATED, DROPOUT) based on an MNA iteration.
 func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter: Array, node_map_iter: Dictionary, _vs_map_iter: Dictionary) -> bool:
-	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
 	if x_iter.is_empty():
 		return false
 
@@ -112,7 +111,6 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 			new_status = "REGULATED"
 
 	if comp_data.properties.get("status") != new_status:
-		if DEBUG: print("      LinReg State Change: {old} -> {new}".format({"old": comp_data.properties.get("status"), "new": new_status}))
 		comp_data.properties["status"] = new_status
 		return true
 	return false
@@ -121,7 +119,6 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 func stamp(
 	A, b, node_map, _vs_map, _opamp_map, _inductor_map, terminal_connections, comp_data, _delta_time
 ):
-	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
 	# Use a large conductance to enforce Vout = regulated_voltage or Vout = Vin - dropout_voltage
 	# This preserves KCL and circuit topology, similar to a SPICE voltage source with large G
 	var idx_vin = node_map.get(terminal_connections.get(terminal_vin.get_instance_id(), -1), -1)
@@ -132,7 +129,6 @@ func stamp(
 		return
 	
 	var status = comp_data.properties.get("status", "DISCONNECTED")
-	if DEBUG: print("      LinReg Stamp: status={s}".format({"s": status}))
 	var Gbig = 1e9  # Large conductance for voltage stamping
 	
 	if status == "REGULATED":

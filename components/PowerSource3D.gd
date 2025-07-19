@@ -77,7 +77,6 @@ func get_terminal_info() -> Dictionary:
 
 ## Updates the power supply's operating mode (CV or CC) based on an MNA iteration.
 func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter: Array, node_map_iter: Dictionary, vs_map_iter: Dictionary) -> bool:
-	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
 	# x_iter is the current iteration's solution vector (circuit._current_iteration_solution)
 	# node_map_iter is the current iteration's node map (circuit._current_iteration_node_map)
 	# vs_map_iter is the current iteration's voltage source map (circuit._current_iteration_vs_map)
@@ -122,7 +121,6 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 				new_op_mode = "CV"
 	
 	if new_op_mode != previous_op_mode:
-		if DEBUG: print("      PowerSource State Change: {old} -> {new}".format({"old": previous_op_mode, "new": new_op_mode}))
 		comp_data.properties.current_operating_mode = new_op_mode
 		state_changed = true
 		
@@ -140,9 +138,7 @@ func stamp(
 	comp_data: Dictionary,
 	_delta_time: float
 ):
-	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
 	var ps_op_mode = comp_data.properties.get("current_operating_mode", "CV")
-	if DEBUG: print("      PowerSource Stamp: mode={m}".format({"m": ps_op_mode}))
 	
 	var pos_term_id = terminal_pos.get_instance_id() if is_instance_valid(terminal_pos) else -1
 	var neg_term_id = terminal_neg.get_instance_id() if is_instance_valid(terminal_neg) else -1
@@ -180,12 +176,10 @@ func stamp(
 			b[neg_idx] -= actual_current_to_stamp 
 
 func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, F_v: Array, system: Dictionary, _delta_time: float):
-	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
 	var comp_data = graph.component_node_map.get(self)
 	var ps_op_mode = comp_data.properties.get("current_operating_mode", "CV")
 
 	if ps_op_mode == "CC":
-		if DEBUG: print("      PowerSource KCL: mode=CC")
 		var pos_node_id = graph.terminal_connections.get(terminal_pos.get_instance_id(), -1)
 		var neg_node_id = graph.terminal_connections.get(terminal_neg.get_instance_id(), -1)
 		

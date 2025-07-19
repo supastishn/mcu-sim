@@ -53,12 +53,10 @@ func stamp(
 	_comp_data: Dictionary,
 	_delta_time: float
 ):
-	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
 	
 	var R = resistance 
 	if R == 0.0: R = 1e-9
 	var g = 1.0 / R
-	if DEBUG: print("      Resistor Stamp: R={r}".format({"r": R}))
 	
 	var t1_instance_id = terminal1.get_instance_id()
 	var t2_instance_id = terminal2.get_instance_id()
@@ -81,14 +79,13 @@ func stamp(
 		A[i2][i2] += g
 
 func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, F_v: Array, system: Dictionary, _delta_time: float):
-	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
 	var node1_id = graph.terminal_connections.get(terminal1.get_instance_id(), -1)
 	var node2_id = graph.terminal_connections.get(terminal2.get_instance_id(), -1)
 	var v1 = graph.electrical_nodes.get(node1_id, {}).get("voltage", 0.0)
 	var v2 = graph.electrical_nodes.get(node2_id, {}).get("voltage", 0.0)
 	var R = max(resistance, 1e-12)
 	var current = (v1 - v2) / R
-	if DEBUG: print("      Resistor KCL: V1={v1}, V2={v2}, I={i}".format({"v1":v1, "v2":v2, "i":current}))
+	assert(!is_nan(current), "Resistor current calculation resulted in NaN.")
 	
 	var i1 = system.node_map.get(node1_id, -1)
 	var i2 = system.node_map.get(node2_id, -1)

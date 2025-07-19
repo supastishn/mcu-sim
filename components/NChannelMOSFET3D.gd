@@ -159,7 +159,6 @@ func gather_sim_results(
 
 ## Updates the MOSFET's operating region based on an MNA iteration.
 func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter: Array, node_map_iter: Dictionary, _vs_map_iter: Dictionary) -> bool:
-	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
 	if x_iter.is_empty():
 		return false
 
@@ -201,7 +200,6 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 				new_region_nmos = "SATURATION"
 
 	if new_region_nmos != previous_region_nmos:
-		if DEBUG: print("      N-MOSFET State Change: {old} -> {new}".format({"old": previous_region_nmos, "new": new_region_nmos}))
 		comp_data.properties["operating_region"] = new_region_nmos
 		return true
 	return false
@@ -218,9 +216,7 @@ func stamp(
 	comp_data: Dictionary,
 	_delta_time: float
 ):
-	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
 	var region_nmos_mna_val = comp_data.properties["operating_region"]
-	if DEBUG: print("      N-MOSFET Stamp: region={r}".format({"r": region_nmos_mna_val}))
 	var vt_nmos_mna_prop = threshold_voltage 
 	var kn_nmos_mna_prop = transconductance_parameter 
 
@@ -275,7 +271,6 @@ func stamp(
 			# for the Newton-Raphson solver. Only the linearized conductance (g_ds) is stamped here.
 
 func get_kcl_contributions(graph: CircuitGraph, all_node_voltages: Dictionary, F_v: Array, system: Dictionary, _delta_time: float):
-	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
 	var node_d_id = graph.terminal_connections.get(terminal_d.get_instance_id(), -1)
 	var node_g_id = graph.terminal_connections.get(terminal_g.get_instance_id(), -1)
 	var node_s_id = graph.terminal_connections.get(terminal_s.get_instance_id(), -1)
@@ -299,7 +294,7 @@ func get_kcl_contributions(graph: CircuitGraph, all_node_voltages: Dictionary, F
 			Id = 0.5 * kn * pow(Vgs - vt, 2.0) * (1 + lambda * Vds)
 			region = "SATURATION"
 
-	if DEBUG: print("      N-MOSFET KCL: region={r}, Vgs={vgs}, Vds={vds}, Id={id}".format({"r": region, "vgs": Vgs, "vds": Vds, "id": Id}))
+	assert(!is_nan(Id), "N-MOSFET Id calculation resulted in NaN.")
 
 	var idx_d = system.node_map.get(node_d_id, -1)
 	var idx_s = system.node_map.get(node_s_id, -1)

@@ -66,10 +66,11 @@ func gather_sim_results(
 	var V_thermal = THERMAL_VOLTAGE
 	
 	var current = NAN
-	if not is_nan(Va) and not is_nan(Vk):
-		var Vd = Va - Vk
-		current = saturation_current * (exp(Vd / (ideality_factor * THERMAL_VOLTAGE)) - 1.0)
-		comp_data.properties["_internal_voltage"] = Vd
+	assert(!is_nan(Va) and !is_nan(Vk), "Diode terminal voltages are NaN in gather_sim_results.")
+	var Vd = Va - Vk
+	current = saturation_current * (exp(Vd / (ideality_factor * THERMAL_VOLTAGE)) - 1.0)
+	assert(!is_nan(current), "Diode current is NaN in gather_sim_results.")
+	comp_data.properties["_internal_voltage"] = Vd
 
 	circuit.component_results[comp_id]["current"] = current
 
@@ -85,7 +86,6 @@ func stamp(
 	comp_data: Dictionary,
 	_delta_time: float
 ):
-	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
 	# This function now stamps a linearized model for the Newton-Raphson solver.
 	var Vd_last_iter = comp_data.properties.get("_internal_voltage", 0.0)
 	var n_vt = ideality_factor * THERMAL_VOLTAGE
@@ -98,7 +98,6 @@ func stamp(
 	# Linearized model from Shockley equation: Geq and Ieq
 	var exp_term = exp(Vd_limited / n_vt)
 	var Geq = (saturation_current / n_vt) * exp_term
-	if DEBUG: print("      Diode Stamp: Vd_last={v}, Geq={g}".format({"v": Vd_last_iter, "g": Geq}))
 	var Ieq = saturation_current * (exp_term - 1.0) - Geq * Vd_last_iter
 
 	var na = terminal_connections.get(terminal_anode.get_instance_id(), -1)
@@ -110,7 +109,6 @@ func stamp(
 	CircuitGraph.stamp_conductance(A, Geq, ia, ik)
 
 func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, F_v: Array, system: Dictionary, _delta_time: float):
-	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
 	var node_a_id = graph.terminal_connections.get(terminal_anode.get_instance_id(), -1)
 	var node_k_id = graph.terminal_connections.get(terminal_kathode.get_instance_id(), -1)
 	var Va = graph.electrical_nodes.get(node_a_id, {}).get("voltage", 0.0)
@@ -118,7 +116,7 @@ func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, 
 	var Vd = Va - Vk
 	
 	var current = saturation_current * (exp(Vd / (ideality_factor * THERMAL_VOLTAGE)) - 1.0)
-	if DEBUG: print("      Diode KCL: Vd={v}, current={i}".format({"v": Vd, "i": current}))
+	assert(!is_nan(current), "Diode current calculation resulted in NaN.")
 	
 	var ia = system.node_map.get(node_a_id, -1)
 	var ik = system.node_map.get(node_k_id, -1)

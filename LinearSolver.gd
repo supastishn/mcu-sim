@@ -9,23 +9,10 @@ class_name LinearSolver
 
 ## Solves a system of linear equations Ax = b using Gaussian elimination with partial pivoting.
 static func solve(A: Array, b: Array) -> Array:
-	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
 	var n = b.size()
-	if DEBUG:
-		print("    LinearSolver.solve called with {N}x{N} matrix".format({"N": n}))
-		if n > 0 and n < 15: # Only print small systems
-			var A_copy = []
-			for r in A: A_copy.push_back(r.duplicate())
-			LinearSolver.print_matrix(A_copy, "Solver Input A")
-			LinearSolver.print_vector(b.duplicate(), "Solver Input b")
-			
-	if A.size() != n:
-		printerr("LinearSolver: Matrix A rows ({a_size}) does not match vector b size ({n_val}).".format({"a_size": A.size(), "n_val": n}))
-		return []
+	assert(A.size() == n, "LinearSolver: Matrix A rows ({a_size}) does not match vector b size ({n_val}).".format({"a_size": A.size(), "n_val": n}))
 	for row in A:
-		if row.size() != n:
-			printerr("LinearSolver: Matrix A is not square (row size {row_sz} vs expected {n_val}).".format({"row_sz": row.size(), "n_val": n}))
-			return []
+		assert(row.size() == n, "LinearSolver: Matrix A is not square (row size {row_sz} vs expected {n_val}).".format({"row_sz": row.size(), "n_val": n}))
 
 	# --- Enhanced singularity/nan detection ---
 	var matrix_norm = 0.0
@@ -50,9 +37,7 @@ static func solve(A: Array, b: Array) -> Array:
 			b[pivot_row] = temp_b
 
 		# Enhanced singularity/nan detection
-		if is_nan(A[i][i]) or abs(A[i][i]) < max(1e-12, 1e-12 * matrix_norm):
-			printerr("LinearSolver: Matrix is singular/invalid at pivots (row {step_i}).".format({"step_i": i}))
-			return []
+		assert(!is_nan(A[i][i]) and abs(A[i][i]) >= max(1e-12, 1e-12 * matrix_norm), "LinearSolver: Matrix is singular/invalid at pivots (row {step_i}).".format({"step_i": i}))
 
 		for k in range(i + 1, n):
 			var factor = A[k][i] / A[i][i]
@@ -65,21 +50,13 @@ static func solve(A: Array, b: Array) -> Array:
 	x.resize(n)
 
 	for i in range(n - 1, -1, -1): 
-		if is_nan(A[i][i]) or abs(A[i][i]) < max(1e-12, 1e-12 * matrix_norm):
-			printerr("LinearSolver: Matrix became singular/invalid during back substitution at row {row_i}.".format({"row_i": i}))
-			return []
+		assert(!is_nan(A[i][i]) and abs(A[i][i]) >= max(1e-12, 1e-12 * matrix_norm), "LinearSolver: Matrix became singular/invalid during back substitution at row {row_i}.".format({"row_i": i}))
 
 		var sum_ax = 0.0
 		for j in range(i + 1, n):
 			sum_ax += A[i][j] * x[j]
 
 		x[i] = (b[i] - sum_ax) / A[i][i]
-	
-	if DEBUG:
-		if n > 0 and n < 15:
-			LinearSolver.print_vector(x, "Solver Solution x")
-		else:
-			print("    LinearSolver.solve successful for {N}x{N} system.".format({"N": n}))
 
 	return x
 

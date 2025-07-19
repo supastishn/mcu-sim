@@ -121,7 +121,6 @@ func stamp(
 	comp_data: Dictionary,
 	_delta_time: float
 ):
-	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
 	var pos_term_instance_id = terminal_pos.get_instance_id() if is_instance_valid(terminal_pos) else -1
 	var neg_term_instance_id = terminal_neg.get_instance_id() if is_instance_valid(terminal_neg) else -1
 
@@ -132,13 +131,10 @@ func stamp(
 	var neg_idx = node_map.get(neg_node_lookup_id, -1)
 	
 	var battery_instance_id = self.get_instance_id()
-	if not vs_map.has(battery_instance_id):
-		printerr("Critical Error: Battery {batid} not found in vs_map.".format({"batid": battery_instance_id}))
-		return
+	assert(vs_map.has(battery_instance_id), "Battery {batid} not found in vs_map.".format({"batid": battery_instance_id}))
 	var battery_current_matrix_idx = vs_map[battery_instance_id]
 	
 	var V_target_val = comp_data.properties["target_voltage"]
-	if DEBUG: print("      Battery Stamp: V_target={v}".format({"v": V_target_val}))
 	
 	b[battery_current_matrix_idx] = V_target_val
 	if pos_idx != -1:
@@ -160,12 +156,12 @@ func gather_sim_results(
 	var comp_node = comp_data.component_node
 	var comp_id = comp_node.get_instance_id()
 
-	if vs_map.has(comp_id): 
-		var matrix_idx_curr_final = vs_map[comp_id]
-		var solved_current_mna = 0.0
-		if matrix_idx_curr_final < x.size() and not is_nan(x[matrix_idx_curr_final]):
-			solved_current_mna = x[matrix_idx_curr_final]
-		circuit.component_results[comp_id]["current"] = -solved_current_mna 
+	assert(vs_map.has(comp_id), "Battery {batid} not found in vs_map.".format({"batid": comp_id}))
+	var matrix_idx_curr_final = vs_map[comp_id]
+	assert(matrix_idx_curr_final < x.size(), "Battery current index out of bounds in solution vector.")
+	var solved_current_mna = x[matrix_idx_curr_final]
+	assert(!is_nan(solved_current_mna), "Solved battery current is NaN.")
+	circuit.component_results[comp_id]["current"] = -solved_current_mna 
 			
 		var term_p_fv = comp_data.terminals["POS"]
 		var term_n_fv = comp_data.terminals["NEG"]

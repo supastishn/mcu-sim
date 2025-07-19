@@ -98,7 +98,6 @@ func show_info(results: Dictionary):
 
 ## Updates the relay's energized state based on an MNA iteration.
 func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter: Array, node_map_iter: Dictionary, _vs_map_iter: Dictionary) -> bool:
-	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
 	if x_iter.is_empty():
 		return false
 
@@ -134,7 +133,6 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 		new_energized_state = signal_is_high_enough and vcc_is_sufficient
 
 	if new_energized_state != previous_energized_state:
-		if DEBUG: print("      Relay State Change: {old} -> {new}".format({"old": previous_energized_state, "new": new_energized_state}))
 		comp_data.properties["is_energized"] = new_energized_state
 		return true
 	return false
@@ -154,8 +152,6 @@ func stamp(
 	comp_data: Dictionary,
 	_delta_time: float
 ):
-	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
-	if DEBUG: print("      Relay Stamp: energized={e}".format({"e": comp_data.properties["is_energized"]}))
 	
 	var R_coil_path_val: float
 	# Use max() for coil resistance to avoid division by zero
@@ -201,11 +197,9 @@ func stamp(
 	if comp_data.properties["is_energized"]: 
 		CircuitGraph.stamp_conductance(A, g_sw_closed_val, idx_com_sw, idx_no_sw)
 		CircuitGraph.stamp_conductance(A, g_sw_open_val, idx_com_sw, idx_nc_sw)
-		CircuitGraph.stamp_conductance(A, g_sw_open_val, idx_no_sw, idx_nc_sw)
 	else: 
 		CircuitGraph.stamp_conductance(A, g_sw_open_val, idx_com_sw, idx_no_sw)
 		CircuitGraph.stamp_conductance(A, g_sw_closed_val, idx_com_sw, idx_nc_sw)
-		CircuitGraph.stamp_conductance(A, g_sw_open_val, idx_no_sw, idx_nc_sw)
 	return
 
 ## Hides the information label.

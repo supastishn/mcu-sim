@@ -164,6 +164,7 @@ func gather_sim_results(
 		current = 0.0
 	elif not is_nan(Va) and not is_nan(Vk):
 		var Vd = Va - Vk
+		assert(!is_nan(Vd), "LED Vd is NaN in gather_sim_results")
 		comp_data.properties["_internal_voltage"] = Vd
 
 		# Check for reverse breakdown
@@ -190,7 +191,6 @@ func stamp(
 	comp_data: Dictionary,
 	_delta_time: float
 ):
-	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
 	var is_burned = comp_data.get("is_burned", false)
 	if is_burned:
 		var ia = node_map.get(terminal_connections.get(terminal_anode.get_instance_id(), -1), -1)
@@ -208,7 +208,6 @@ func stamp(
 	# Linearized model from Shockley equation
 	var exp_term = exp(Vd_limited / n_vt)
 	var Geq = (saturation_current / n_vt) * exp_term
-	if DEBUG: print("      LED Stamp: Vd_last={v}, Geq={g}".format({"v": Vd_last_iter, "g": Geq}))
 
 	var na = terminal_connections.get(terminal_anode.get_instance_id(), -1)
 	var nk = terminal_connections.get(terminal_kathode.get_instance_id(), -1)
@@ -218,7 +217,6 @@ func stamp(
 	CircuitGraph.stamp_conductance(A, Geq, ia, ik)
 
 func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, F_v: Array, system: Dictionary, _delta_time: float):
-	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
 	var comp_data = graph.component_node_map.get(self)
 	if comp_data.get("is_burned", false):
 		return # No current contribution if burned
@@ -230,7 +228,7 @@ func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, 
 	var Vd = Va - Vk
 	
 	var current = saturation_current * (exp(Vd / (ideality_factor * THERMAL_VOLTAGE)) - 1.0)
-	if DEBUG: print("      LED KCL: Vd={v}, current={i}".format({"v": Vd, "i": current}))
+	assert(!is_nan(current), "LED current calculation resulted in NaN.")
 	
 	var ia = system.node_map.get(node_a_id, -1)
 	var ik = system.node_map.get(node_k_id, -1)

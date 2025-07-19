@@ -105,6 +105,7 @@ func gather_sim_results(
 	var current = NAN
 	var state = "OFF"
 
+	assert(!is_nan(Va) and !is_nan(Vk), "Zener terminal voltages are NaN in gather_sim_results.")
 	if not is_nan(Va) and not is_nan(Vk):
 		var Vd = Va - Vk
 		comp_data.properties["_internal_voltage"] = Vd
@@ -140,7 +141,6 @@ func stamp(
 	comp_data: Dictionary,
 	_delta_time: float
 ):
-	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
 	var Vd_last = comp_data.properties.get("_internal_voltage", 0.0)
 	var n_vt = ideality_factor * THERMAL_VOLTAGE
 	var Vz = zener_voltage
@@ -164,7 +164,6 @@ func stamp(
 
 	# Total linearized model
 	var Geq = G_fwd + G_rev
-	if DEBUG: print("      Zener Stamp: Vd_last={v}, Geq={g}".format({"v": Vd_last, "g": Geq}))
 
 	var ia = node_map.get(terminal_connections.get(terminal_anode.get_instance_id(), -1), -1)
 	var ik = node_map.get(terminal_connections.get(terminal_kathode.get_instance_id(), -1), -1)
@@ -172,7 +171,6 @@ func stamp(
 	CircuitGraph.stamp_conductance(A, Geq, ia, ik)
 
 func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, F_v: Array, system: Dictionary, _delta_time: float):
-	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
 	var node_a_id = graph.terminal_connections.get(terminal_anode.get_instance_id(), -1)
 	var node_k_id = graph.terminal_connections.get(terminal_kathode.get_instance_id(), -1)
 	var Va = graph.electrical_nodes.get(node_a_id, {}).get("voltage", 0.0)
@@ -187,7 +185,7 @@ func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, 
 	var I_fwd = Is * (exp(Vd / (n * V_thermal)) - 1.0)
 	var I_rev = Is * (exp(-(Vd + Vz) / V_thermal) - 1.0)
 	var current = I_fwd - I_rev
-	if DEBUG: print("      Zener KCL: Vd={v}, current={i}".format({"v": Vd, "i": current}))
+	assert(!is_nan(current), "Zener current calculation resulted in NaN.")
 
 	var ia = system.node_map.get(node_a_id, -1)
 	var ik = system.node_map.get(node_k_id, -1)
