@@ -117,7 +117,7 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 
 ## Stamps the regulator's voltage-enforcing contribution to the MNA matrices.
 func stamp(
-	A, b, node_map, _vs_map, _opamp_map, _inductor_map, terminal_connections, comp_data, _delta_time
+	A, b, node_map, _vs_map, _inductor_map, terminal_connections, comp_data, _delta_time
 ):
 	# Use a large conductance to enforce Vout = regulated_voltage or Vout = Vin - dropout_voltage
 	# This preserves KCL and circuit topology, similar to a SPICE voltage source with large G

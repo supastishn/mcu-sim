@@ -103,7 +103,6 @@ func stamp(
 	_b: Array, # Unused by Switch
 	node_map: Dictionary,
 	_vs_map: Dictionary, # Unused by Switch
-	_opamp_map: Dictionary,
 	_inductor_map: Dictionary, # Unused by Switch
 	terminal_connections: Dictionary,
 	comp_data: Dictionary, # Used for 'state' (current_state of switch)

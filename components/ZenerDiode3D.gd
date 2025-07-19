@@ -118,16 +118,16 @@ func gather_sim_results(
 		# Forward bias calculation
 		var I_fwd = Is * (exp(Vd / (n * V_thermal)) - 1.0)
 		
-		# Improved reverse bias (Zener) calculation
-		var I_rev = 0.0
-		if Vd < -0.1:
-			I_rev = -Is * exp((Vd + Vz) / (n * V_thermal))
+		# Reverse bias (Zener) calculation - consistent with get_kcl_contributions
+		var Vrev = -(Vd + Vz)
+		# Note: Reverse breakdown does not typically use ideality factor. Matching kcl function.
+		var I_rev = Is * (exp(Vrev / V_thermal) - 1.0)
 		
-		current = I_fwd + I_rev # Total current
+		current = I_fwd - I_rev # Total current
 
 		# Determine state for display
 		if Vd > 0.5: state = "FORWARD"
-		elif Vd < -Vz - 0.1: state = "ZENER"
+		elif Vd < -Vz: state = "ZENER"
 		else: state = "OFF"
 
 	circuit.component_results[comp_id]["current"] = current
@@ -140,7 +140,6 @@ func stamp(
 	b: Array,
 	node_map: Dictionary,
 	_vs_map: Dictionary,
-	_opamp_map: Dictionary,
 	_inductor_map: Dictionary,
 	terminal_connections: Dictionary,
 	comp_data: Dictionary,

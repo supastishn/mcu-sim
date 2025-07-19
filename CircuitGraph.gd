@@ -681,7 +681,6 @@ func _stamp_mna_matrices(system: Dictionary, delta_time: float) -> Dictionary:
 				b,
 				system.node_map,
 				system.vs_map,
-				system.opamp_map,
 				system.inductor_map,
 				terminal_connections,
 				comp_data_item,
@@ -705,11 +704,6 @@ func _build_system_structure() -> Dictionary:
 		elif comp_data_item_vs.type == "PowerSource" and comp_data_item_vs.properties.get("current_operating_mode") == "CV":
 			active_voltage_sources.push_back(comp_data_item_vs)
 
-	var active_opamps: Array[Dictionary] = []
-	for comp_data_item_opamp in components:
-		if comp_data_item_opamp.type == "OpAmp" and comp_data_item_opamp.properties.get("operating_region") == "LINEAR":
-			active_opamps.push_back(comp_data_item_opamp)
-
 	var active_inductors: Array[Dictionary] = []
 	for comp_data_item_L in components: 
 		if comp_data_item_L.type == "Inductor":
@@ -717,9 +711,8 @@ func _build_system_structure() -> Dictionary:
 
 	var num_nodes = non_ground_nodes.size()
 	var num_active_vs = active_voltage_sources.size()
-	var num_opamps = active_opamps.size()
 	var num_inductors = active_inductors.size()
-	var N = num_nodes + num_active_vs + num_opamps + num_inductors
+	var N = num_nodes + num_active_vs + num_inductors
 
 	var node_id_to_matrix_index: Dictionary = {}
 	for i in range(num_nodes):
@@ -731,17 +724,11 @@ func _build_system_structure() -> Dictionary:
 		var vs_id = vs_comp_data.component_node.get_instance_id()
 		active_vs_id_to_matrix_index[vs_id] = num_nodes + i 
 
-	var opamp_id_to_matrix_index: Dictionary = {}
-	for i in range(num_opamps):
-		var opamp_comp_data = active_opamps[i]
-		var opamp_id = opamp_comp_data.component_node.get_instance_id()
-		opamp_id_to_matrix_index[opamp_id] = num_nodes + num_active_vs + i
-
 	var inductor_id_to_matrix_index: Dictionary = {}
 	for i in range(num_inductors):
 		var ind_comp_data = active_inductors[i]
 		var ind_id = ind_comp_data.component_node.get_instance_id()
-		inductor_id_to_matrix_index[ind_id] = num_nodes + num_active_vs + num_opamps + i
+		inductor_id_to_matrix_index[ind_id] = num_nodes + num_active_vs + i
 	
 	# Discover internal nodes required by components
 	var internal_nodes: Array[int] = []
@@ -755,7 +742,7 @@ func _build_system_structure() -> Dictionary:
 	var num_internal_nodes = internal_nodes.size()
 	for i in range(num_internal_nodes):
 		var internal_node_id = internal_nodes[i]
-		node_id_to_matrix_index[internal_node_id] = num_nodes + num_active_vs + num_opamps + num_inductors + i
+		node_id_to_matrix_index[internal_node_id] = num_nodes + num_active_vs + num_inductors + i
 		if not electrical_nodes.has(internal_node_id):
 			electrical_nodes[internal_node_id] = {"terminals": [], "voltage": 0.0}
 		
@@ -766,7 +753,6 @@ func _build_system_structure() -> Dictionary:
 		"N": N,
 		"node_map": node_id_to_matrix_index,
 		"vs_map": active_vs_id_to_matrix_index,
-		"opamp_map": opamp_id_to_matrix_index,
 		"inductor_map": inductor_id_to_matrix_index
 	}
 

@@ -132,7 +132,6 @@ func stamp(
 	b: Array,
 	node_map: Dictionary,
 	vs_map: Dictionary,
-	_opamp_map: Dictionary,
 	_inductor_map: Dictionary,
 	terminal_connections: Dictionary,
 	comp_data: Dictionary,

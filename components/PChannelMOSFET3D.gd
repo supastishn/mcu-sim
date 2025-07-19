@@ -142,7 +142,7 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 
 # ---------- STAMP ----------
 ## Applies the MOSFET's contribution to the MNA matrices based on its current operating region.
-func stamp(A, b, node_map, _vs_map, _opamp_map, _inductor_map, term_conn, comp_data, _dt):
+func stamp(A, b, node_map, _vs_map, _inductor_map, term_conn, comp_data, _dt):
 	var reg = comp_data.properties.get("operating_region")
 	var vt  = threshold_voltage
 	var kp  = transconductance_parameter
