@@ -119,11 +119,43 @@ func stamp(
 	CircuitGraph.stamp_conductance(A, g1, idx1, idxW)
 	CircuitGraph.stamp_conductance(A, g2, idxW, idx2)
 
-func get_kcl_contributions(_graph: CircuitGraph, _all_node_voltages: Dictionary, _F_v: Array, _system: Dictionary, _delta_time: float):
-	# A potentiometer is a linear component. Its contribution to KCL is fully
-	# captured by the MNA matrix A, which is built in the `stamp` function.
-	# This function is only for non-linear current sources.
-	pass
+func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, F_v: Array, system: Dictionary, _delta_time: float):
+	var comp_data = graph.component_node_map.get(self)
+	if not comp_data: return
+	var total_R_val = comp_data.properties["total_resistance"]
+	var wiper_pos_val = comp_data.properties["wiper_position"]
+
+	var R1 = total_R_val * wiper_pos_val
+	if R1 < 1e-9: R1 = 1e-9
+	var g1 = 1.0 / R1
+	
+	var R2 = total_R_val * (1.0 - wiper_pos_val)
+	if R2 < 1e-9: R2 = 1e-9
+	var g2 = 1.0 / R2
+
+	var t1_id = terminal1.get_instance_id()
+	var t2_id = terminal2.get_instance_id()
+	var tw_id = terminal_wiper.get_instance_id()
+
+	var node1_id = graph.terminal_connections.get(t1_id, -1)
+	var node2_id = graph.terminal_connections.get(t2_id, -1)
+	var nodeW_id = graph.terminal_connections.get(tw_id, -1)
+	
+	var v1 = graph.electrical_nodes.get(node1_id, {}).get("voltage", 0.0)
+	var v2 = graph.electrical_nodes.get(node2_id, {}).get("voltage", 0.0)
+	var vW = graph.electrical_nodes.get(nodeW_id, {}).get("voltage", 0.0)
+	
+	var idx1 = system.node_map.get(node1_id, -1)
+	var idx2 = system.node_map.get(node2_id, -1)
+	var idxW = system.node_map.get(nodeW_id, -1)
+	
+	var current1W = g1 * (v1 - vW)
+	if idx1 != -1: F_v[idx1] += current1W
+	if idxW != -1: F_v[idxW] -= current1W
+	
+	var currentW2 = g2 * (vW - v2)
+	if idxW != -1: F_v[idxW] += currentW2
+	if idx2 != -1: F_v[idx2] -= currentW2
 
 ## Extracts and stores the currents flowing through the potentiometer's resistive segments.
 func gather_sim_results(
