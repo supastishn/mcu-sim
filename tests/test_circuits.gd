@@ -77,30 +77,6 @@ func run_all_tests() -> Dictionary:
 	return { "total": local_total_tests, "passed": local_passed_tests, "failed_names": local_failed_test_names }
 
 
-func _cleanup_components_and_graph(editor_script: CircuitEditor3D, graph_script: CircuitGraph):
-	if not is_instance_valid(editor_script) or not is_instance_valid(graph_script):
-		printerr("  CLEANUP FAIL: Invalid editor or graph script.")
-		return
-		
-	for cd in graph_script.components.duplicate():
-		graph_script.remove_component(cd.component_node)
-	
-	for child in editor_script.components_node.get_children(): 
-		child.queue_free()
-	for child in editor_script.wires_node.get_children():      
-		child.queue_free()
-
-	graph_script.electrical_nodes.clear()
-	graph_script.terminal_connections.clear()
-	graph_script.component_results.clear()
-	graph_script.ground_node_id = -1
-	graph_script._next_node_id  = 0
-	graph_script._is_solved     = false
-	graph_script._needs_rebuild = true
-	
-	await get_tree().process_frame
-
-
 ## Tests a basic circuit with a power supply, resistor, and LED to verify fundamental calculations.
 func test_simple_powersupply_resistor_led_circuit() -> bool:
 	var overall_test_passed = true
@@ -409,428 +385,286 @@ func test_potentiometer_behavior() -> bool:
 
 ## Tests the Battery component, ensuring its output voltage and supplied current are correct for different cell counts.
 func test_battery_behavior() -> bool:
-	var overall_test_passed = true
-	var editor_instance: Node3D = CircuitEditorScene.instantiate()
-	add_child(editor_instance)
-	await get_tree().process_frame
+	var ok := true
+	var rig := TestRig.new()
+	add_child(rig)
+	await rig.init()
+	var ed = rig.editor
 
-	var editor_script: CircuitEditor3D = editor_instance as CircuitEditor3D
-	var graph_script: CircuitGraph = editor_instance.circuit_graph
-	if not is_instance_valid(editor_script) or not is_instance_valid(graph_script):
-		printerr("  SETUP FAIL: Battery Test - Editor/Graph script invalid.")
-		if is_instance_valid(editor_instance): editor_instance.queue_free()
-		return false
-
-	var bat_node: Battery3D = editor_script._add_component(editor_script.BatteryScene, Vector3.ZERO) as Battery3D
-	var res_node: Resistor3D = editor_script._add_component(editor_script.ResistorScene, Vector3(1,0,0)) as Resistor3D
+	var bat_node: Battery3D = rig.add(ed.BatteryScene)
+	var res_node: Resistor3D = rig.add(ed.ResistorScene, Vector3(1,0,0))
 	
-	if not TestUtils.assert_true(is_instance_valid(bat_node) and is_instance_valid(res_node), "Battery Test: Components instantiated"):
-		if is_instance_valid(editor_instance): editor_instance.queue_free()
-		return false
-		
-	res_node.resistance = 1000.0 
-	graph_script.component_config_changed(res_node)
+	res_node.resistance = 1000.0
+	rig.cfg(res_node)
 
-	graph_script.connect_terminals(bat_node.terminal_pos, res_node.terminal1)
-	graph_script.connect_terminals(res_node.terminal2, bat_node.terminal_neg)
-	graph_script.set_ground_node(bat_node.terminal_neg)
+	rig.wire(bat_node.terminal_pos, res_node.terminal1)
+	rig.wire(res_node.terminal2, bat_node.terminal_neg)
+	rig.ground(bat_node.terminal_neg)
 
-	var test_cases_battery = [
+	var test_cases = [
 		{"cells": 1, "expected_v": 1.5},
 		{"cells": 2, "expected_v": 3.0},
 		{"cells": 4, "expected_v": 6.0}
 	]
 	
-	for case in test_cases_battery:
+	for case in test_cases:
 		print("  Battery Test: {c} cells".format({"c": case.cells}))
-		bat_node.set_num_cells(case.cells) 
-		editor_script._on_battery_config_changed(bat_node) 
+		bat_node.set_num_cells(case.cells)
 		
-		var solve_bat_success = graph_script.solve_single_time_step(0.01)
-		if not TestUtils.assert_true(solve_bat_success, "Battery Test ({c} cells): Solve successful".format({"c": case.cells})): overall_test_passed = false; continue
+		if not rig.solve(): ok = false; continue
 		
-		if solve_bat_success:
-			var res_term1_node_id = graph_script.terminal_connections.get(res_node.terminal1.get_instance_id(), -1)
-			var res_term2_node_id = graph_script.terminal_connections.get(res_node.terminal2.get_instance_id(), -1) 
-			
-			var v_res_t1 = graph_script.electrical_nodes.get(res_term1_node_id, {}).get("voltage", NAN)
-			var v_res_t2 = graph_script.electrical_nodes.get(res_term2_node_id, {}).get("voltage", 0.0) 
-			
-			var v_across_res = NAN
-			if not is_nan(v_res_t1): v_across_res = v_res_t1 - v_res_t2
-			
-			if not TestUtils.assert_approx_equals(v_across_res, case.expected_v, 0.01, "Battery Test ({c} cells): Voltage across resistor matches battery voltage".format({"c": case.cells})): overall_test_passed = false
-			
-			var bat_results = graph_script.component_results.get(bat_node.get_instance_id(), {})
-			var bat_current_supplied = bat_results.get("current", NAN) 
-			var expected_current = case.expected_v / res_node.resistance
-			if not TestUtils.assert_approx_equals(bat_current_supplied, expected_current, 0.0001, "Battery Test ({c} cells): Current matches expected".format({"c": case.cells})): overall_test_passed = false
+		var bat_results = rig.results(bat_node)
+		var voltage_across = bat_results.get("voltage", NAN)
+		var current_supplied = bat_results.get("current", NAN)
+		var expected_current = case.expected_v / res_node.resistance
+		
+		var v_msg = "Battery Test ({c} cells): Voltage across terminals matches".format({"c": case.cells})
+		if not TestUtils.assert_approx_equals(voltage_across, case.expected_v, 0.01, v_msg): ok = false
+		
+		var i_msg = "Battery Test ({c} cells): Current matches expected".format({"c": case.cells})
+		if not TestUtils.assert_approx_equals(current_supplied, expected_current, 0.0001, i_msg): ok = false
 
-	editor_instance.queue_free()
-	return overall_test_passed
+	rig.cleanup()
+	return ok
 
 
 ## Tests the Polarized Capacitor, verifying its charging behavior and that it correctly "explodes" when over-voltaged.
 func test_polarized_capacitor_behavior() -> bool:
-	var overall_test_passed = true
-	var editor_instance: Node3D = CircuitEditorScene.instantiate()
-	add_child(editor_instance)
-	await get_tree().process_frame
+	var ok := true
+	var rig := TestRig.new()
+	add_child(rig)
+	await rig.init()
+	var g = rig.graph
+	var ed = rig.editor
 
-	var editor_script: CircuitEditor3D = editor_instance as CircuitEditor3D
-	var graph_script: CircuitGraph = editor_instance.circuit_graph
-	if not is_instance_valid(editor_script) or not is_instance_valid(graph_script):
-		printerr("  SETUP FAIL: Polarized Capacitor Test - Editor/Graph script invalid.")
-		if is_instance_valid(editor_instance): editor_instance.queue_free()
-		return false
-
-	var ps_node: PowerSource3D = editor_script._add_component(editor_script.PowerSourceScene, Vector3.ZERO) as PowerSource3D
-	var res_node: Resistor3D = editor_script._add_component(editor_script.ResistorScene, Vector3(1,0,0)) as Resistor3D
-	var cap_node: PolarizedCapacitor3D = editor_script._add_component(editor_script.PolarizedCapacitorScene, Vector3(2,0,0)) as PolarizedCapacitor3D
-
-	if not TestUtils.assert_true(is_instance_valid(ps_node) and is_instance_valid(res_node) and is_instance_valid(cap_node), "Polarized Capacitor Test: All components instantiated"):
-		if is_instance_valid(editor_instance): editor_instance.queue_free()
-		return false
+	var ps_node: PowerSource3D = rig.add(ed.PowerSourceScene)
+	var res_node: Resistor3D = rig.add(ed.ResistorScene, Vector3(1,0,0))
+	var cap_node: PolarizedCapacitor3D = rig.add(ed.PolarizedCapacitorScene, Vector3(2,0,0))
 
 	print("  Polarized Capacitor Test: Charging.")
-	ps_node.target_voltage = 10.0
-	graph_script.component_config_changed(ps_node)
-	res_node.resistance = 1000.0 
-	graph_script.component_config_changed(res_node)
-	cap_node.capacitance = 100e-6 
-	cap_node.max_voltage = 16.0
-	graph_script.component_config_changed(cap_node) 
+	ps_node.target_voltage = 10.0; rig.cfg(ps_node)
+	res_node.resistance = 1000.0; rig.cfg(res_node)
+	cap_node.capacitance = 100e-6; cap_node.max_voltage = 16.0; rig.cfg(cap_node)
 
-	graph_script.connect_terminals(ps_node.terminal_pos, res_node.terminal1)
-	graph_script.connect_terminals(res_node.terminal2, cap_node.terminal1) 
-	graph_script.connect_terminals(cap_node.terminal2, ps_node.terminal_neg) 
-	graph_script.set_ground_node(ps_node.terminal_neg)
+	rig.wire(ps_node.terminal_pos, res_node.terminal1)
+	rig.wire(res_node.terminal2, cap_node.terminal1)
+	rig.wire(cap_node.terminal2, ps_node.terminal_neg)
+	rig.ground(ps_node.terminal_neg)
 
-	var solve_charge_success = true
-	var cap_voltage_t0 = 0.0
-	var num_steps = 5
-	var dt = 0.02 
-	var exploded_during_charge = false
-
-	for i in range(num_steps):
-		if not graph_script.solve_single_time_step(dt):
-			solve_charge_success = false
-			break
-		var cap_results = graph_script.component_results.get(cap_node.get_instance_id(), {})
-		cap_voltage_t0 = cap_results.get("voltage_across", NAN) 
-		print_debug("    Step {s_idx}: Vcap = {v_cap_val}".format({"s_idx": i + 1, "v_cap_val": cap_voltage_t0}))
-		var cap_graph_data_charge = null
-		for d in graph_script.components:
-			if d.component_node == cap_node:
-				cap_graph_data_charge = d
-				break
-		if cap_graph_data_charge and cap_graph_data_charge.get("is_exploded", false):
-			exploded_during_charge = true
-			solve_charge_success = false
-			break
-
-	if not solve_charge_success:
-		if exploded_during_charge:
-			print_rich("[color=yellow]Capacitor exploded during initial charge (overvoltage) -- this is expected in some scenarios.[/color]")
-		else:
-			overall_test_passed = false
-	if solve_charge_success:
-		var expected_voltage_after_1tc = 10.0 * (1.0 - exp(-1.0)) 
-		if not TestUtils.assert_approx_equals(cap_voltage_t0, expected_voltage_after_1tc, 0.5, "Polarized Capacitor Test (Charging): Voltage after ~1 TC is ~6.32V"): overall_test_passed = false
-		var cap_graph_data_charge = null
-		for d in graph_script.components:
-			if d.component_node == cap_node:
-				cap_graph_data_charge = d
-				break
-		if not TestUtils.assert_false(cap_graph_data_charge.get("is_exploded", true), "Polarized Capacitor Test (Charging): Capacitor is NOT exploded"): overall_test_passed = false
-
+	var cap_voltage = 0.0
+	var dt = 0.02 # Time constant is R*C = 1k * 100uF = 0.1s. 5 steps of 0.02s is 0.1s.
+	for i in range(5):
+		if not rig.solve(dt): ok = false; break
+		var cap_results = rig.results(cap_node)
+		cap_voltage = cap_results.get("voltage_across", NAN)
+	
+	if ok:
+		var expected_voltage_after_1tc = 10.0 * (1.0 - exp(-1.0)) # ~6.32V
+		if not TestUtils.assert_approx_equals(cap_voltage, expected_voltage_after_1tc, 0.5, "Polarized Capacitor Test (Charging): Voltage after ~1 TC is correct"): ok = false
+		var cap_graph_data = g.component_node_map.get(cap_node)
+		if not TestUtils.assert_false(cap_graph_data.get("is_exploded", true), "Polarized Capacitor Test (Charging): Capacitor is NOT exploded"): ok = false
 
 	print("  Polarized Capacitor Test: Explosion (Overvoltage).")
-	ps_node.target_voltage = 20.0 
-	graph_script.component_config_changed(ps_node)
+	ps_node.target_voltage = 20.0; rig.cfg(ps_node)
 	
-	var exploded_in_sim = false
-	for i in range(15): 
-		if not graph_script.solve_single_time_step(dt):
-			break 
-		var cap_graph_data_explode_check = null
-		for d in graph_script.components:
-			if d.component_node == cap_node:
-				cap_graph_data_explode_check = d
-				break
-		if cap_graph_data_explode_check and cap_graph_data_explode_check.get("is_exploded", false):
-			exploded_in_sim = true
+	var exploded = false
+	for i in range(15):
+		if not rig.solve(dt): ok = false; break
+		var cap_graph_data = g.component_node_map.get(cap_node)
+		if cap_graph_data.get("is_exploded", false):
+			exploded = true
 			break
-		var cap_results_explode = graph_script.component_results.get(cap_node.get_instance_id(), {})
-		var v_cap_explode_step = cap_results_explode.get("voltage_across", NAN)
-		print_debug("    Explosion Test Step {s_idx}: Vcap = {v_cap_val}".format({"s_idx": i + 1, "v_cap_val": v_cap_explode_step}))
-
-
-	var cap_graph_data_explode = null
-	for d in graph_script.components:
-		if d.component_node == cap_node:
-			cap_graph_data_explode = d
-			break
-	if not TestUtils.assert_true(cap_graph_data_explode.get("is_exploded", false), "Polarized Capacitor Test (Overvoltage): Capacitor IS exploded"): overall_test_passed = false
 	
-	editor_instance.queue_free()
-	return overall_test_passed
+	if not TestUtils.assert_true(exploded, "Polarized Capacitor Test (Overvoltage): Capacitor IS exploded"): ok = false
+
+	rig.cleanup()
+	return ok
 
 
 ## Tests the Non-Polarized Capacitor, verifying its charging behavior in an RC circuit.
 func test_non_polarized_capacitor_behavior() -> bool:
-	var overall_test_passed = true
-	var editor_instance: Node3D = CircuitEditorScene.instantiate()
-	add_child(editor_instance)
-	await get_tree().process_frame
+	var ok := true
+	var rig := TestRig.new()
+	add_child(rig)
+	await rig.init()
+	var ed = rig.editor
 
-	var editor_script: CircuitEditor3D = editor_instance as CircuitEditor3D
-	var graph_script: CircuitGraph = editor_instance.circuit_graph
-	if not is_instance_valid(editor_script) or not is_instance_valid(graph_script):
-		printerr("  SETUP FAIL: Non-Polarized Capacitor Test - Editor/Graph script invalid.")
-		if is_instance_valid(editor_instance): editor_instance.queue_free()
-		return false
+	var ps_node: PowerSource3D = rig.add(ed.PowerSourceScene)
+	var res_node: Resistor3D = rig.add(ed.ResistorScene, Vector3(1,0,0))
+	var cap_node: NonPolarizedCapacitor3D = rig.add(ed.NonPolarizedCapacitorScene, Vector3(2,0,0))
 
-	var ps_node: PowerSource3D = editor_script._add_component(editor_script.PowerSourceScene, Vector3.ZERO) as PowerSource3D
-	var res_node: Resistor3D = editor_script._add_component(editor_script.ResistorScene, Vector3(1,0,0)) as Resistor3D
-	var cap_node: NonPolarizedCapacitor3D = editor_script._add_component(editor_script.NonPolarizedCapacitorScene, Vector3(2,0,0)) as NonPolarizedCapacitor3D
+	ps_node.target_voltage = 10.0; rig.cfg(ps_node)
+	res_node.resistance = 1000.0; rig.cfg(res_node)
+	cap_node.capacitance = 10e-6; cap_node.max_voltage = 50.0; rig.cfg(cap_node)
 
-	if not TestUtils.assert_true(is_instance_valid(ps_node) and is_instance_valid(res_node) and is_instance_valid(cap_node), "Non-Polarized Capacitor Test: All components instantiated"):
-		if is_instance_valid(editor_instance): editor_instance.queue_free()
-		return false
+	rig.wire(ps_node.terminal_pos, res_node.terminal1)
+	rig.wire(res_node.terminal2, cap_node.terminal1)
+	rig.wire(cap_node.terminal2, ps_node.terminal_neg)
+	rig.ground(ps_node.terminal_neg)
 
-	ps_node.target_voltage = 10.0
-	graph_script.component_config_changed(ps_node)
-	res_node.resistance = 1000.0 
-	graph_script.component_config_changed(res_node)
-	cap_node.capacitance = 10e-6 
-	cap_node.max_voltage = 50.0 
-	graph_script.component_config_changed(cap_node)
+	var cap_voltage = 0.0
+	# Time constant is R*C = 1k * 10uF = 0.01s. 5 steps of 0.002s is 0.01s (1 TC).
+	var dt = 0.002
+	for i in range(5):
+		if not rig.solve(dt): ok = false; break
+		var cap_results = rig.results(cap_node)
+		cap_voltage = cap_results.get("voltage_across", NAN)
 
-	graph_script.connect_terminals(ps_node.terminal_pos, res_node.terminal1)
-	graph_script.connect_terminals(res_node.terminal2, cap_node.terminal1)
-	graph_script.connect_terminals(cap_node.terminal2, ps_node.terminal_neg)
-	graph_script.set_ground_node(ps_node.terminal_neg)
+	if ok:
+		var expected_voltage = 10.0 * (1.0 - exp(-1.0)) # ~6.32V
+		if not TestUtils.assert_approx_equals(cap_voltage, expected_voltage, 0.5, "Non-Polarized Capacitor Test: Voltage after ~1 TC is correct"): ok = false
 
-	var solve_charge_success = true
-	var cap_voltage_val = 0.0
-	var num_steps = 5
-	var dt = 0.002 
-	
-	for i in range(num_steps):
-		if not graph_script.solve_single_time_step(dt):
-			solve_charge_success = false; break
-		var cap_results = graph_script.component_results.get(cap_node.get_instance_id(), {})
-		cap_voltage_val = cap_results.get("voltage_across", NAN)
-		print_debug("    NP Cap Charge Step {s_idx}: Vcap = {v_cap_val}".format({"s_idx": i + 1, "v_cap_val": cap_voltage_val}))
-
-
-	if not TestUtils.assert_true(solve_charge_success, "Non-Polarized Capacitor Test: Simulation solve successful for all steps"): overall_test_passed = false
-	if solve_charge_success:
-		var expected_voltage_after_1tc = 10.0 * (1.0 - exp(-1.0)) 
-		if not TestUtils.assert_approx_equals(cap_voltage_val, expected_voltage_after_1tc, 0.5, "Non-Polarized Capacitor Test: Voltage after ~1 TC is ~6.32V"): overall_test_passed = false
-	
-	editor_instance.queue_free()
-	return overall_test_passed
+	rig.cleanup()
+	return ok
 
 
 ## Tests the Inductor, verifying its current-ramping behavior in an RL circuit.
 func test_inductor_behavior() -> bool:
-	var overall_test_passed = true
-	var editor_instance: Node3D = CircuitEditorScene.instantiate()
-	add_child(editor_instance)
-	await get_tree().process_frame
+	var ok := true
+	var rig := TestRig.new()
+	add_child(rig)
+	await rig.init()
+	var ed = rig.editor
 
-	var editor_script: CircuitEditor3D = editor_instance as CircuitEditor3D
-	var graph_script: CircuitGraph = editor_instance.circuit_graph
-	if not is_instance_valid(editor_script) or not is_instance_valid(graph_script):
-		printerr("  SETUP FAIL: Inductor Test - Editor/Graph script invalid.")
-		if is_instance_valid(editor_instance): editor_instance.queue_free()
-		return false
+	var ps_node: PowerSource3D = rig.add(ed.PowerSourceScene)
+	var res_node: Resistor3D = rig.add(ed.ResistorScene, Vector3(1,0,0))
+	var ind_node: Inductor3D = rig.add(ed.InductorScene, Vector3(2,0,0))
 
-	var ps_node: PowerSource3D = editor_script._add_component(editor_script.PowerSourceScene, Vector3.ZERO) as PowerSource3D
-	var res_node: Resistor3D = editor_script._add_component(editor_script.ResistorScene, Vector3(1,0,0)) as Resistor3D 
-	var ind_node: Inductor3D = editor_script._add_component(editor_script.InductorScene, Vector3(2,0,0)) as Inductor3D
+	ps_node.target_voltage = 10.0; rig.cfg(ps_node)
+	res_node.resistance = 100.0; rig.cfg(res_node)
+	ind_node.inductance = 10e-3; rig.cfg(ind_node)
 
-	if not TestUtils.assert_true(is_instance_valid(ps_node) and is_instance_valid(res_node) and is_instance_valid(ind_node), "Inductor Test: All components instantiated"):
-		if is_instance_valid(editor_instance): editor_instance.queue_free()
-		return false
+	rig.wire(ps_node.terminal_pos, res_node.terminal1)
+	rig.wire(res_node.terminal2, ind_node.terminal1)
+	rig.wire(ind_node.terminal2, ps_node.terminal_neg)
+	rig.ground(ps_node.terminal_neg)
 
-	ps_node.target_voltage = 10.0
-	graph_script.component_config_changed(ps_node)
-	res_node.resistance = 100.0 
-	graph_script.component_config_changed(res_node)
-	ind_node.inductance = 10e-3 
-	graph_script.component_config_changed(ind_node) 
+	var inductor_current = 0.0
+	# Time constant is L/R = 10mH / 100R = 0.0001s (100us). 5 steps of 20us is 100us.
+	var dt = 0.00002
+	for i in range(5):
+		if not rig.solve(dt): ok = false; break
+		var ind_results = rig.results(ind_node)
+		inductor_current = ind_results.get("current", NAN)
 
-	graph_script.connect_terminals(ps_node.terminal_pos, res_node.terminal1)
-	graph_script.connect_terminals(res_node.terminal2, ind_node.terminal1)
-	graph_script.connect_terminals(ind_node.terminal2, ps_node.terminal_neg)
-	graph_script.set_ground_node(ps_node.terminal_neg)
+	if ok:
+		var expected_current = (10.0 / 100.0) * (1.0 - exp(-1.0)) # ~0.0632A
+		if not TestUtils.assert_approx_equals(inductor_current, expected_current, 0.01, "Inductor Test: Current after ~1 TC is correct"): ok = false
 
-	var solve_success = true
-	var inductor_current_val = 0.0
-	var num_steps = 5
-	var dt = 0.00002 
-
-	for i in range(num_steps):
-		if not graph_script.solve_single_time_step(dt):
-			solve_success = false; break
-		var ind_results = graph_script.component_results.get(ind_node.get_instance_id(), {})
-		inductor_current_val = ind_results.get("current", NAN)
-		print_debug("    Inductor Current Step {s_idx}: I_L = {i_l_val}".format({"s_idx": i + 1, "i_l_val": inductor_current_val}))
-
-
-	if not TestUtils.assert_true(solve_success, "Inductor Test: Simulation solve successful for all steps"): overall_test_passed = false
-	if solve_success:
-		var expected_current_after_1tc = (10.0 / 100.0) * (1.0 - exp(-1.0)) 
-		if not TestUtils.assert_approx_equals(inductor_current_val, expected_current_after_1tc, 0.01, "Inductor Test: Current after ~1 TC is ~0.0632A"): overall_test_passed = false
-	
-	editor_instance.queue_free()
-	return overall_test_passed
+	rig.cleanup()
+	return ok
 
 
 ## Tests the NPN BJT model in its three main operating regions: Cutoff, Active, and Saturation.
 func test_npn_bjt_regions() -> bool:
-	var overall_test_passed = true
-	var editor_instance: Node3D = CircuitEditorScene.instantiate()
-	add_child(editor_instance)
-	await get_tree().process_frame
+	var ok := true
+	var rig := TestRig.new()
+	add_child(rig)
+	await rig.init()
+	var g = rig.graph
+	var ed = rig.editor
 
-	var editor_script: CircuitEditor3D = editor_instance as CircuitEditor3D
-	var graph_script: CircuitGraph = editor_instance.circuit_graph
-	if not is_instance_valid(editor_script) or not is_instance_valid(graph_script):
-		printerr("  SETUP FAIL: NPN BJT Test - Editor/Graph script invalid.")
-		if is_instance_valid(editor_instance): editor_instance.queue_free()
-		return false
-
+	# --- Cutoff Region ---
 	print("  NPN BJT Test: Cutoff Region.")
-	var ps_cutoff: PowerSource3D = editor_script._add_component(editor_script.PowerSourceScene, Vector3.ZERO) as PowerSource3D
-	var rc_cutoff: Resistor3D = editor_script._add_component(editor_script.ResistorScene, Vector3(1,0,0)) as Resistor3D
-	var bjt_cutoff: NPNBJT3D = editor_script._add_component(editor_script.NPNBJTScene, Vector3(2,0,0)) as NPNBJT3D
+	var ps_cutoff: PowerSource3D = rig.add(ed.PowerSourceScene)
+	var rc_cutoff: Resistor3D = rig.add(ed.ResistorScene, Vector3(1,0,0))
+	var bjt_cutoff: NPNBJT3D = rig.add(ed.NPNBJTScene, Vector3(2,0,0))
 
-	ps_cutoff.target_voltage = 10.0 
-	graph_script.component_config_changed(ps_cutoff)
-	rc_cutoff.resistance = 1000.0 
-	graph_script.component_config_changed(rc_cutoff)
-	bjt_cutoff.saturation_current = 1e-15
-	bjt_cutoff.alpha_forward = 0.99
-	bjt_cutoff.alpha_reverse = 0.5
+	ps_cutoff.target_voltage = 10.0; rig.cfg(ps_cutoff)
+	rc_cutoff.resistance = 1000.0; rig.cfg(rc_cutoff)
+	bjt_cutoff.saturation_current = 1e-15; bjt_cutoff.alpha_forward = 0.99; bjt_cutoff.alpha_reverse = 0.5; rig.cfg(bjt_cutoff)
 
-	graph_script.connect_terminals(ps_cutoff.terminal_pos, rc_cutoff.terminal1)
-	graph_script.connect_terminals(rc_cutoff.terminal2, bjt_cutoff.terminal_c)
-	graph_script.connect_terminals(bjt_cutoff.terminal_e, ps_cutoff.terminal_neg) 
-	graph_script.connect_terminals(bjt_cutoff.terminal_b, ps_cutoff.terminal_neg) 
-	graph_script.set_ground_node(ps_cutoff.terminal_neg)
+	rig.wire(ps_cutoff.terminal_pos, rc_cutoff.terminal1)
+	rig.wire(rc_cutoff.terminal2, bjt_cutoff.terminal_c)
+	rig.wire(bjt_cutoff.terminal_e, ps_cutoff.terminal_neg)
+	rig.wire(bjt_cutoff.terminal_b, ps_cutoff.terminal_neg)
+	rig.ground(ps_cutoff.terminal_neg)
 
-	var solve_cutoff = graph_script.solve_single_time_step(0.01)
-	if not TestUtils.assert_true(solve_cutoff, "NPN BJT Test (Cutoff): Solve successful"): overall_test_passed = false
-	if solve_cutoff:
-		var bjt_results_cutoff = graph_script.component_results.get(bjt_cutoff.get_instance_id(), {})
-		var ic_cutoff = bjt_results_cutoff.get("Ic", NAN)
-		var region_cutoff = bjt_results_cutoff.get("region", "ERROR")
-		if not TestUtils.assert_equals(region_cutoff, "OFF", "NPN BJT Test (Cutoff): Region is OFF"): overall_test_passed = false
-		if not TestUtils.assert_approx_equals(ic_cutoff, 0.0, 1e-6, "NPN BJT Test (Cutoff): Collector current is near zero"): overall_test_passed = false
+	if not rig.solve(): ok = false
+	if ok:
+		var results = rig.results(bjt_cutoff)
+		if not TestUtils.assert_equals(results.get("region", "ERROR"), "OFF", "NPN BJT Test (Cutoff): Region is OFF"): ok = false
+		if not TestUtils.assert_approx_equals(results.get("Ic", NAN), 0.0, 1e-6, "NPN BJT Test (Cutoff): Collector current is near zero"): ok = false
 
-	await _cleanup_components_and_graph(editor_script, graph_script) 
-
+	# --- Active Region ---
 	print("  NPN BJT Test: Active Region.")
-	var ps_active_vcc: PowerSource3D = editor_script._add_component(editor_script.PowerSourceScene, Vector3.ZERO) as PowerSource3D
-	var ps_active_vbb: PowerSource3D = editor_script._add_component(editor_script.PowerSourceScene, Vector3(0,0,1)) as PowerSource3D 
-	var rc_active: Resistor3D = editor_script._add_component(editor_script.ResistorScene, Vector3(1,0,0)) as Resistor3D
-	var rb_active: Resistor3D = editor_script._add_component(editor_script.ResistorScene, Vector3(1,0,1)) as Resistor3D
-	var bjt_active: NPNBJT3D = editor_script._add_component(editor_script.NPNBJTScene, Vector3(2,0,0)) as NPNBJT3D
+	await rig.reset_graph()
+	var ps_active_vcc: PowerSource3D = rig.add(ed.PowerSourceScene)
+	var ps_active_vbb: PowerSource3D = rig.add(ed.PowerSourceScene, Vector3(0,0,1))
+	var rc_active: Resistor3D = rig.add(ed.ResistorScene, Vector3(1,0,0))
+	var rb_active: Resistor3D = rig.add(ed.ResistorScene, Vector3(1,0,1))
+	var bjt_active: NPNBJT3D = rig.add(ed.NPNBJTScene, Vector3(2,0,0))
 
-	ps_active_vcc.target_voltage = 10.0
-	graph_script.component_config_changed(ps_active_vcc)
-	ps_active_vbb.target_voltage = 2.0 
-	graph_script.component_config_changed(ps_active_vbb)
-	rc_active.resistance = 1000.0 
-	graph_script.component_config_changed(rc_active)
-	rb_active.resistance = 10000.0 
-	graph_script.component_config_changed(rb_active)
-	bjt_active.alpha_forward = 0.99 # Corresponds to beta ~99
-	graph_script.component_config_changed(bjt_active)
+	ps_active_vcc.target_voltage = 10.0; rig.cfg(ps_active_vcc)
+	ps_active_vbb.target_voltage = 2.0; rig.cfg(ps_active_vbb)
+	rc_active.resistance = 1000.0; rig.cfg(rc_active)
+	rb_active.resistance = 27000.0; rig.cfg(rb_active) # Changed from 10k to ensure active
+	bjt_active.alpha_forward = 0.99; rig.cfg(bjt_active) # beta ~99
 
-	graph_script.connect_terminals(ps_active_vcc.terminal_pos, rc_active.terminal1)
-	graph_script.connect_terminals(rc_active.terminal2, bjt_active.terminal_c)
-	graph_script.connect_terminals(bjt_active.terminal_e, ps_active_vcc.terminal_neg)
-	graph_script.connect_terminals(ps_active_vbb.terminal_pos, rb_active.terminal1)
-	graph_script.connect_terminals(rb_active.terminal2, bjt_active.terminal_b)
-	graph_script.connect_terminals(ps_active_vbb.terminal_neg, ps_active_vcc.terminal_neg) 
-	graph_script.set_ground_node(ps_active_vcc.terminal_neg)
+	rig.wire(ps_active_vcc.terminal_pos, rc_active.terminal1)
+	rig.wire(rc_active.terminal2, bjt_active.terminal_c)
+	rig.wire(bjt_active.terminal_e, ps_active_vcc.terminal_neg)
+	rig.wire(ps_active_vbb.terminal_pos, rb_active.terminal1)
+	rig.wire(rb_active.terminal2, bjt_active.terminal_b)
+	rig.wire(ps_active_vbb.terminal_neg, ps_active_vcc.terminal_neg)
+	rig.ground(ps_active_vcc.terminal_neg)
 
-	var solve_active = graph_script.solve_single_time_step(0.01)
-	if not TestUtils.assert_true(solve_active, "NPN BJT Test (Active): Solve successful"): overall_test_passed = false
-	if solve_active:
-		var bjt_results_active = graph_script.component_results.get(bjt_active.get_instance_id(), {})
-		var ic_active = bjt_results_active.get("Ic", NAN)
-		var ib_active = bjt_results_active.get("Ib", NAN)
-		var region_active = bjt_results_active.get("region", "ERROR")
-		rb_active.resistance = 27000.0
-		graph_script.component_config_changed(rb_active)
-		solve_active = graph_script.solve_single_time_step(0.01)
-		bjt_results_active = graph_script.component_results.get(bjt_active.get_instance_id(), {})
-		ic_active = bjt_results_active.get("Ic", NAN); ib_active = bjt_results_active.get("Ib", NAN); region_active = bjt_results_active.get("region", "ERROR")
+	if not rig.solve(): ok = false
+	if ok:
+		var results = rig.results(bjt_active)
+		var ic = results.get("Ic", NAN)
+		var ib = results.get("Ib", NAN)
 		var beta = bjt_active.alpha_forward / (1.0 - bjt_active.alpha_forward)
 		
-		if not TestUtils.assert_equals(region_active, "ACTIVE", "NPN BJT Test (Active): Region is ACTIVE"): overall_test_passed = false
-		# Vbe is not a fixed param, but should be ~0.7V. Ib = (2.0-0.7)/27k = ~48uA
-		if not TestUtils.assert_approx_equals(ib_active, 4.8e-5, 1e-5, "NPN BJT Test (Active): Base current is in expected range"): overall_test_passed = false
-		if not TestUtils.assert_approx_equals(ic_active, beta * ib_active, 5e-4, "NPN BJT Test (Active): Collector current is beta * Ib"): overall_test_passed = false
+		if not TestUtils.assert_equals(results.get("region", "ERROR"), "ACTIVE", "NPN BJT Test (Active): Region is ACTIVE"): ok = false
+		# Vbe is not fixed, but should be ~0.7V. Ib = (2.0-0.7)/27k = ~48uA
+		if not TestUtils.assert_approx_equals(ib, 4.8e-5, 1e-5, "NPN BJT Test (Active): Base current is in expected range"): ok = false
+		if not TestUtils.assert_approx_equals(ic, beta * ib, 5e-4, "NPN BJT Test (Active): Collector current is beta * Ib"): ok = false
 
-
-	await _cleanup_components_and_graph(editor_script, graph_script)
-
+	# --- Saturation Region ---
 	print("  NPN BJT Test: Saturation Region.")
-	var ps_sat_vcc: PowerSource3D = editor_script._add_component(editor_script.PowerSourceScene, Vector3.ZERO) as PowerSource3D
-	var ps_sat_vbb: PowerSource3D = editor_script._add_component(editor_script.PowerSourceScene, Vector3(0,0,1)) as PowerSource3D
-	var rc_sat: Resistor3D = editor_script._add_component(editor_script.ResistorScene, Vector3(1,0,0)) as Resistor3D
-	var rb_sat: Resistor3D = editor_script._add_component(editor_script.ResistorScene, Vector3(1,0,1)) as Resistor3D
-	var bjt_sat: NPNBJT3D = editor_script._add_component(editor_script.NPNBJTScene, Vector3(2,0,0)) as NPNBJT3D
+	await rig.reset_graph()
+	var ps_sat_vcc: PowerSource3D = rig.add(ed.PowerSourceScene)
+	var ps_sat_vbb: PowerSource3D = rig.add(ed.PowerSourceScene, Vector3(0,0,1))
+	var rc_sat: Resistor3D = rig.add(ed.ResistorScene, Vector3(1,0,0))
+	var rb_sat: Resistor3D = rig.add(ed.ResistorScene, Vector3(1,0,1))
+	var bjt_sat: NPNBJT3D = rig.add(ed.NPNBJTScene, Vector3(2,0,0))
 
-	ps_sat_vcc.target_voltage = 10.0
-	graph_script.component_config_changed(ps_sat_vcc)
-	ps_sat_vbb.target_voltage = 5.0 
-	graph_script.component_config_changed(ps_sat_vbb)
-	rc_sat.resistance = 1000.0 
-	graph_script.component_config_changed(rc_sat)
-	rb_sat.resistance = 10000.0 
-	graph_script.component_config_changed(rb_sat)
-	bjt_sat.alpha_forward = 0.99 # Corresponds to beta ~99
-	graph_script.component_config_changed(bjt_sat)
+	ps_sat_vcc.target_voltage = 10.0; rig.cfg(ps_sat_vcc)
+	ps_sat_vbb.target_voltage = 5.0; rig.cfg(ps_sat_vbb)
+	rc_sat.resistance = 1000.0; rig.cfg(rc_sat)
+	rb_sat.resistance = 10000.0; rig.cfg(rb_sat)
+	bjt_sat.alpha_forward = 0.99; rig.cfg(bjt_sat)
 	
-	graph_script.connect_terminals(ps_sat_vcc.terminal_pos, rc_sat.terminal1)
-	graph_script.connect_terminals(rc_sat.terminal2, bjt_sat.terminal_c)
-	graph_script.connect_terminals(bjt_sat.terminal_e, ps_sat_vcc.terminal_neg)
-	graph_script.connect_terminals(ps_sat_vbb.terminal_pos, rb_sat.terminal1)
-	graph_script.connect_terminals(rb_sat.terminal2, bjt_sat.terminal_b)
-	graph_script.connect_terminals(ps_sat_vbb.terminal_neg, ps_sat_vcc.terminal_neg)
-	graph_script.set_ground_node(ps_sat_vcc.terminal_neg)
+	rig.wire(ps_sat_vcc.terminal_pos, rc_sat.terminal1)
+	rig.wire(rc_sat.terminal2, bjt_sat.terminal_c)
+	rig.wire(bjt_sat.terminal_e, ps_sat_vcc.terminal_neg)
+	rig.wire(ps_sat_vbb.terminal_pos, rb_sat.terminal1)
+	rig.wire(rb_sat.terminal2, bjt_sat.terminal_b)
+	rig.wire(ps_sat_vbb.terminal_neg, ps_sat_vcc.terminal_neg)
+	rig.ground(ps_sat_vcc.terminal_neg)
 
-	var solve_sat = graph_script.solve_single_time_step(0.01)
-	if not TestUtils.assert_true(solve_sat, "NPN BJT Test (Saturation): Solve successful"): overall_test_passed = false
-	if solve_sat:
-		var bjt_results_sat = graph_script.component_results.get(bjt_sat.get_instance_id(), {})
-		var ic_sat = bjt_results_sat.get("Ic", NAN)
-		var ib_sat = bjt_results_sat.get("Ib", NAN)
-		var region_sat = bjt_results_sat.get("region", "ERROR")
-		var Vc_sat_node = graph_script.electrical_nodes.get(graph_script.terminal_connections.get(bjt_sat.terminal_c.get_instance_id()), {}).get("voltage", NAN)
-		var Ve_sat_node = graph_script.electrical_nodes.get(graph_script.terminal_connections.get(bjt_sat.terminal_e.get_instance_id()), {}).get("voltage", NAN)
-		var Vce_actual_sat = NAN
-		if not is_nan(Vc_sat_node) and not is_nan(Ve_sat_node): Vce_actual_sat = Vc_sat_node - Ve_sat_node
+	if not rig.solve(): ok = false
+	if ok:
+		var results = rig.results(bjt_sat)
+		var vce = results.get("Vds", NAN) # Vds for MOSFET, but test reuses
+		var ic = results.get("Ic", NAN)
+		var ib = results.get("Ib", NAN)
+		
+		var node_c_id = g.terminal_connections.get(bjt_sat.terminal_c.get_instance_id(),-1)
+		var node_e_id = g.terminal_connections.get(bjt_sat.terminal_e.get_instance_id(),-1)
+		var vc = g.electrical_nodes.get(node_c_id, {}).get("voltage", NAN)
+		var ve = g.electrical_nodes.get(node_e_id, {}).get("voltage", NAN)
+		vce = vc - ve
+		
+		if not TestUtils.assert_equals(results.get("region", "ERROR"), "SATURATION", "NPN BJT Test (Saturation): Region is SATURATION"): ok = false
+		if not TestUtils.assert_true(vce < 0.4, "NPN BJT Test (Saturation): Vce is small (<0.4V)"): ok = false
+		if not TestUtils.assert_approx_equals(ic, (ps_sat_vcc.target_voltage - vce) / rc_sat.resistance, 1e-3, "NPN BJT Test (Saturation): Ic is limited by Rc"): ok = false
+		# Vbe is not fixed, ~0.7-0.8V. Ib = (5.0-0.75)/10k = ~425uA
+		if not TestUtils.assert_approx_equals(ib, 4.25e-4, 5e-5, "NPN BJT Test (Saturation): Ib is in expected range"): ok = false
 
-		if not TestUtils.assert_equals(region_sat, "SATURATION", "NPN BJT Test (Saturation): Region is SATURATION"): overall_test_passed = false
-		# Vce_sat is not a param. Should be small, e.g. < 0.4V
-		if not TestUtils.assert_true(Vce_actual_sat < 0.4, "NPN BJT Test (Saturation): Vce is small (<0.4V)"): overall_test_passed = false
-		if not TestUtils.assert_approx_equals(ic_sat, (ps_sat_vcc.target_voltage - Vce_actual_sat) / rc_sat.resistance, 1e-3, "NPN BJT Test (Saturation): Ic is limited by Rc and Vce_sat"): overall_test_passed = false
-		# Vbe is not a fixed param, but should be ~0.7-0.8V. Ib = (5.0-0.75)/10k = ~425uA
-		if not TestUtils.assert_approx_equals(ib_sat, 4.25e-4, 5e-5, "NPN BJT Test (Saturation): Ib is in expected range"): overall_test_passed = false
-
-
-	await _cleanup_components_and_graph(editor_script, graph_script) 
-	editor_instance.queue_free()
-	return overall_test_passed
+	rig.cleanup()
+	return ok
 
 
 ## Tests the PNP BJT model in its three main operating regions: Cutoff, Active, and Saturation.
@@ -1477,7 +1311,6 @@ func test_pmosfet_regions() -> bool:
 	g.connect_terminals(pmos_sat.terminal_g, ps_g_sat.terminal_pos)
 	g.connect_terminals(ps_g_sat.terminal_neg, ps_s_sat.terminal_neg)
 	rig.ground(ps_s_sat.terminal_neg)
-	print('test')
 	if not rig.solve(): ok = false
 	res = rig.results(pmos_sat)
 	region_str = res.get("region", "N/A")

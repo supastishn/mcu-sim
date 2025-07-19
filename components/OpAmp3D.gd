@@ -192,8 +192,9 @@ func stamp(
 			if vout_idx != -1: A[opamp_curr_idx][vout_idx] = 1.0
 			if vp_idx != -1: A[opamp_curr_idx][vp_idx] = -open_loop_gain
 			if vn_idx != -1: A[opamp_curr_idx][vn_idx] = open_loop_gain
-			# Also stamp output conductance and KCL contribution
-			CircuitGraph.stamp_conductance(A, g_out, vout_idx, -1) # to ground
+			# Add the current from the VCVS to the KCL equation at the output node
+			if vout_idx != -1:
+				A[vout_idx][opamp_curr_idx] = 1.0
 	elif region == "SAT_HIGH":
 		# Enforce Vout = Vcc - rail_saturation_voltage
 		var sat_drop = comp_data.properties["rail_saturation_voltage"]

@@ -208,7 +208,6 @@ func add_component(component: Node3D):
 		component_data.properties["signal_voltage_threshold"] = component.signal_voltage_threshold
 		component_data.properties["coil_resistance"] = component.coil_resistance 
 		component_data.properties["is_energized"] = false 
-		component_data.properties["input_signal_resistance"] = 1.0e6 
 		component_data.terminals["VCC"] = component.terminal_vcc
 		component_data.terminals["GND"] = component.terminal_gnd
 		component_data.terminals["Signal"] = component.terminal_signal
@@ -442,7 +441,7 @@ func component_config_changed(component_node: Node3D):
 	elif comp_type == "Relay" and component_node is Relay3D:
 		found_component_data.properties["signal_voltage_threshold"] = component_node.signal_voltage_threshold
 		found_component_data.properties["coil_resistance"] = component_node.coil_resistance
-		found_component_data.properties["is_energized"] = false 
+		found_component_data.properties["is_energized"] = false
 	elif comp_type == "LinearRegulator" and component_node is LinearRegulator3D:
 		found_component_data.properties["regulated_voltage"] = component_node.regulated_voltage
 		found_component_data.properties["dropout_voltage"] = component_node.dropout_voltage
@@ -484,12 +483,12 @@ func solve_single_time_step(delta_time: float) -> bool:
 	# --- MNA System Caching ---
 	var system
 	if not _needs_rebuild and is_equal_approx(delta_time, _cached_delta_time):
-		print("Reusing cached MNA system")
 		system = _cached_system
 	else:
 		system = _build_mna_system(delta_time)
 		_cached_system = system
 		_cached_delta_time = delta_time
+		_needs_rebuild = false
 
 	var converged = _solve_newton_raphson(delta_time)
 	
@@ -529,7 +528,7 @@ func _solve_newton_raphson(delta_time: float) -> bool:
 	for i in range(max_iter):
 		var system = _build_mna_system(delta_time)
 		var A = system.A
-		var b_error = _calculate_kcl_error_vector(system)
+		var b_error = _calculate_kcl_error_vector(system, delta_time)
 		
 		if A.is_empty(): return true
 
@@ -554,7 +553,7 @@ func _solve_newton_raphson(delta_time: float) -> bool:
 
 	return false
 
-func _calculate_kcl_error_vector(system: Dictionary) -> Array:
+func _calculate_kcl_error_vector(system: Dictionary, delta_time: float) -> Array:
 	var num_vars = system.A.size()
 	var error_vector: Array = []
 	error_vector.resize(num_vars)
@@ -568,7 +567,7 @@ func _calculate_kcl_error_vector(system: Dictionary) -> Array:
 			node_voltages[term_name] = electrical_nodes.get(node_id, {}).get("voltage", 0.0)
 		
 		if comp_data.component_node.has_method("get_kcl_contributions"):
-			comp_data.component_node.get_kcl_contributions(self, node_voltages, error_vector, system, 0.0)
+			comp_data.component_node.get_kcl_contributions(self, node_voltages, error_vector, system, delta_time)
 
 	# The Newton-Raphson update is J*dV = -F(V).
 	# `error_vector` currently holds F(V). `system.b` holds the independent sources.

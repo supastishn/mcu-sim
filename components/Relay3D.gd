@@ -176,15 +176,6 @@ func stamp(
 	g_coil_path_val = 1.0 / R_coil_path_val
 	CircuitGraph.stamp_conductance(A, g_coil_path_val, idx_vcc, idx_gnd)
 
-	var R_signal_in_prop = comp_data.properties["input_signal_resistance"] 
-	if R_signal_in_prop <= 1e-9: R_signal_in_prop = 1e-9
-	var g_signal_in_val = 1.0 / R_signal_in_prop
-	
-	var sig_id = terminal_signal.get_instance_id()
-	var node_sig_lookup = terminal_connections.get(sig_id, -1)
-	var idx_sig = node_map.get(node_sig_lookup, -1)
-	CircuitGraph.stamp_conductance(A, g_signal_in_val, idx_sig, idx_gnd)
-
 	var R_sw_closed_const = CircuitGraph.R_SWITCH_CLOSED
 	var g_sw_closed_val = 1.0 / R_sw_closed_const
 	var R_sw_open_const = CircuitGraph.R_SWITCH_OPEN

@@ -43,6 +43,7 @@ const REVERSE_BREAKDOWN_VOLTAGE: float = 5.0
 var _original_material: StandardMaterial3D = null
 ## A copy of the LED's material, modified to emit light.
 var _lit_material: StandardMaterial3D = null
+var is_actually_burned: bool = false
 
 ## Called when the node enters the scene tree. Initializes materials and labels.
 func _ready():

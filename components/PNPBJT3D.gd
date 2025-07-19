@@ -115,7 +115,7 @@ func gather_sim_results(
 
 		Ie = I_es * (exp(Veb / Vt) - 1.0) - alpha_r * I_cs * (exp(Vcb / Vt) - 1.0)
 		Ic = alpha_f * I_es * (exp(Veb / Vt) - 1.0) - I_cs * (exp(Vcb / Vt) - 1.0)
-		Ib = Ie - Ic # Current flows out of base for PNP
+		Ib = -(Ie - Ic) # Current flows into base for PNP, so it's negative
 
 	var region = "OFF"
 	var Vth = 0.5
