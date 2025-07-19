@@ -470,7 +470,7 @@ func _reset_voltages():
 func solve_single_time_step(delta_time: float) -> bool:
 	_is_solved = false
 	if ground_node_id == -1:
-		printerr("Ground node must be set before solving.")
+		assert(ground_node_id != -1, "Ground node must be set before solving.")
 		return false
 
 	# Reset stateful components that have state machines
@@ -496,7 +496,7 @@ func solve_single_time_step(delta_time: float) -> bool:
 	var converged = _solve_newton_raphson(system, delta_time)
 	
 	if not converged:
-		printerr("Solver failed to converge.")
+		assert(converged, "Solver failed to converge.")
 		# Clear results to indicate failure
 		component_results.clear()
 		return false
@@ -508,7 +508,7 @@ func solve_single_time_step(delta_time: float) -> bool:
 	var final_solution = LinearSolver.solve(final_matrices.A, final_matrices.b)
 
 	if final_solution.is_empty():
-		printerr("Final linear solve failed after convergence. Results may be inaccurate.")
+		assert(not final_solution.is_empty(), "Final linear solve failed after convergence. Results may be inaccurate.")
 		# Proceed with voltages from NR, but currents might be wrong.
 		final_solution.resize(final_matrices.A.size())
 		final_solution.fill(NAN)
@@ -563,7 +563,8 @@ func _solve_newton_raphson(system: Dictionary, delta_time: float) -> bool:
 		if delta_x.is_empty() and not A.is_empty():
 			LinearSolver.print_matrix(A, "A on NR solve fail")
 			LinearSolver.print_vector(b_error, "b_error on NR solve fail")
-			printerr("Linear solver failed during Newton-Raphson iteration. System size: {s}".format({"s": A.size()}))
+			var msg = "Linear solver failed during Newton-Raphson iteration. System size: {s}".format({"s": A.size()})
+			assert(false, msg)
 			_last_solver_debug_info.push_back(iter_info)
 			return false
 
@@ -573,7 +574,8 @@ func _solve_newton_raphson(system: Dictionary, delta_time: float) -> bool:
 			LinearSolver.print_matrix(A, "A on norm fail")
 			LinearSolver.print_vector(b_error, "b_error on norm fail")
 			LinearSolver.print_vector(delta_x, "delta_x on norm fail")
-			printerr("Solver update vector norm is NaN. delta_x: {dx}".format({"dx": delta_x}))
+			var msg = "Solver update vector norm is NaN. delta_x: {dx}".format({"dx": delta_x})
+			assert(false, msg)
 			return false
 		var damping_factor = 1.0 - clamp(0.1 * log(norm + 1.0), 0.2, 0.9)
 		iter_info["damping_factor"] = damping_factor
@@ -595,7 +597,8 @@ func _solve_newton_raphson(system: Dictionary, delta_time: float) -> bool:
 		if _check_convergence(delta_x, v_tolerance) and not state_changed:
 			return true
 
-	printerr("NR failed to converge after {i} iterations.".format({"i": max_iter}))
+	var msg = "NR failed to converge after {i} iterations.".format({"i": max_iter})
+	assert(false, msg)
 	return false
 
 func _calculate_error_vector(system: Dictionary, b: Array, delta_time: float) -> Array:
