@@ -105,7 +105,9 @@ func gather_sim_results(
 	var current = NAN
 	var state = "OFF"
 
-	assert(!is_nan(Va) and !is_nan(Vk), "Zener terminal voltages are NaN in gather_sim_results.")
+	assert(!is_nan(Va) and !is_nan(Vk), "Zener {z}: Terminal voltage NaN in gather_sim_results. Va={va}, Vk={vk}".format({
+		"z": name, "va": Va, "vk": Vk
+	}))
 	if not is_nan(Va) and not is_nan(Vk):
 		var Vd = Va - Vk
 		comp_data.properties["_internal_voltage"] = Vd
@@ -194,7 +196,9 @@ func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, 
 	var I_fwd = Is * (exp(Vd_limited_fwd / n_vt) - 1.0)
 	var I_rev = Is * (exp(Vrev_limited / V_thermal) - 1.0)
 	var current = I_fwd - I_rev
-	assert(!is_nan(current), "Zener current calculation resulted in NaN.")
+	assert(!is_nan(current), "Zener {z}: Current is NaN. I_fwd={ifwd}, I_rev={irev}, Vd_lim={vdlim}, Vrev_lim={vrevlim}".format({
+		"z": name, "ifwd": I_fwd, "irev": I_rev, "vdlim": Vd_limited_fwd, "vrevlim": Vrev_limited
+	}))
 
 	var ia = system.node_map.get(node_a_id, -1)
 	var ik = system.node_map.get(node_k_id, -1)

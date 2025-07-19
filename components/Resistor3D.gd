@@ -77,7 +77,9 @@ func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, 
 	var v2 = graph.electrical_nodes.get(node2_id, {}).get("voltage", 0.0)
 	var R = max(resistance, 1e-12)
 	var current = (v1 - v2) / R
-	assert(!is_nan(current), "Resistor current calculation resulted in NaN.")
+	assert(!is_nan(current), "Resistor {res}: Current is NaN. v1={v1}, v2={v2}, R={r}".format({
+		"res": name, "v1": v1, "v2": v2, "r": R
+	}))
 	
 	var i1 = system.node_map.get(node1_id, -1)
 	var i2 = system.node_map.get(node2_id, -1)

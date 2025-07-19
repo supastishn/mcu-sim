@@ -188,7 +188,9 @@ func get_kcl_contributions(graph: CircuitGraph, all_node_voltages: Dictionary, F
 	var Vc_prev = comp_data.properties.get("voltage_across_cap_prev_dt", 0.0)
 	if delta_time < 1e-9: delta_time = 1e-9
 	var I_cap = capacitance * ( (v_int - v2) - Vc_prev) / delta_time
-	assert(!is_nan(I_cap), "Capacitor current calculation resulted in NaN.")
+	assert(!is_nan(I_cap), "PolarizedCapacitor {c}: I_cap is NaN. v_int={vi}, v2={v2}, Vc_prev={vp}, C={C}, dt={dt}".format({
+		"c": name, "vi": v_int, "v2": v2, "vp": Vc_prev, "C": capacitance, "dt": delta_time
+	}))
 
 	var idx_int_cap = system.node_map.get(_internal_node_id, -1)
 	var idx2 = system.node_map.get(t2_node_id, -1)
@@ -227,7 +229,9 @@ func gather_sim_results(
 		if not is_nan(V1_cap_t) and not is_nan(V2_cap_t): Vc_t = V1_cap_t - V2_cap_t
 	elif not is_nan(V1_cap_t) and not is_nan(V2_cap_t):
 		Vc_t = V1_cap_t - V2_cap_t
-		assert(!is_nan(Vc_t), "Capacitor voltage is NaN in gather_sim_results.")
+		assert(!is_nan(Vc_t), "PolarizedCapacitor {c}: Vc_t is NaN. V1={v1}, V2={v2}".format({
+			"c": name, "v1": V1_cap_t, "v2": V2_cap_t
+		}))
 		
 		var reverse_polarity_tolerance = -0.1
 		if Vc_t > max_V_cap or Vc_t < reverse_polarity_tolerance:

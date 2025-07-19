@@ -37,7 +37,7 @@ static func solve(A: Array, b: Array) -> Array:
 			b[pivot_row] = temp_b
 
 		# Enhanced singularity/nan detection
-		assert(!is_nan(A[i][i]) and abs(A[i][i]) >= max(1e-12, 1e-12 * matrix_norm), "LinearSolver: Matrix is singular/invalid at pivots (row {step_i}).".format({"step_i": i}))
+		assert(!is_nan(A[i][i]) and abs(A[i][i]) >= max(1e-12, 1e-12 * matrix_norm), "LinearSolver: Matrix is singular/invalid at pivots (row {step_i}). Pivot val: {p_val}".format({"step_i": i, "p_val": A[i][i]}))
 
 		for k in range(i + 1, n):
 			var factor = A[k][i] / A[i][i]
@@ -50,7 +50,7 @@ static func solve(A: Array, b: Array) -> Array:
 	x.resize(n)
 
 	for i in range(n - 1, -1, -1): 
-		assert(!is_nan(A[i][i]) and abs(A[i][i]) >= max(1e-12, 1e-12 * matrix_norm), "LinearSolver: Matrix became singular/invalid during back substitution at row {row_i}.".format({"row_i": i}))
+		assert(!is_nan(A[i][i]) and abs(A[i][i]) >= max(1e-12, 1e-12 * matrix_norm), "LinearSolver: Matrix became singular/invalid during back substitution at row {row_i}. Pivot val: {p_val}".format({"row_i": i, "p_val": A[i][i]}))
 
 		var sum_ax = 0.0
 		for j in range(i + 1, n):

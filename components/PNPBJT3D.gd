@@ -104,7 +104,9 @@ func gather_sim_results(
 	var Veb = NAN
 	var Vcb = NAN
 	
-	assert(!is_nan(Vc) and !is_nan(Vb) and !is_nan(Ve), "PNP BJT terminal voltages are NaN in gather_sim_results.")
+	assert(!is_nan(Vc) and !is_nan(Vb) and !is_nan(Ve), "PNPBJT {bjt}: Terminal voltage NaN in gather_sim_results. Vc={vc}, Vb={vb}, Ve={ve}".format({
+		"bjt": name, "vc": Vc, "vb": Vb, "ve": Ve
+	}))
 	if not is_nan(Vc) and not is_nan(Vb) and not is_nan(Ve):
 		Veb = Ve - Vb
 		Vcb = Vc - Vb
@@ -214,7 +216,9 @@ func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, 
 	var Ie_mag = I_es * (exp(Veb_limited / Vt) - 1.0) - alpha_reverse * I_cs * (exp(Vcb_limited / Vt) - 1.0)
 	var Ic_mag = alpha_forward * I_es * (exp(Veb_limited / Vt) - 1.0) - I_cs * (exp(Vcb_limited / Vt) - 1.0)
 	var Ib_mag = Ie_mag - Ic_mag
-	assert(!is_nan(Ie_mag) and !is_nan(Ic_mag), "PNP BJT current calculation resulted in NaN.")
+	assert(!is_nan(Ie_mag) and !is_nan(Ic_mag), "PNPBJT {bjt}: Current is NaN. Ie_mag={ie}, Ic_mag={ic}, Veb_lim={vel}, Vcb_lim={vcl}".format({
+		"bjt": name, "ie": Ie_mag, "ic": Ic_mag, "vel": Veb_limited, "vcl": Vcb_limited
+	}))
 
 	var idx_e = system.node_map.get(node_e_id, -1)
 	var idx_b = system.node_map.get(node_b_id, -1)

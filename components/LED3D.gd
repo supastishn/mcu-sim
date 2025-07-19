@@ -164,7 +164,7 @@ func gather_sim_results(
 		current = 0.0
 	elif not is_nan(Va) and not is_nan(Vk):
 		var Vd = Va - Vk
-		assert(!is_nan(Vd), "LED Vd is NaN in gather_sim_results")
+		assert(!is_nan(Vd), "LED {led}: Vd is NaN. Va={va}, Vk={vk}".format({"led": name, "va": Va, "vk": Vk}))
 		comp_data.properties["_internal_voltage"] = Vd
 
 		# Check for reverse breakdown
@@ -232,7 +232,7 @@ func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, 
 	var Vd_limited = min(Vd, Vcrit)
 	
 	var current = saturation_current * (exp(Vd_limited / n_vt) - 1.0)
-	assert(!is_nan(current), "LED current calculation resulted in NaN.")
+	assert(!is_nan(current), "LED {led}: Current is NaN. Vd_limited={vdl}".format({"led": name, "vdl": Vd_limited}))
 	
 	var ia = system.node_map.get(node_a_id, -1)
 	var ik = system.node_map.get(node_k_id, -1)

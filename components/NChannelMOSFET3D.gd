@@ -294,7 +294,9 @@ func get_kcl_contributions(graph: CircuitGraph, all_node_voltages: Dictionary, F
 			Id = 0.5 * kn * pow(Vgs - vt, 2.0) * (1 + lambda * Vds)
 			region = "SATURATION"
 
-	assert(!is_nan(Id), "N-MOSFET Id calculation resulted in NaN.")
+	assert(!is_nan(Id), "N-MOSFET {mos}: Id is NaN. Region={r}, Vgs={vgs}, Vds={vds}".format({
+		"mos": name, "r": region, "vgs": Vgs, "vds": Vds
+	}))
 
 	var idx_d = system.node_map.get(node_d_id, -1)
 	var idx_s = system.node_map.get(node_s_id, -1)

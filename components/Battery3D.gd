@@ -131,7 +131,9 @@ func stamp(
 	var neg_idx = node_map.get(neg_node_lookup_id, -1)
 	
 	var battery_instance_id = self.get_instance_id()
-	assert(vs_map.has(battery_instance_id), "Battery {batid} not found in vs_map.".format({"batid": battery_instance_id}))
+	assert(vs_map.has(battery_instance_id), "Battery {id} not found in vs_map. Map: {map}".format({
+		"id": battery_instance_id, "map": vs_map
+	}))
 	var battery_current_matrix_idx = vs_map[battery_instance_id]
 	
 	var V_target_val = comp_data.properties["target_voltage"]
@@ -156,11 +158,17 @@ func gather_sim_results(
 	var comp_node = comp_data.component_node
 	var comp_id = comp_node.get_instance_id()
 
-	assert(vs_map.has(comp_id), "Battery {batid} not found in vs_map.".format({"batid": comp_id}))
+	assert(vs_map.has(comp_id), "Battery {id} not found in vs_map. Map: {map}".format({
+		"id": comp_id, "map": vs_map
+	}))
 	var matrix_idx_curr_final = vs_map[comp_id]
-	assert(matrix_idx_curr_final < x.size(), "Battery current index out of bounds in solution vector.")
+	assert(matrix_idx_curr_final < x.size(), "Battery {id}: current index ({idx}) out of bounds in solution vector (size {sz}).".format({
+		"id": comp_id, "idx": matrix_idx_curr_final, "sz": x.size()
+	}))
 	var solved_current_mna = x[matrix_idx_curr_final]
-	assert(!is_nan(solved_current_mna), "Solved battery current is NaN.")
+	assert(!is_nan(solved_current_mna), "Battery {id}: solved current is NaN at index {idx}.".format({
+		"id": comp_id, "idx": matrix_idx_curr_final
+	}))
 	circuit.component_results[comp_id]["current"] = -solved_current_mna 
 			
 	var term_p_fv = comp_data.terminals["POS"]

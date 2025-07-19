@@ -119,7 +119,9 @@ func stamp(
 	var t2_instance_id = terminal2.get_instance_id() if is_instance_valid(terminal2) else -1
 	
 	var self_instance_id = self.get_instance_id()
-	assert(inductor_map.has(self_instance_id), "Inductor {ind_id_str} not found in inductor_map.".format({"ind_id_str": self_instance_id}))
+	assert(inductor_map.has(self_instance_id), "Inductor {id} not found in inductor_map. Map: {map}".format({
+		"id": self_instance_id, "map": inductor_map
+	}))
 	var idx_I_L_val = inductor_map[self_instance_id]
 
 	# Inductor equation: V1 - V2 - L * d(I_L)/dt = 0
@@ -155,11 +157,15 @@ func gather_sim_results(
 	var comp_id = comp_node.get_instance_id()
 	var solved_current_L : float = NAN # holds I_L for later reuse
 
-	assert(inductor_map.has(comp_id), "Inductor {id} not found in inductor_map.".format({"id": comp_id}))
+	assert(inductor_map.has(comp_id), "Inductor {id} not found in inductor_map. Map: {map}".format({"id": comp_id, "map": inductor_map}))
 	var matrix_idx_curr_L_final = inductor_map[comp_id]
-	assert(matrix_idx_curr_L_final < x.size(), "Inductor current index out of bounds in solution vector.")
+	assert(matrix_idx_curr_L_final < x.size(), "Inductor {id}: current index ({idx}) out of bounds in solution vector (size {sz}).".format({
+		"id": comp_id, "idx": matrix_idx_curr_L_final, "sz": x.size()
+	}))
 	solved_current_L = x[matrix_idx_curr_L_final]
-	assert(!is_nan(solved_current_L), "Solved inductor current is NaN.")
+	assert(!is_nan(solved_current_L), "Inductor {id}: solved current is NaN at index {idx}.".format({
+		"id": comp_id, "idx": matrix_idx_curr_L_final
+	}))
 	circuit.component_results[comp_id]["current"] = solved_current_L
 			
 	var term_1_L = comp_data.terminals["T1"]

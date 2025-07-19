@@ -536,11 +536,11 @@ func _solve_newton_raphson(delta_time: float) -> bool:
 		# Newton-Raphson: Solve A * dV = F(V)
 		var delta_x = LinearSolver.solve(A, b_error)
 
-		assert(!delta_x.is_empty(), "Linear solver failed during Newton-Raphson iteration.")
+		assert(!delta_x.is_empty(), "Linear solver failed during Newton-Raphson iteration. System size: {s}".format({"s": A.size()}))
 
 		# Adaptive damping for stability
 		var norm = sqrt(delta_x.reduce(func(acc, val): return acc + val*val, 0.0))
-		assert(!is_nan(norm), "Solver update vector norm is NaN.")
+		assert(!is_nan(norm), "Solver update vector norm is NaN. delta_x: {dx}".format({"dx": delta_x}))
 		var damping_factor = clamp(0.1 * log(norm + 1) + 0.3, 0.1, 0.8)
 		var node_map = system.node_map
 		for node_id in node_map:

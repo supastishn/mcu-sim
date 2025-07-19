@@ -173,7 +173,9 @@ func get_kcl_contributions(graph: CircuitGraph, all_node_voltages: Dictionary, F
 	var Vc_prev = comp_data.properties.get("voltage_across_cap_prev_dt", 0.0)
 	if delta_time < 1e-9: delta_time = 1e-9
 	var I_cap = capacitance * ( (v_int - v2) - Vc_prev) / delta_time
-	assert(!is_nan(I_cap), "Capacitor current calculation resulted in NaN.")
+	assert(!is_nan(I_cap), "NonPolarizedCapacitor {c}: I_cap is NaN. v_int={vi}, v2={v2}, Vc_prev={vp}, C={C}, dt={dt}".format({
+		"c": name, "vi": v_int, "v2": v2, "vp": Vc_prev, "C": capacitance, "dt": delta_time
+	}))
 
 	var idx_int_cap = system.node_map.get(_internal_node_id, -1)
 	var idx2 = system.node_map.get(t2_node_id, -1)
@@ -207,11 +209,15 @@ func gather_sim_results(
 	var current_np_cap = NAN
 	var Vc_np_t = NAN
 
-	assert(!is_nan(V1_np_cap_t) and !is_nan(V2_np_cap_t), "Capacitor terminal voltages are NaN in gather_sim_results.")
+	assert(!is_nan(V1_np_cap_t) and !is_nan(V2_np_cap_t), "NonPolarizedCapacitor {c}: Terminal voltage is NaN. V1={v1}, V2={v2}".format({
+		"c": name, "v1": V1_np_cap_t, "v2": V2_np_cap_t
+	}))
 	if not is_nan(V1_np_cap_t) and not is_nan(V2_np_cap_t):
 		Vc_np_t = V1_np_cap_t - V2_np_cap_t
 		current_np_cap = C_np_val * (Vc_np_t - Vc_prev_dt_np_val) / delta_time
-		assert(!is_nan(current_np_cap), "Capacitor current is NaN in gather_sim_results.")
+		assert(!is_nan(current_np_cap), "NonPolarizedCapacitor {c}: Current is NaN. Vc={vc}, Vc_prev={vp}, C={C}, dt={dt}".format({
+			"c": name, "vc": Vc_np_t, "vp": Vc_prev_dt_np_val, "C": C_np_val, "dt": delta_time
+		}))
 		comp_data.properties["voltage_across_cap_prev_dt"] = Vc_np_t
 		
 		if abs(Vc_np_t) > max_V_np_cap:

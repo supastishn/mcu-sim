@@ -66,10 +66,12 @@ func gather_sim_results(
 	var V_thermal = THERMAL_VOLTAGE
 	
 	var current = NAN
-	assert(!is_nan(Va) and !is_nan(Vk), "Diode terminal voltages are NaN in gather_sim_results.")
+	assert(!is_nan(Va) and !is_nan(Vk), "Diode {d}: Terminal voltage is NaN. Va={va}, Vk={vk}".format({
+		"d": name, "va": Va, "vk": Vk
+	}))
 	var Vd = Va - Vk
 	current = saturation_current * (exp(Vd / (ideality_factor * THERMAL_VOLTAGE)) - 1.0)
-	assert(!is_nan(current), "Diode current is NaN in gather_sim_results.")
+	assert(!is_nan(current), "Diode {d}: Current is NaN. Vd={vd}".format({"d": name, "vd": Vd}))
 	comp_data.properties["_internal_voltage"] = Vd
 
 	circuit.component_results[comp_id]["current"] = current
@@ -120,7 +122,7 @@ func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, 
 	var Vd_limited = min(Vd, Vcrit)
 	
 	var current = saturation_current * (exp(Vd_limited / n_vt) - 1.0)
-	assert(!is_nan(current), "Diode current calculation resulted in NaN.")
+	assert(!is_nan(current), "Diode {d}: Current is NaN. Vd_limited={vdl}".format({"d": name, "vdl": Vd_limited}))
 	
 	var ia = system.node_map.get(node_a_id, -1)
 	var ik = system.node_map.get(node_k_id, -1)

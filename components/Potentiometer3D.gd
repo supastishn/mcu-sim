@@ -133,7 +133,9 @@ func get_kcl_contributions(graph: CircuitGraph, all_node_voltages: Dictionary, F
 
 	var I1 = (v1 - vw) / R1
 	var I2 = (vw - v2) / R2
-	assert(!is_nan(I1) and !is_nan(I2), "Potentiometer current calculation resulted in NaN.")
+	assert(!is_nan(I1) and !is_nan(I2), "Potentiometer {p}: Current is NaN. I1={i1}, I2={i2}, v1={v1}, vw={vw}, v2={v2}, R1={r1}, R2={r2}".format({
+		"p": name, "i1": I1, "i2": I2, "v1": v1, "vw": vw, "v2": v2, "r1": R1, "r2": R2
+	}))
 
 	var idx1 = system.node_map.get(t1_node_id, -1)
 	var idx2 = system.node_map.get(t2_node_id, -1)
@@ -176,17 +178,23 @@ func gather_sim_results(
 	var V1 = circuit.electrical_nodes.get(node1_id, {}).get("voltage", NAN)
 	var V2 = circuit.electrical_nodes.get(node2_id, {}).get("voltage", NAN)
 	var VW = circuit.electrical_nodes.get(nodeW_id, {}).get("voltage", NAN)
-	assert(!is_nan(V1) and !is_nan(V2) and !is_nan(VW), "Potentiometer terminal voltages are NaN in gather_sim_results.")
+	assert(!is_nan(V1) and !is_nan(V2) and !is_nan(VW), "Potentiometer {p}: Terminal voltage is NaN. V1={v1}, V2={v2}, VW={vw}".format({
+		"p": name, "v1": V1, "v2": V2, "vw": VW
+	}))
 
 	var current1W = NAN
 	if not is_nan(V1) and not is_nan(VW):
 		current1W = (V1 - VW) / R1_val if R1_val > 1e-12 else (V1 - VW) * 1e12
-		assert(!is_nan(current1W), "Potentiometer current1W is NaN.")
+		assert(!is_nan(current1W), "Potentiometer {p}: current1W is NaN. V1={v1}, VW={vw}, R1={r1}".format({
+			"p": name, "v1": V1, "vw": VW, "r1": R1_val
+		}))
 
 	var currentW2 = NAN
 	if not is_nan(VW) and not is_nan(V2):
 		currentW2 = (VW - V2) / R2_val if R2_val > 1e-12 else (VW - V2) * 1e12
-		assert(!is_nan(currentW2), "Potentiometer currentW2 is NaN.")
+		assert(!is_nan(currentW2), "Potentiometer {p}: currentW2 is NaN. VW={vw}, V2={v2}, R2={r2}".format({
+			"p": name, "vw": VW, "v2": V2, "r2": R2_val
+		}))
 
 	circuit.component_results[comp_id]["current_T1_W"] = current1W
 	circuit.component_results[comp_id]["current_W_T2"] = currentW2
