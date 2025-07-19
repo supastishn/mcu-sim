@@ -539,7 +539,8 @@ func _solve_newton_raphson(delta_time: float) -> bool:
 		if delta_x.is_empty() and not A.is_empty():
 			LinearSolver.print_matrix(A, "A on NR solve fail")
 			LinearSolver.print_vector(b_error, "b_error on NR solve fail")
-			assert(false, "Linear solver failed during Newton-Raphson iteration. System size: {s}".format({"s": A.size()}))
+			printerr("Linear solver failed during Newton-Raphson iteration. System size: {s}".format({"s": A.size()}))
+			return false
 
 		# Adaptive damping for stability
 		var norm = sqrt(delta_x.reduce(func(acc, val): return acc + val*val, 0.0))
@@ -547,7 +548,8 @@ func _solve_newton_raphson(delta_time: float) -> bool:
 			LinearSolver.print_matrix(A, "A on norm fail")
 			LinearSolver.print_vector(b_error, "b_error on norm fail")
 			LinearSolver.print_vector(delta_x, "delta_x on norm fail")
-			assert(false, "Solver update vector norm is NaN. delta_x: {dx}".format({"dx": delta_x}))
+			printerr("Solver update vector norm is NaN. delta_x: {dx}".format({"dx": delta_x}))
+			return false
 		var damping_factor = 1.0 - clamp(0.1 * log(norm + 1.0), 0.2, 0.9)
 		var node_map = system.node_map
 		for node_id in node_map:

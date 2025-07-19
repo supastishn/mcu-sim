@@ -49,7 +49,8 @@ static func solve(A: Array, b: Array) -> Array:
 		if not (!is_nan(A_copy[i][i]) and abs(A_copy[i][i]) >= max(1e-12, 1e-12 * matrix_norm)):
 			print_matrix(A_copy, "A on pivot fail")
 			print_vector(b_copy, "b on pivot fail")
-			assert(false, "LinearSolver: Matrix is singular/invalid at pivots (row {step_i}). Pivot val: {p_val}".format({"step_i": i, "p_val": A_copy[i][i]}))
+			printerr("LinearSolver: Matrix is singular/invalid at pivots (row {step_i}). Pivot val: {p_val}".format({"step_i": i, "p_val": A_copy[i][i]}))
+			return []
 
 		for k in range(i + 1, n):
 			var factor = A_copy[k][i] / A_copy[i][i]
@@ -65,7 +66,8 @@ static func solve(A: Array, b: Array) -> Array:
 		if not (!is_nan(A_copy[i][i]) and abs(A_copy[i][i]) >= max(1e-12, 1e-12 * matrix_norm)):
 			print_matrix(A_copy, "A on back-sub fail")
 			print_vector(b_copy, "b on back-sub fail")
-			assert(false, "LinearSolver: Matrix became singular/invalid during back substitution at row {row_i}. Pivot val: {p_val}".format({"row_i": i, "p_val": A_copy[i][i]}))
+			printerr("LinearSolver: Matrix became singular/invalid during back substitution at row {row_i}. Pivot val: {p_val}".format({"row_i": i, "p_val": A_copy[i][i]}))
+			return []
 
 		var sum_ax = 0.0
 		for j in range(i + 1, n):
