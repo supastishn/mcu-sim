@@ -168,7 +168,8 @@ func gather_sim_results(
 		var Vd = Va - Vk
 		if not !is_nan(Vd):
 			LinearSolver.print_vector(_x, "x on LED results fail")
-			assert(false, "LED {led}: Vd is NaN. Va={va}, Vk={vk}".format({"led": name, "va": Va, "vk": Vk}))
+			printerr("LED {led}: Vd is NaN. Va={va}, Vk={vk}".format({"led": name, "va": Va, "vk": Vk}))
+			return
 		comp_data.properties["_internal_voltage"] = Vd
 
 		# Check for reverse breakdown
@@ -239,7 +240,8 @@ func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, 
 	if not !is_nan(current):
 		LinearSolver.print_matrix(system.A, "A on LED kcl fail")
 		LinearSolver.print_vector(F_v, "F_v on LED kcl fail")
-		assert(false, "LED {led}: Current is NaN. Vd_limited={vdl}".format({"led": name, "vdl": Vd_limited}))
+		printerr("LED {led}: Current is NaN. Vd_limited={vdl}".format({"led": name, "vdl": Vd_limited}))
+		return
 	
 	var ia = system.node_map.get(node_a_id, -1)
 	var ik = system.node_map.get(node_k_id, -1)

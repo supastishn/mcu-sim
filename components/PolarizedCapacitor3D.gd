@@ -240,7 +240,7 @@ func gather_sim_results(
 	elif not is_nan(V1_t) and not is_nan(V2_t) and not is_nan(V_internal_t):
 		if not !is_nan(Vc_ideal_t):
 			LinearSolver.print_vector(x, "x on P-Cap results fail")
-			assert(false, "PolarizedCapacitor {c}: Vc_ideal_t is NaN. V_int={vi}, V2={v2}".format({ "c": name, "vi": V_internal_t, "v2": V2_t }))
+			printerr("PolarizedCapacitor {c}: Vc_ideal_t is NaN. V_int={vi}, V2={v2}".format({ "c": name, "vi": V_internal_t, "v2": V2_t }))
 		
 		var reverse_polarity_tolerance = -0.1
 		# Explosion check should be on the voltage across the ideal capacitor part.

@@ -108,7 +108,8 @@ func gather_sim_results(
 	
 	if not (!is_nan(Vc) and !is_nan(Vb) and !is_nan(Ve)):
 		LinearSolver.print_vector(_x, "x on PNP results fail")
-		assert(false, "PNPBJT {bjt}: Terminal voltage NaN in gather_sim_results. Vc={vc}, Vb={vb}, Ve={ve}".format({ "bjt": name, "vc": Vc, "vb": Vb, "ve": Ve }))
+		printerr("PNPBJT {bjt}: Terminal voltage NaN in gather_sim_results. Vc={vc}, Vb={vb}, Ve={ve}".format({ "bjt": name, "vc": Vc, "vb": Vb, "ve": Ve }))
+		return
 	if not is_nan(Vc) and not is_nan(Vb) and not is_nan(Ve):
 		Veb = Ve - Vb
 		Vcb = Vc - Vb
@@ -223,7 +224,8 @@ func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, 
 	if not (!is_nan(Ie_mag) and !is_nan(Ic_mag)):
 		LinearSolver.print_matrix(system.A, "A on PNP kcl fail")
 		LinearSolver.print_vector(F_v, "F_v on PNP kcl fail")
-		assert(false, "PNPBJT {bjt}: Current is NaN. Ie_mag={ie}, Ic_mag={ic}, Veb_lim={vel}, Vcb_lim={vcl}".format({ "bjt": name, "ie": Ie_mag, "ic": Ic_mag, "vel": Veb_limited, "vcl": Vcb_limited }))
+		printerr("PNPBJT {bjt}: Current is NaN. Ie_mag={ie}, Ic_mag={ic}, Veb_lim={vel}, Vcb_lim={vcl}".format({ "bjt": name, "ie": Ie_mag, "ic": Ic_mag, "vel": Veb_limited, "vcl": Vcb_limited }))
+		return
 
 	var idx_e = system.node_map.get(node_e_id, -1)
 	var idx_b = system.node_map.get(node_b_id, -1)

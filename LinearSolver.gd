@@ -10,15 +10,17 @@ class_name LinearSolver
 ## Solves a system of linear equations Ax = b using Gaussian elimination with partial pivoting.
 static func solve(A: Array, b: Array) -> Array:
 	var n = b.size()
-	if not (A.size() == n):
+	if not A.size() == n:
 		print_matrix(A, "A on solve() fail")
 		print_vector(b, "b on solve() fail")
-		assert(false, "LinearSolver: Matrix A rows ({a_size}) does not match vector b size ({n_val}).".format({"a_size": A.size(), "n_val": n}))
+		printerr("LinearSolver: Matrix A rows ({a_size}) does not match vector b size ({n_val}).".format({"a_size": A.size(), "n_val": n}))
+		return []
 	for row in A:
-		if not (row.size() == n):
+		if not (row is Array and row.size() == n):
 			print_matrix(A, "A on solve() fail")
 			print_vector(b, "b on solve() fail")
-			assert(false, "LinearSolver: Matrix A is not square (row size {row_sz} vs expected {n_val}).".format({"row_sz": row.size(), "n_val": n}))
+			printerr("LinearSolver: Matrix A is not square or contains invalid rows.")
+			return []
 
 	var A_copy = A.duplicate(true)
 	var b_copy = b.duplicate()

@@ -191,21 +191,22 @@ func gather_sim_results(
 	var VW = circuit.electrical_nodes.get(nodeW_id, {}).get("voltage", NAN)
 	if not (!is_nan(V1) and !is_nan(V2) and !is_nan(VW)):
 		LinearSolver.print_vector(_x, "x on Potentiometer results fail")
-		assert(false, "Potentiometer {p}: Terminal voltage is NaN. V1={v1}, V2={v2}, VW={vw}".format({ "p": name, "v1": V1, "v2": V2, "vw": VW }))
+		printerr("Potentiometer {p}: Terminal voltage is NaN. V1={v1}, V2={v2}, VW={vw}".format({ "p": name, "v1": V1, "v2": V2, "vw": VW }))
+		return
 
 	var current1W = NAN
 	if not is_nan(V1) and not is_nan(VW):
 		current1W = (V1 - VW) / R1_val if R1_val > 1e-12 else (V1 - VW) * 1e12
 		if not !is_nan(current1W):
 			LinearSolver.print_vector(_x, "x on Potentiometer results fail")
-			assert(false, "Potentiometer {p}: current1W is NaN. V1={v1}, VW={vw}, R1={r1}".format({ "p": name, "v1": V1, "vw": VW, "r1": R1_val }))
+			printerr("Potentiometer {p}: current1W is NaN. V1={v1}, VW={vw}, R1={r1}".format({ "p": name, "v1": V1, "vw": VW, "r1": R1_val }))
 
 	var currentW2 = NAN
 	if not is_nan(VW) and not is_nan(V2):
 		currentW2 = (VW - V2) / R2_val if R2_val > 1e-12 else (VW - V2) * 1e12
 		if not !is_nan(currentW2):
 			LinearSolver.print_vector(_x, "x on Potentiometer results fail")
-			assert(false, "Potentiometer {p}: currentW2 is NaN. VW={vw}, V2={v2}, R2={r2}".format({ "p": name, "vw": VW, "v2": V2, "r2": R2_val }))
+			printerr("Potentiometer {p}: currentW2 is NaN. VW={vw}, V2={v2}, R2={r2}".format({ "p": name, "vw": VW, "v2": V2, "r2": R2_val }))
 
 	circuit.component_results[comp_id]["current_T1_W"] = current1W
 	circuit.component_results[comp_id]["current_W_T2"] = currentW2

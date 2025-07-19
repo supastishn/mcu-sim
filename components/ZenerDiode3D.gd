@@ -109,7 +109,8 @@ func gather_sim_results(
 
 	if not (!is_nan(Va) and !is_nan(Vk)):
 		LinearSolver.print_vector(_x, "x on zener results fail")
-		assert(false, "Zener {z}: Terminal voltage NaN in gather_sim_results. Va={va}, Vk={vk}".format({ "z": name, "va": Va, "vk": Vk }))
+		printerr("Zener {z}: Terminal voltage NaN in gather_sim_results. Va={va}, Vk={vk}".format({ "z": name, "va": Va, "vk": Vk }))
+		return
 	if not is_nan(Va) and not is_nan(Vk):
 		var Vd = Va - Vk
 		comp_data.properties["_internal_voltage"] = Vd
@@ -199,7 +200,8 @@ func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, 
 	if not !is_nan(current):
 		LinearSolver.print_matrix(system.A, "A on zener kcl fail")
 		LinearSolver.print_vector(F_v, "F_v on zener kcl fail")
-		assert(false, "Zener {z}: Current is NaN. I_fwd={ifwd}, I_rev={irev}, Vd_lim={vdlim}, Vrev_lim={vrevlim}".format({ "z": name, "ifwd": I_fwd, "irev": I_rev, "vdlim": Vd_limited_fwd, "vrevlim": Vrev_limited }))
+		printerr("Zener {z}: Current is NaN. I_fwd={ifwd}, I_rev={irev}, Vd_lim={vdlim}, Vrev_lim={vrevlim}".format({ "z": name, "ifwd": I_fwd, "irev": I_rev, "vdlim": Vd_limited_fwd, "vrevlim": Vrev_limited }))
+		return
 
 	var ia = system.node_map.get(node_a_id, -1)
 	var ik = system.node_map.get(node_k_id, -1)

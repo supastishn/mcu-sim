@@ -223,12 +223,14 @@ func gather_sim_results(
 
 	if not (!is_nan(V1_t) and !is_nan(V2_t)):
 		LinearSolver.print_vector(x, "x on NP-Cap results fail")
-		assert(false, "NonPolarizedCapacitor {c}: Terminal voltage is NaN. V1={v1}, V2={v2}".format({ "c": name, "v1": V1_t, "v2": V2_t }))
+		printerr("NonPolarizedCapacitor {c}: Terminal voltage is NaN. V1={v1}, V2={v2}".format({ "c": name, "v1": V1_t, "v2": V2_t }))
+		return
 	if not is_nan(Vc_ideal_t):
 		current_np_cap = C_np_val * (Vc_ideal_t - Vc_prev_dt_np_val) / delta_time
 		if not !is_nan(current_np_cap):
 			LinearSolver.print_vector(x, "x on NP-Cap results fail")
-			assert(false, "NonPolarizedCapacitor {c}: Current is NaN. Vc_ideal={vc}, Vc_prev={vp}, C={C}, dt={dt}".format({ "c": name, "vc": Vc_ideal_t, "vp": Vc_prev_dt_np_val, "C": C_np_val, "dt": delta_time }))
+			printerr("NonPolarizedCapacitor {c}: Current is NaN. Vc_ideal={vc}, Vc_prev={vp}, C={C}, dt={dt}".format({ "c": name, "vc": Vc_ideal_t, "vp": Vc_prev_dt_np_val, "C": C_np_val, "dt": delta_time }))
+			return
 		comp_data.properties["voltage_across_cap_prev_dt"] = Vc_ideal_t
 		
 		if abs(Vc_ideal_t) > max_V_np_cap:

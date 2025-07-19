@@ -70,12 +70,13 @@ func gather_sim_results(
 	var current = NAN
 	if not (!is_nan(Va) and !is_nan(Vk)):
 		LinearSolver.print_vector(_x, "x on diode results fail")
-		assert(false, "Diode {d}: Terminal voltage is NaN. Va={va}, Vk={vk}".format({ "d": name, "va": Va, "vk": Vk }))
+		printerr("Diode {d}: Terminal voltage is NaN. Va={va}, Vk={vk}".format({ "d": name, "va": Va, "vk": Vk }))
+		return
 	var Vd = Va - Vk
 	current = saturation_current * (exp(Vd / (ideality_factor * THERMAL_VOLTAGE)) - 1.0)
 	if not !is_nan(current):
 		LinearSolver.print_vector(_x, "x on diode results fail")
-		assert(false, "Diode {d}: Current is NaN. Vd={vd}".format({"d": name, "vd": Vd}))
+		printerr("Diode {d}: Current is NaN. Vd={vd}".format({"d": name, "vd": Vd}))
 	comp_data.properties["_internal_voltage"] = Vd
 
 	circuit.component_results[comp_id]["current"] = current
@@ -128,7 +129,8 @@ func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, 
 	if not !is_nan(current):
 		LinearSolver.print_matrix(system.A, "A on diode kcl fail")
 		LinearSolver.print_vector(F_v, "F_v on diode kcl fail")
-		assert(false, "Diode {d}: Current is NaN. Vd_limited={vdl}".format({"d": name, "vdl": Vd_limited}))
+		printerr("Diode {d}: Current is NaN. Vd_limited={vdl}".format({"d": name, "vdl": Vd_limited}))
+		return
 	
 	var ia = system.node_map.get(node_a_id, -1)
 	var ik = system.node_map.get(node_k_id, -1)

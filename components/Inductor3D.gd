@@ -124,7 +124,8 @@ func stamp(
 	if not inductor_map.has(self_instance_id):
 		LinearSolver.print_matrix(A, "A on inductor stamp fail")
 		LinearSolver.print_vector(b, "b on inductor stamp fail")
-		assert(false, "Inductor {id} not found in inductor_map. Map: {map}".format({ "id": self_instance_id, "map": inductor_map }))
+		printerr("Inductor {id} not found in inductor_map. Map: {map}".format({ "id": self_instance_id, "map": inductor_map }))
+		return
 	var idx_I_L_val = inductor_map[self_instance_id]
 
 	# Inductor equation: V1 - V2 - L * d(I_L)/dt = 0
@@ -162,15 +163,17 @@ func gather_sim_results(
 
 	if not inductor_map.has(comp_id):
 		LinearSolver.print_vector(x, "x on inductor results fail")
-		assert(false, "Inductor {id} not found in inductor_map. Map: {map}".format({"id": comp_id, "map": inductor_map}))
+		printerr("Inductor {id} not found in inductor_map. Map: {map}".format({"id": comp_id, "map": inductor_map}))
+		return
 	var matrix_idx_curr_L_final = inductor_map[comp_id]
 	if not (matrix_idx_curr_L_final < x.size()):
 		LinearSolver.print_vector(x, "x on inductor results fail")
-		assert(false, "Inductor {id}: current index ({idx}) out of bounds in solution vector (size {sz}).".format({ "id": comp_id, "idx": matrix_idx_curr_L_final, "sz": x.size() }))
+		printerr("Inductor {id}: current index ({idx}) out of bounds in solution vector (size {sz}).".format({ "id": comp_id, "idx": matrix_idx_curr_L_final, "sz": x.size() }))
+		return
 	solved_current_L = x[matrix_idx_curr_L_final]
 	if not !is_nan(solved_current_L):
 		LinearSolver.print_vector(x, "x on inductor results fail")
-		assert(false, "Inductor {id}: solved current is NaN at index {idx}.".format({ "id": comp_id, "idx": matrix_idx_curr_L_final }))
+		printerr("Inductor {id}: solved current is NaN at index {idx}.".format({ "id": comp_id, "idx": matrix_idx_curr_L_final }))
 	circuit.component_results[comp_id]["current"] = solved_current_L
 			
 	var term_1_L = comp_data.terminals["T1"]

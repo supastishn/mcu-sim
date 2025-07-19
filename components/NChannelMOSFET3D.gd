@@ -311,7 +311,8 @@ func get_kcl_contributions(graph: CircuitGraph, all_node_voltages: Dictionary, F
 	if not !is_nan(Id):
 		LinearSolver.print_matrix(system.A, "A on N-MOS kcl fail")
 		LinearSolver.print_vector(F_v, "F_v on N-MOS kcl fail")
-		assert(false, "N-MOSFET {mos}: Id is NaN. Region={r}, Vgs={vgs}, Vds={vds}".format({ "mos": name, "r": region, "vgs": Vgs, "vds": Vds }))
+		printerr("N-MOSFET {mos}: Id is NaN. Region={r}, Vgs={vgs}, Vds={vds}".format({ "mos": name, "r": region, "vgs": Vgs, "vds": Vds }))
+		return
 
 	var idx_d = system.node_map.get(node_d_id, -1)
 	var idx_s = system.node_map.get(node_s_id, -1)

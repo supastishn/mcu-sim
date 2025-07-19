@@ -468,7 +468,9 @@ func _reset_voltages():
 ## Solves the circuit for a single transient time step using a Newton-Raphson solver.
 func solve_single_time_step(delta_time: float) -> bool:
 	_is_solved = false
-	assert(ground_node_id != -1, "Ground node must be set before solving.")
+	if ground_node_id == -1:
+		printerr("Ground node must be set before solving.")
+		return false
 
 	# Reset stateful components that have state machines
 	for comp_data_item in components:

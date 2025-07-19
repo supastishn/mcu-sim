@@ -136,7 +136,8 @@ func stamp(
 	if not vs_map.has(battery_instance_id):
 		LinearSolver.print_matrix(A, "A on battery stamp fail")
 		LinearSolver.print_vector(b, "b on battery stamp fail")
-		assert(false, "Battery {id} not found in vs_map. Map: {map}".format({ "id": battery_instance_id, "map": vs_map }))
+		printerr("Battery {id} not found in vs_map. Map: {map}".format({ "id": battery_instance_id, "map": vs_map }))
+		return
 	var battery_current_matrix_idx = vs_map[battery_instance_id]
 	
 	var V_target_val = comp_data.properties["target_voltage"]
@@ -163,15 +164,17 @@ func gather_sim_results(
 
 	if not vs_map.has(comp_id):
 		LinearSolver.print_vector(x, "x on battery results fail")
-		assert(false, "Battery {id} not found in vs_map. Map: {map}".format({ "id": comp_id, "map": vs_map }))
+		printerr("Battery {id} not found in vs_map. Map: {map}".format({ "id": comp_id, "map": vs_map }))
+		return
 	var matrix_idx_curr_final = vs_map[comp_id]
 	if not (matrix_idx_curr_final < x.size()):
 		LinearSolver.print_vector(x, "x on battery results fail")
-		assert(false, "Battery {id}: current index ({idx}) out of bounds in solution vector (size {sz}).".format({ "id": comp_id, "idx": matrix_idx_curr_final, "sz": x.size() }))
+		printerr("Battery {id}: current index ({idx}) out of bounds in solution vector (size {sz}).".format({ "id": comp_id, "idx": matrix_idx_curr_final, "sz": x.size() }))
+		return
 	var solved_current_mna = x[matrix_idx_curr_final]
 	if not !is_nan(solved_current_mna):
 		LinearSolver.print_vector(x, "x on battery results fail")
-		assert(false, "Battery {id}: solved current is NaN at index {idx}.".format({ "id": comp_id, "idx": matrix_idx_curr_final }))
+		printerr("Battery {id}: solved current is NaN at index {idx}.".format({ "id": comp_id, "idx": matrix_idx_curr_final }))
 	circuit.component_results[comp_id]["current"] = -solved_current_mna 
 			
 	var term_p_fv = comp_data.terminals["POS"]
