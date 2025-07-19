@@ -58,6 +58,8 @@ var _cached_system: Dictionary = {}
 var _next_node_id: int = 0
 var _next_internal_node_id: int = -1 # Use negative numbers for internal nodes
 
+var _last_solver_debug_info: Array = []
+
 ## Returns a new unique ID for an electrical node.
 func _get_new_node_id() -> int:
 	_next_node_id += 1
@@ -526,20 +528,43 @@ func _solve_newton_raphson(system: Dictionary, delta_time: float) -> bool:
 	var max_iter = 100
 	var v_tolerance = 1e-6
 	
+	_last_solver_debug_info.clear()
+
 	for i in range(max_iter):
+		var iter_info = {"iteration": i}
+
+		var voltages_before = {}
+		for node_id in electrical_nodes:
+			voltages_before[node_id] = electrical_nodes[node_id].get("voltage", 0.0)
+		iter_info["voltages_before"] = voltages_before
+		
+		var component_states = {}
+		for comp_data in components:
+			var state_key = "operating_region" if comp_data.properties.has("operating_region") else "operating_state" if comp_data.properties.has("operating_state") else "is_energized" if comp_data.properties.has("is_energized") else "is_exploded" if comp_data.has("is_exploded") else "state" if comp_data.has("state") else ""
+			if not state_key.is_empty():
+				var comp_node = comp_data.component_node
+				if is_instance_valid(comp_node):
+					component_states[comp_node.name] = comp_data.properties.get(state_key, comp_data.get(state_key, "N/A"))
+		iter_info["component_states"] = component_states
+
 		var matrices = _stamp_mna_matrices(system, delta_time)
 		var A = matrices.A
 		var b_error = _calculate_error_vector(system, matrices.b, delta_time)
+		
+		iter_info["jacobian_A"] = A.duplicate(true)
+		iter_info["error_vector_neg_F"] = b_error.duplicate()
 
 		if A.is_empty(): return true
 
 		# Newton-Raphson: Solve A * dV = F(V)
 		var delta_x = LinearSolver.solve(A, b_error)
+		iter_info["update_vector_dx"] = delta_x.duplicate()
 
 		if delta_x.is_empty() and not A.is_empty():
 			LinearSolver.print_matrix(A, "A on NR solve fail")
 			LinearSolver.print_vector(b_error, "b_error on NR solve fail")
 			printerr("Linear solver failed during Newton-Raphson iteration. System size: {s}".format({"s": A.size()}))
+			_last_solver_debug_info.push_back(iter_info)
 			return false
 
 		# Adaptive damping for stability
@@ -551,11 +576,19 @@ func _solve_newton_raphson(system: Dictionary, delta_time: float) -> bool:
 			printerr("Solver update vector norm is NaN. delta_x: {dx}".format({"dx": delta_x}))
 			return false
 		var damping_factor = 1.0 - clamp(0.1 * log(norm + 1.0), 0.2, 0.9)
+		iter_info["damping_factor"] = damping_factor
 		var node_map = system.node_map
 		for node_id in node_map:
 			var index = node_map[node_id]
 			if electrical_nodes.has(node_id):
 				electrical_nodes[node_id].voltage += damping_factor * delta_x[index]
+
+		var voltages_after = {}
+		for node_id in electrical_nodes:
+			voltages_after[node_id] = electrical_nodes[node_id].get("voltage", 0.0)
+		iter_info["voltages_after"] = voltages_after
+		
+		_last_solver_debug_info.push_back(iter_info)
 
 		var state_changed = _update_all_nonlinear_states(system)
 		
@@ -611,6 +644,30 @@ func _calculate_error_vector(system: Dictionary, b: Array, delta_time: float) ->
 	# The Newton-Raphson update is J*dx = -F(V).
 	var final_error = F.map(func(v): return -v)
 	return final_error
+
+func get_solver_debug_info_as_string() -> String:
+	var output = "\n[b][color=yellow]----- SOLVER DEBUG INFO ----- [/color][/b]\n"
+	if _last_solver_debug_info.is_empty():
+		return output + "No debug information was recorded.\n"
+
+	for i in range(_last_solver_debug_info.size()):
+		var iter_info = _last_solver_debug_info[i]
+		output += "\n--- Iteration {iter} ---\n".format({"iter": iter_info.iteration})
+		output += "Component States: {s}\n".format({"s": str(iter_info.component_states)})
+		
+		var err_norm = sqrt(iter_info.error_vector_neg_F.reduce(func(acc, val): return acc + val*val, 0.0))
+		var dx_norm = sqrt(iter_info.update_vector_dx.reduce(func(acc, val): return acc + val*val, 0.0))
+		output += "Error Vector Norm: {en}\n".format({"en": err_norm})
+		output += "Update Vector Norm: {un}\n".format({"un": dx_norm})
+		
+		# Only print full matrices for the very last failed iteration
+		if i == _last_solver_debug_info.size() - 1:
+			output += "Jacobian (A) for last iteration:\n" + LinearSolver.matrix_to_string(iter_info.jacobian_A)
+			output += "Error Vector (-F) for last iteration:\n" + LinearSolver.vector_to_string(iter_info.error_vector_neg_F)
+			output += "Update Vector (dx) for last iteration:\n" + LinearSolver.vector_to_string(iter_info.update_vector_dx)
+
+	output += "[b][color=yellow]----- END SOLVER DEBUG INFO ----- [/color][/b]\n"
+	return output
 
 func _check_convergence(delta_x: Array, v_tol: float) -> bool:
 	var norm = delta_x.reduce(func(acc, val): return acc + val*val, 0.0)

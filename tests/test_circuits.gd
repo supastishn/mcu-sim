@@ -110,7 +110,7 @@ func test_simple_powersupply_resistor_led_circuit() -> bool:
 	rig.ground(ps_node.terminal_neg)
 
 	var solve_success: bool = rig.solve()
-	if not TestUtils.assert_true(solve_success, "Simulation solve_single_time_step successful"): overall_test_passed = false
+	if not TestUtils.assert_true(solve_success, "Simulation solve_single_time_step successful", rig): overall_test_passed = false
 
 	if solve_success:
 		# Approximate LED forward voltage drop around 2.0V for this test's parameters
@@ -183,7 +183,7 @@ func test_op_amp_inverting_amplifier() -> bool:
 	rig.wire(ps_vee.terminal_pos, opamp.terminal_vp)
 	rig.wire(ps_vin.terminal_neg, opamp.terminal_vp)
 
-	if not rig.solve(): ok = false
+	if not TestUtils.assert_true(rig.solve(), "Op-Amp Linear Solve", rig): ok = false
 	if ok:
 		var results = rig.results(opamp)
 		if not TestUtils.assert_equals(results.get("region"), "LINEAR", "Op-Amp is in LINEAR region"): ok = false
@@ -194,7 +194,7 @@ func test_op_amp_inverting_amplifier() -> bool:
 	ps_vin.target_voltage = 2.0 # This should drive output to -20V, which will saturate
 	rig.cfg(ps_vin)
 	
-	if not rig.solve(): ok = false
+	if not TestUtils.assert_true(rig.solve(), "Op-Amp Saturation Solve", rig): ok = false
 	if ok:
 		var results_sat = rig.results(opamp)
 		if not TestUtils.assert_equals(results_sat.get("region"), "SAT_LOW", "Op-Amp is in SAT_LOW region"): ok = false
@@ -206,7 +206,7 @@ func test_op_amp_inverting_amplifier() -> bool:
 	ps_vin.target_voltage = -2.0 # This should drive output to +20V, which will saturate
 	rig.cfg(ps_vin)
 
-	if not rig.solve(): ok = false
+	if not TestUtils.assert_true(rig.solve(), "Op-Amp High Saturation Solve", rig): ok = false
 	if ok:
 		var results_sat_high = rig.results(opamp)
 		if not TestUtils.assert_equals(results_sat_high.get("region"), "SAT_HIGH", "Op-Amp is in SAT_HIGH region"): ok = false
@@ -243,7 +243,7 @@ func test_switch_behavior() -> bool:
 	rig.wire(led_node.terminal_kathode, ps_node.terminal_neg)
 	rig.ground(ps_node.terminal_neg)
 
-	if not rig.solve(): ok = false
+	if not TestUtils.assert_true(rig.solve(), "Switch NC Solve", rig): ok = false
 	if ok:
 		# Approximate LED forward voltage drop around 2.0V for this test's parameters
 		var expected_current_on = (5.0 - 2.0) / 220.0
@@ -269,7 +269,7 @@ func test_switch_behavior() -> bool:
 	rig.wire(led_node.terminal_kathode, ps_node.terminal_neg)
 	rig.ground(ps_node.terminal_neg)
 	
-	if not rig.solve(): ok = false
+	if not TestUtils.assert_true(rig.solve(), "Switch NO Solve", rig): ok = false
 	if ok:
 		# Approximate LED forward voltage drop around 2.0V for this test's parameters
 		var expected_current_on = (5.0 - 2.0) / 220.0
@@ -305,7 +305,7 @@ func test_diode_behavior() -> bool:
 	rig.wire(diode_node.terminal_kathode, ps_node.terminal_neg)
 	rig.ground(ps_node.terminal_neg)
 
-	if not rig.solve(): ok = false
+	if not TestUtils.assert_true(rig.solve(), "Diode Fwd Solve", rig): ok = false
 	if ok:
 		var diode_results = rig.results(diode_node)
 		# Approximate diode forward voltage drop around 0.7V for this test's parameters
@@ -328,7 +328,7 @@ func test_diode_behavior() -> bool:
 	rig.wire(diode_node.terminal_anode, ps_node.terminal_neg)
 	rig.ground(ps_node.terminal_neg)
 	
-	if not rig.solve(): ok = false
+	if not TestUtils.assert_true(rig.solve(), "Diode Rev Solve", rig): ok = false
 	if ok:
 		var diode_results = rig.results(diode_node)
 		if not TestUtils.assert_approx_equals(diode_results.get("current", NAN), 0.0, 1e-6, "Diode Test (Rev): Current is near zero"): ok = false
@@ -368,7 +368,7 @@ func test_potentiometer_behavior() -> bool:
 		print("  Potentiometer Test: Wiper at {p}".format({"p": case.pos}))
 		pot_node.set_wiper_position(case.pos)
 		
-		if not rig.solve(): ok = false; continue
+		if not TestUtils.assert_true(rig.solve(), "Potentiometer Solve pos={p}".format({"p": case.pos}), rig): ok = false; continue
 		
 		var wiper_node_id = g.terminal_connections.get(pot_node.terminal_wiper.get_instance_id(), -1)
 		if wiper_node_id == -1:
@@ -411,7 +411,7 @@ func test_battery_behavior() -> bool:
 		print("  Battery Test: {c} cells".format({"c": case.cells}))
 		bat_node.set_num_cells(case.cells)
 		
-		if not rig.solve(): ok = false; continue
+		if not TestUtils.assert_true(rig.solve(), "Battery Solve cells={c}".format({"c": case.cells}), rig): ok = false; continue
 		
 		var bat_results = rig.results(bat_node)
 		var voltage_across = bat_results.get("voltage", NAN)
@@ -454,7 +454,7 @@ func test_polarized_capacitor_behavior() -> bool:
 	var cap_voltage = 0.0
 	var dt = 0.02 # Time constant is R*C = 1k * 100uF = 0.1s. 5 steps of 0.02s is 0.1s.
 	for i in range(5):
-		if not rig.solve(dt): ok = false; break
+		if not TestUtils.assert_true(rig.solve(dt), "Capacitor Charging Solve iter {i}".format({"i":i}), rig): ok = false; break
 		var cap_results = rig.results(cap_node)
 		cap_voltage = cap_results.get("voltage_across", NAN)
 	
@@ -469,7 +469,7 @@ func test_polarized_capacitor_behavior() -> bool:
 	
 	var exploded = false
 	for i in range(15):
-		if not rig.solve(dt): ok = false; break
+		if not TestUtils.assert_true(rig.solve(dt), "Capacitor Explosion Solve iter {i}".format({"i":i}), rig): ok = false; break
 		var cap_graph_data = g.component_node_map.get(cap_node)
 		if cap_graph_data.get("is_exploded", false):
 			exploded = true
@@ -506,7 +506,7 @@ func test_non_polarized_capacitor_behavior() -> bool:
 	# Time constant is R*C = 1k * 10uF = 0.01s. 5 steps of 0.002s is 0.01s (1 TC).
 	var dt = 0.002
 	for i in range(5):
-		if not rig.solve(dt): ok = false; break
+		if not TestUtils.assert_true(rig.solve(dt), "Non-Polarized Cap Charging Solve iter {i}".format({"i":i}), rig): ok = false; break
 		var cap_results = rig.results(cap_node)
 		cap_voltage = cap_results.get("voltage_across", NAN)
 
@@ -543,7 +543,7 @@ func test_inductor_behavior() -> bool:
 	# Time constant is L/R = 10mH / 100R = 0.0001s (100us). 5 steps of 20us is 100us.
 	var dt = 0.00002
 	for i in range(5):
-		if not rig.solve(dt): ok = false; break
+		if not TestUtils.assert_true(rig.solve(dt), "Inductor Solve iter {i}".format({"i":i}), rig): ok = false; break
 		var ind_results = rig.results(ind_node)
 		inductor_current = ind_results.get("current", NAN)
 
@@ -580,7 +580,7 @@ func test_npn_bjt_regions() -> bool:
 	rig.wire(bjt_cutoff.terminal_b, ps_cutoff.terminal_neg)
 	rig.ground(ps_cutoff.terminal_neg)
 
-	if not rig.solve(): ok = false
+	if not TestUtils.assert_true(rig.solve(), "NPN Cutoff Solve", rig): ok = false
 	if ok:
 		var results = rig.results(bjt_cutoff)
 		if not TestUtils.assert_equals(results.get("region", "ERROR"), "OFF", "NPN BJT Test (Cutoff): Region is OFF"): ok = false
@@ -609,7 +609,7 @@ func test_npn_bjt_regions() -> bool:
 	rig.wire(ps_active_vbb.terminal_neg, ps_active_vcc.terminal_neg)
 	rig.ground(ps_active_vcc.terminal_neg)
 
-	if not rig.solve(): ok = false
+	if not TestUtils.assert_true(rig.solve(), "NPN Active Solve", rig): ok = false
 	if ok:
 		var results = rig.results(bjt_active)
 		var ic = results.get("Ic", NAN)
@@ -644,7 +644,7 @@ func test_npn_bjt_regions() -> bool:
 	rig.wire(ps_sat_vbb.terminal_neg, ps_sat_vcc.terminal_neg)
 	rig.ground(ps_sat_vcc.terminal_neg)
 
-	if not rig.solve(): ok = false
+	if not TestUtils.assert_true(rig.solve(), "NPN Saturation Solve", rig): ok = false
 	if ok:
 		var results = rig.results(bjt_sat)
 		var vce = results.get("Vds", NAN) # Vds for MOSFET, but test reuses
@@ -692,7 +692,7 @@ func test_pnp_bjt_regions() -> bool:
 	rig.wire(bjt_pnp_cutoff.terminal_b, ps_pnp_cutoff.terminal_pos)
 	rig.ground(ps_pnp_cutoff.terminal_neg)
 
-	if not rig.solve(): ok = false
+	if not TestUtils.assert_true(rig.solve(), "PNP Cutoff Solve", rig): ok = false
 	if ok:
 		var results = rig.results(bjt_pnp_cutoff)
 		if not TestUtils.assert_equals(results.get("region", "ERROR"), "OFF", "PNP BJT Test (Cutoff): Region is OFF"): ok = false
@@ -721,7 +721,7 @@ func test_pnp_bjt_regions() -> bool:
 	rig.wire(ps_pnp_active_vb_supply.terminal_neg, ps_pnp_active_vcc.terminal_neg)
 	rig.ground(ps_pnp_active_vcc.terminal_neg)
 
-	if not rig.solve(): ok = false
+	if not TestUtils.assert_true(rig.solve(), "PNP Active Solve", rig): ok = false
 	if ok:
 		var results = rig.results(bjt_pnp_active)
 		var ic = results.get("Ic", NAN)
@@ -754,7 +754,7 @@ func test_pnp_bjt_regions() -> bool:
 	rig.wire(ps_pnp_sat_vb_supply.terminal_neg, ps_pnp_sat_vcc.terminal_neg)
 	rig.ground(ps_pnp_sat_vcc.terminal_neg)
 
-	if not rig.solve(): ok = false
+	if not TestUtils.assert_true(rig.solve(), "PNP Saturation Solve", rig): ok = false
 	if ok:
 		var results = rig.results(bjt_pnp_sat)
 		var ic_sat = results.get("Ic", NAN)
@@ -801,7 +801,7 @@ func test_zener_diode_behavior() -> bool:
 	rig.wire(zener_fwd.terminal_kathode, ps_fwd.terminal_neg)
 	rig.ground(ps_fwd.terminal_neg)
 
-	if not rig.solve(): ok = false
+	if not TestUtils.assert_true(rig.solve(), "Zener Fwd Solve", rig): ok = false
 	if ok:
 		var results = rig.results(zener_fwd)
 		var expected_current = (ps_fwd.target_voltage - Vf_test) / R_series_val
@@ -824,7 +824,7 @@ func test_zener_diode_behavior() -> bool:
 	rig.wire(zener_rev_off.terminal_anode, ps_rev_off.terminal_neg)
 	rig.ground(ps_rev_off.terminal_neg)
 
-	if not rig.solve(): ok = false
+	if not TestUtils.assert_true(rig.solve(), "Zener Rev OFF Solve", rig): ok = false
 	if ok:
 		var results = rig.results(zener_rev_off)
 		if not TestUtils.assert_approx_equals(results.get("current", NAN), 0.0, 1e-6, "Zener Test (Rev OFF): Current is near zero"): ok = false
@@ -846,7 +846,7 @@ func test_zener_diode_behavior() -> bool:
 	rig.wire(zener_breakdown.terminal_anode, ps_breakdown.terminal_neg)
 	rig.ground(ps_breakdown.terminal_neg)
 	
-	if not rig.solve(): ok = false
+	if not TestUtils.assert_true(rig.solve(), "Zener Breakdown Solve", rig): ok = false
 	if ok:
 		var results = rig.results(zener_breakdown)
 		var expected_current = -((ps_breakdown.target_voltage - Vz_test) / R_series_val)
@@ -907,7 +907,7 @@ func test_relay_behavior() -> bool:
 	rig.wire(res_no_off.terminal2, led_no_off.terminal_anode)
 	rig.wire(led_no_off.terminal_kathode, ps_load_off.terminal_neg)
 
-	if not rig.solve(): ok = false
+	if not TestUtils.assert_true(rig.solve(), "Relay De-energized Solve", rig): ok = false
 	if ok:
 		if not TestUtils.assert_false(rig.results(relay_node_off).get("is_energized", true), "Relay Test (De-energized): Relay is not energized"): ok = false
 		var expected_current_on = (load_ps_v - load_led_vf) / load_res_val
@@ -946,7 +946,7 @@ func test_relay_behavior() -> bool:
 	rig.wire(res_no_on.terminal2, led_no_on.terminal_anode)
 	rig.wire(led_no_on.terminal_kathode, ps_load_on.terminal_neg)
 
-	if not rig.solve(): ok = false
+	if not TestUtils.assert_true(rig.solve(), "Relay Energized Solve", rig): ok = false
 	if ok:
 		if not TestUtils.assert_true(rig.results(relay_node_on).get("is_energized", false), "Relay Test (Energized): Relay is energized"): ok = false
 		var expected_current_on = (load_ps_v - load_led_vf) / load_res_val
@@ -981,7 +981,7 @@ func test_led_burnout() -> bool:
 	rig.wire(led_node.terminal_kathode, ps_node.terminal_neg)
 	rig.ground(ps_node.terminal_neg)
 	
-	if not rig.solve(): ok = false
+	if not TestUtils.assert_true(rig.solve(), "LED Burnout Solve", rig): ok = false
 	if ok:
 		var led_graph_data = g.component_node_map.get(led_node)
 		if led_graph_data:
@@ -1014,7 +1014,7 @@ func test_led_not_lighting() -> bool:
 	rig.wire(led_node.terminal_kathode, ps_node.terminal_neg)
 	rig.ground(ps_node.terminal_neg)
 
-	if not rig.solve(): ok = false
+	if not TestUtils.assert_true(rig.solve(), "LED Not Lighting Solve", rig): ok = false
 	if ok:
 		var led_results = rig.results(led_node)
 		var led_current = led_results.get("current", NAN)
@@ -1054,7 +1054,7 @@ func test_nmosfet_regions() -> bool:
 	rig.wire(ps_g_off.terminal_neg, ps_d_off.terminal_neg)
 	rig.ground(ps_d_off.terminal_neg)
 
-	if not rig.solve(): ok = false
+	if not TestUtils.assert_true(rig.solve(), "NMOS OFF Solve", rig): ok = false
 	if ok:
 		var res = rig.results(mos_off)
 		if not TestUtils.assert_equals(res.get("region",""), "OFF", "NMOS Test (OFF): Region is OFF"): ok = false
@@ -1076,7 +1076,7 @@ func test_nmosfet_regions() -> bool:
 	rig.wire(ps_g_tri.terminal_neg, ps_d_tri.terminal_neg)
 	rig.ground(ps_d_tri.terminal_neg)
 
-	if not rig.solve(): ok = false
+	if not TestUtils.assert_true(rig.solve(), "NMOS TRIODE Solve", rig): ok = false
 	if ok:
 		var res_tri = rig.results(mos_tri)
 		if not TestUtils.assert_equals(res_tri.get("region", ""), "TRIODE", "NMOS Test (TRI): Region is TRIODE"): ok = false
@@ -1107,7 +1107,7 @@ func test_nmosfet_regions() -> bool:
 	rig.wire(ps_g_sat.terminal_neg, ps_d_sat.terminal_neg)
 	rig.ground(ps_d_sat.terminal_neg)
 
-	if not rig.solve(): ok = false
+	if not TestUtils.assert_true(rig.solve(), "NMOS SATURATION Solve", rig): ok = false
 	if ok:
 		var res_sat = rig.results(mos_sat)
 		if not TestUtils.assert_equals(res_sat.get("region",""), "SATURATION", "NMOS Test (SAT): Region is SATURATION"): ok = false
@@ -1148,7 +1148,7 @@ func test_pmosfet_regions() -> bool:
 	g.connect_terminals(ps_g_off.terminal_neg, ps_s_off.terminal_neg)
 	rig.ground(ps_s_off.terminal_neg)
 
-	if not rig.solve(): ok = false
+	if not TestUtils.assert_true(rig.solve(), "PMOS OFF Solve", rig): ok = false
 	var res = rig.results(pmos_off)
 	var region_str = res.get("region", "N/A")
 	var id_val = res.get("Id", NAN)
@@ -1174,7 +1174,7 @@ func test_pmosfet_regions() -> bool:
 	g.connect_terminals(ps_d_tr.terminal_neg, ps_s_tr.terminal_neg)      # NEW
 	rig.ground(ps_s_tr.terminal_neg)
 
-	if not rig.solve(): ok = false
+	if not TestUtils.assert_true(rig.solve(), "PMOS TRIODE Solve", rig): ok = false
 	res = rig.results(pmos_tr)
 	region_str = res.get("region", "N/A")
 	id_val = res.get("Id", NAN)
@@ -1201,7 +1201,7 @@ func test_pmosfet_regions() -> bool:
 	g.connect_terminals(pmos_sat.terminal_g, ps_g_sat.terminal_pos)
 	g.connect_terminals(ps_g_sat.terminal_neg, ps_s_sat.terminal_neg)
 	rig.ground(ps_s_sat.terminal_neg)
-	if not rig.solve(): ok = false
+	if not TestUtils.assert_true(rig.solve(), "PMOS SATURATION Solve", rig): ok = false
 	res = rig.results(pmos_sat)
 	region_str = res.get("region", "N/A")
 	id_val = res.get("Id", NAN)
@@ -1249,7 +1249,7 @@ func test_linear_regulator_normal() -> bool:
 
 	# Solve
 	var solve_success: bool = rig.solve()
-	if not TestUtils.assert_true(solve_success, "Simulation solve_single_time_step successful"):
+	if not TestUtils.assert_true(solve_success, "Simulation solve_single_time_step successful", rig):
 		rig.cleanup()
 		return false
 
@@ -1305,7 +1305,7 @@ func test_linear_regulator_dropout() -> bool:
 
 	# Solve
 	var solve_success: bool = rig.solve()
-	if not TestUtils.assert_true(solve_success, "Simulation solve_single_time_step successful"):
+	if not TestUtils.assert_true(solve_success, "Simulation solve_single_time_step successful", rig):
 		rig.cleanup()
 		return false
 

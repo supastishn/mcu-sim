@@ -80,6 +80,22 @@ static func solve(A: Array, b: Array) -> Array:
 	return x
 
 
+## Utility function to convert a matrix to a formatted string.
+static func matrix_to_string(M: Array) -> String:
+	var output = ""
+	if M.is_empty() or not M[0] is Array:
+		return str(M) + "\n"
+	for row in M:
+		var row_str = "[ "
+		for val in row:
+			if typeof(val) == TYPE_FLOAT:
+				row_str += String.num(val, 3).lpad(8) + " "
+			else:
+				row_str += str(val).lpad(8) + " "
+		row_str += "]\n"
+		output += row_str
+	return output
+
 ## Utility function to print a matrix to the console for debugging.
 static func print_matrix(M: Array, p_name: String = "Matrix"):
 	print("--- {matrix_name} ---".format({"matrix_name": p_name}))
@@ -97,6 +113,17 @@ static func print_matrix(M: Array, p_name: String = "Matrix"):
 		print(row_str)
 	print("--------------")
 
+
+## Utility function to convert a vector to a formatted string.
+static func vector_to_string(V: Array) -> String:
+	var vec_str = "[ "
+	for val in V:
+		if typeof(val) == TYPE_FLOAT:
+			vec_str += String.num(val, 3).lpad(8) + " "
+		else:
+			vec_str += str(val).lpad(8) + " "
+	vec_str += "]"
+	return vec_str
 
 ## Utility function to print a vector to the console for debugging.
 static func print_vector(V: Array, p_name: String = "Vector"):

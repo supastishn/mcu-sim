@@ -1,11 +1,16 @@
 class_name TestUtils
 
 ## Asserts that a condition is true.
-static func assert_true(condition: bool, message: String = "") -> bool:
+static func assert_true(condition: bool, message: String = "", context = null) -> bool:
 	if condition:
 		print("  PASSED: {msg}".format({"msg": message if message else "Condition is true"}))
 	else:
 		printerr("  FAILED: {msg}".format({"msg": message if message else "Condition expected to be true, but was false"}))
+		if context is TestRig and is_instance_valid(context.graph):
+			print_rich(context.graph.get_solver_debug_info_as_string())
+		elif context is CircuitGraph and is_instance_valid(context):
+			print_rich(context.get_solver_debug_info_as_string())
+
 	return condition
 
 ## Asserts that a condition is false.
