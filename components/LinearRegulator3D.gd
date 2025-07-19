@@ -132,29 +132,20 @@ func stamp(
 	var Gbig = 1e9  # Large conductance for voltage stamping
 	
 	if status == "REGULATED":
-		# Enforce Vout - GND = regulated_voltage using large conductance
-		if idx_gnd != -1:
-			A[idx_vout][idx_vout] += Gbig
-			A[idx_vout][idx_gnd] -= Gbig
-			b[idx_vout] += Gbig * regulated_voltage
-		else:
-			A[idx_vout][idx_vout] += Gbig
-			b[idx_vout] += Gbig * regulated_voltage
+		# Enforce Vout - GND = regulated_voltage using large conductance model
+		CircuitGraph.stamp_conductance(A, Gbig, idx_vout, idx_gnd)
+		if idx_vout != -1: b[idx_vout] += Gbig * regulated_voltage
+		if idx_gnd != -1: b[idx_gnd] -= Gbig * regulated_voltage
+
 	elif status == "DROPOUT":
-		# Enforce Vout = Vin - dropout_voltage using large conductance
-		if idx_vin != -1:
-			A[idx_vout][idx_vout] += Gbig
-			A[idx_vout][idx_vin] -= Gbig
-			b[idx_vout] -= Gbig * dropout_voltage
-		else:
-			A[idx_vout][idx_vout] += 1e-9
+		# Enforce Vout - Vin = -dropout_voltage using large conductance model
+		CircuitGraph.stamp_conductance(A, Gbig, idx_vout, idx_vin)
+		if idx_vout != -1: b[idx_vout] -= Gbig * dropout_voltage
+		if idx_vin != -1: b[idx_vin] += Gbig * dropout_voltage
+
 	elif status == "DISCONNECTED":
 		# No constraint, but add a tiny conductance to ground to avoid singular matrix
-		if idx_gnd != -1:
-			A[idx_vout][idx_vout] += 1e-9
-			A[idx_vout][idx_gnd] -= 1e-9
-		else:
-			A[idx_vout][idx_vout] += 1e-9
+		CircuitGraph.stamp_conductance(A, 1e-9, idx_vout, idx_gnd)
 
 ## Extracts simulation results and updates the info label.
 func gather_sim_results(circuit, comp_data, _x, _node_map, _vs_map, _inductor_map, _delta_time):

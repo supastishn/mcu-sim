@@ -195,27 +195,18 @@ func stamp(
 			if vout_idx != -1:
 				A[vout_idx][opamp_curr_idx] = 1.0
 	elif region == "SAT_HIGH":
-		# Enforce Vout = Vcc - rail_saturation_voltage
+		# Enforce Vout = Vcc - rail_saturation_voltage with a large conductance model
 		var sat_drop = comp_data.properties["rail_saturation_voltage"]
-		if vout_idx != -1:
-			if vcc_idx != -1:
-				A[vout_idx][vout_idx] += Gbig
-				A[vout_idx][vcc_idx] -= Gbig
-				b[vout_idx] += Gbig * ( -sat_drop )
-			else: # Vcc not connected, clamp to GND reference
-				A[vout_idx][vout_idx] += Gbig
-				b[vout_idx] += Gbig * ( -sat_drop )
+		CircuitGraph.stamp_conductance(A, Gbig, vout_idx, vcc_idx)
+		if vout_idx != -1: b[vout_idx] -= Gbig * sat_drop
+		if vcc_idx != -1: b[vcc_idx] += Gbig * sat_drop
+
 	elif region == "SAT_LOW":
-		# Enforce Vout = Vee + rail_saturation_voltage
+		# Enforce Vout = Vee + rail_saturation_voltage with a large conductance model
 		var sat_drop = comp_data.properties["rail_saturation_voltage"]
-		if vout_idx != -1:
-			if vee_idx != -1:
-				A[vout_idx][vout_idx] += Gbig
-				A[vout_idx][vee_idx] -= Gbig
-				b[vout_idx] += Gbig * sat_drop
-			else: # Vee not connected
-				A[vout_idx][vout_idx] += Gbig
-				b[vout_idx] += Gbig * sat_drop
+		CircuitGraph.stamp_conductance(A, Gbig, vout_idx, vee_idx)
+		if vout_idx != -1: b[vout_idx] += Gbig * sat_drop
+		if vee_idx != -1: b[vee_idx] -= Gbig * sat_drop
 
 ## Extracts and stores simulation results for this component.
 func gather_sim_results(
