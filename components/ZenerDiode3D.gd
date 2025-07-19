@@ -156,14 +156,11 @@ func stamp(
 
 	# Total linearized model
 	var Geq = G_fwd + G_rev
-	var Ieq = I_fwd_eq - I_rev_eq
 
 	var ia = node_map.get(terminal_connections.get(terminal_anode.get_instance_id(), -1), -1)
 	var ik = node_map.get(terminal_connections.get(terminal_kathode.get_instance_id(), -1), -1)
 	
 	CircuitGraph.stamp_conductance(A, Geq, ia, ik)
-	if ia != -1: b[ia] -= Ieq
-	if ik != -1: b[ik] += Ieq
 
 func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, F_v: Array, system: Dictionary, _delta_time: float):
 	var node_a_id = graph.terminal_connections.get(terminal_anode.get_instance_id(), -1)

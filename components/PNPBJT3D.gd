@@ -174,18 +174,15 @@ func stamp(
 	# Stamp linearized model into MNA matrices (current directions are reversed for PNP)
 	if idx_b != -1:
 		A[idx_b][idx_b] += g_pi_pnp + g_mu_pnp
-		b[idx_b] -= I_eb_eq + I_cb_eq
 		if idx_e != -1: A[idx_b][idx_e] -= g_pi_pnp
 		if idx_c != -1: A[idx_b][idx_c] -= g_mu_pnp
 	
 	if idx_e != -1:
 		A[idx_e][idx_e] += g_pi_pnp + gm_f_pnp
-		b[idx_e] += I_eb_eq + alpha_f * I_eb_eq
 		if idx_b != -1: A[idx_e][idx_b] -= g_pi_pnp + gm_f_pnp
 	
 	if idx_c != -1:
 		A[idx_c][idx_c] += g_mu_pnp + gm_r_pnp
-		b[idx_c] += I_cb_eq + alpha_r * I_cb_eq
 		if idx_b != -1: A[idx_c][idx_b] -= g_mu_pnp + gm_r_pnp
 
 func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, F_v: Array, system: Dictionary, _delta_time: float):

@@ -174,19 +174,16 @@ func stamp(
 	# Stamp linearized model into MNA matrices
 	if idx_b != -1:
 		A[idx_b][idx_b] += g_pi + g_mu
-		b[idx_b] -= -I_be_eq - I_bc_eq
 		if idx_e != -1: A[idx_b][idx_e] -= g_pi
 		if idx_c != -1: A[idx_b][idx_c] -= g_mu
 	
 	if idx_e != -1:
 		A[idx_e][idx_e] += g_pi + gm_f - gm_r
-		b[idx_e] -= I_be_eq + alpha_f * I_be_eq - alpha_r * I_bc_eq
 		if idx_b != -1: A[idx_e][idx_b] -= g_pi + gm_f
 		if idx_c != -1: A[idx_e][idx_c] += gm_r
 	
 	if idx_c != -1:
 		A[idx_c][idx_c] += g_mu - gm_f + gm_r
-		b[idx_c] -= I_bc_eq - alpha_f * I_be_eq + alpha_r * I_bc_eq
 		if idx_b != -1: A[idx_c][idx_b] -= g_mu - gm_f
 		if idx_e != -1: A[idx_c][idx_e] -= -gm_r
 

@@ -203,7 +203,6 @@ func stamp(
 	# Linearized model from Shockley equation
 	var exp_term = exp(Vd_last_iter / n_vt)
 	var Geq = (saturation_current / n_vt) * exp_term
-	var Ieq = saturation_current * (exp_term - 1.0) - Geq * Vd_last_iter
 
 	var na = terminal_connections.get(terminal_anode.get_instance_id(), -1)
 	var nk = terminal_connections.get(terminal_kathode.get_instance_id(), -1)
@@ -211,8 +210,6 @@ func stamp(
 	var ik = node_map.get(nk, -1)
 
 	CircuitGraph.stamp_conductance(A, Geq, ia, ik)
-	if ia != -1: b[ia] -= Ieq
-	if ik != -1: b[ik] += Ieq
 
 func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, F_v: Array, system: Dictionary, _delta_time: float):
 	var comp_data = graph.component_node_map.get(self)

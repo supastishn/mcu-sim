@@ -267,14 +267,8 @@ func stamp(
 			var g_ds = 0.5 * kn_nmos_mna_prop * pow(max(0, Vgs_for_model_val - vt_nmos_mna_prop), 2.0) * lambda
 			CircuitGraph.stamp_conductance(A, g_ds, idx_d, idx_s)
 			
-			var Id_sat_calc_val = 0.0
-			if Vgs_for_model_val > vt_nmos_mna_prop:
-				Id_sat_calc_val = 0.5 * kn_nmos_mna_prop * pow(Vgs_for_model_val - vt_nmos_mna_prop, 2.0) * (1 + lambda * Vds_last)
-			
-			# Adjust for Norton equivalent current source
-			var I_norton = Id_sat_calc_val - g_ds * Vds_last
-			if idx_d != -1: b[idx_d] -= I_norton
-			if idx_s != -1: b[idx_s] += I_norton
+			# The non-linear current source part of the model is handled by `get_kcl_contributions`
+			# for the Newton-Raphson solver. Only the linearized conductance (g_ds) is stamped here.
 
 func get_kcl_contributions(graph: CircuitGraph, all_node_voltages: Dictionary, F_v: Array, system: Dictionary, _delta_time: float):
 	var node_d_id = graph.terminal_connections.get(terminal_d.get_instance_id(), -1)
