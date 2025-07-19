@@ -181,9 +181,18 @@ func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, 
 	var n = ideality_factor
 	var Vz = zener_voltage
 	var V_thermal = THERMAL_VOLTAGE
+	var n_vt = n * V_thermal
 	
-	var I_fwd = Is * (exp(Vd / (n * V_thermal)) - 1.0)
-	var I_rev = Is * (exp(-(Vd + Vz) / V_thermal) - 1.0)
+	# --- Diode Limiting for numerical stability ---
+	var Vcrit_fwd = n_vt * log(1e12)
+	var Vd_limited_fwd = min(Vd, Vcrit_fwd)
+	
+	var Vrev = -(Vd + Vz)
+	var Vcrit_rev = V_thermal * log(1e12)
+	var Vrev_limited = min(Vrev, Vcrit_rev)
+
+	var I_fwd = Is * (exp(Vd_limited_fwd / n_vt) - 1.0)
+	var I_rev = Is * (exp(Vrev_limited / V_thermal) - 1.0)
 	var current = I_fwd - I_rev
 	assert(!is_nan(current), "Zener current calculation resulted in NaN.")
 

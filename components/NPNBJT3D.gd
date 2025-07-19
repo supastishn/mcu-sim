@@ -206,9 +206,14 @@ func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, 
 	
 	var I_es = saturation_current / alpha_forward
 	var I_cs = saturation_current / alpha_reverse
+	
+	var Vt = THERMAL_VOLTAGE
+	var Vcrit = Vt * log(1e12)
+	var Vbe_limited = min(Vbe, Vcrit)
+	var Vbc_limited = min(Vbc, Vcrit)
 
-	var Ie = I_es * (exp(Vbe / THERMAL_VOLTAGE) - 1.0) - alpha_reverse * I_cs * (exp(Vbc / THERMAL_VOLTAGE) - 1.0)
-	var Ic = alpha_forward * I_es * (exp(Vbe / THERMAL_VOLTAGE) - 1.0) - I_cs * (exp(Vbc / THERMAL_VOLTAGE) - 1.0)
+	var Ie = I_es * (exp(Vbe_limited / Vt) - 1.0) - alpha_reverse * I_cs * (exp(Vbc_limited / Vt) - 1.0)
+	var Ic = alpha_forward * I_es * (exp(Vbe_limited / Vt) - 1.0) - I_cs * (exp(Vbc_limited / Vt) - 1.0)
 	assert(!is_nan(Ie) and !is_nan(Ic), "BJT current calculation resulted in NaN.")
 
 	var idx_c = system.node_map.get(node_c_id, -1)

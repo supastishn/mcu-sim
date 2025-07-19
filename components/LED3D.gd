@@ -226,8 +226,12 @@ func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, 
 	var Va = graph.electrical_nodes.get(node_a_id, {}).get("voltage", 0.0)
 	var Vk = graph.electrical_nodes.get(node_k_id, {}).get("voltage", 0.0)
 	var Vd = Va - Vk
+
+	var n_vt = ideality_factor * THERMAL_VOLTAGE
+	var Vcrit = n_vt * log(1e12) # Clamp to avoid overflow
+	var Vd_limited = min(Vd, Vcrit)
 	
-	var current = saturation_current * (exp(Vd / (ideality_factor * THERMAL_VOLTAGE)) - 1.0)
+	var current = saturation_current * (exp(Vd_limited / n_vt) - 1.0)
 	assert(!is_nan(current), "LED current calculation resulted in NaN.")
 	
 	var ia = system.node_map.get(node_a_id, -1)

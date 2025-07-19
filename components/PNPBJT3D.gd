@@ -205,9 +205,14 @@ func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, 
 	var I_es = saturation_current / alpha_forward
 	var I_cs = saturation_current / alpha_reverse
 
+	var Vt = THERMAL_VOLTAGE
+	var Vcrit = Vt * log(1e12)
+	var Veb_limited = min(Veb, Vcrit)
+	var Vcb_limited = min(Vcb, Vcrit)
+
 	# The implemented Ebers-Moll equations calculate magnitudes of currents leaving the E and C terminals.
-	var Ie_mag = I_es * (exp(Veb / THERMAL_VOLTAGE) - 1.0) - alpha_reverse * I_cs * (exp(Vcb / THERMAL_VOLTAGE) - 1.0)
-	var Ic_mag = alpha_forward * I_es * (exp(Veb / THERMAL_VOLTAGE) - 1.0) - I_cs * (exp(Vcb / THERMAL_VOLTAGE) - 1.0)
+	var Ie_mag = I_es * (exp(Veb_limited / Vt) - 1.0) - alpha_reverse * I_cs * (exp(Vcb_limited / Vt) - 1.0)
+	var Ic_mag = alpha_forward * I_es * (exp(Veb_limited / Vt) - 1.0) - I_cs * (exp(Vcb_limited / Vt) - 1.0)
 	var Ib_mag = Ie_mag - Ic_mag
 	assert(!is_nan(Ie_mag) and !is_nan(Ic_mag), "PNP BJT current calculation resulted in NaN.")
 
