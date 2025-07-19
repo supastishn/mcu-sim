@@ -177,7 +177,6 @@ func stamp(
 	CircuitGraph.stamp_conductance(A, g_in, vp_idx, vn_idx)
 
 	# Model output as a Norton equivalent: I_n in parallel with Ro
-	var g_out = 1.0 / output_resistance
 	var Gbig = 1e9 # Large conductance for voltage stamping in saturation
 
 	if region == "OFF":
