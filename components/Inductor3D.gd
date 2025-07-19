@@ -90,6 +90,7 @@ func stamp(
 	b: Array,
 	node_map: Dictionary,
 	_vs_map: Dictionary, # Unused by Inductor
+	_opamp_map: Dictionary,
 	inductor_map: Dictionary, # This is inductor_id_to_matrix_index
 	terminal_connections: Dictionary,
 	comp_data: Dictionary, # Used for inductance, current_through_L_prev_dt

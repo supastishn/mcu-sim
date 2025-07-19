@@ -705,9 +705,9 @@ func _build_mna_system(delta_time: float) -> Dictionary:
 				node_id_to_matrix_index,
 				active_vs_id_to_matrix_index,
 				opamp_id_to_matrix_index,
-				inductor_id_to_matrix_index,  
+				inductor_id_to_matrix_index,
 				terminal_connections,
-				comp_data_item,        
+				comp_data_item,
 				delta_time
 			)
 			

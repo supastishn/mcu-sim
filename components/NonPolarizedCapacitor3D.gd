@@ -112,6 +112,7 @@ func stamp(
 	b: Array,
 	node_map: Dictionary,
 	_vs_map: Dictionary, # Unused by NonPolarizedCapacitor
+	_opamp_map: Dictionary,
 	_inductor_map: Dictionary, # Unused by NonPolarizedCapacitor
 	terminal_connections: Dictionary,
 	comp_data: Dictionary, # Used for capacitance, voltage_across_cap_prev_dt

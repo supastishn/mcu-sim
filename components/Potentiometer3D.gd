@@ -85,6 +85,7 @@ func stamp(
 	_b: Array, # Unused by Potentiometer
 	node_map: Dictionary,
 	_vs_map: Dictionary, # Unused by Potentiometer
+	_opamp_map: Dictionary,
 	_inductor_map: Dictionary, # Unused by Potentiometer
 	terminal_connections: Dictionary,
 	comp_data: Dictionary, # Used for total_resistance and wiper_position from comp_data.properties
