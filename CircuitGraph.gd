@@ -688,27 +688,66 @@ func _calculate_error_vector(system: Dictionary, b: Array, delta_time: float, x_
 	return final_error
 
 func get_solver_debug_info_as_string() -> String:
+	var system = _cached_system
 	var output = "\n[b][color=yellow]----- SOLVER DEBUG INFO ----- [/color][/b]\n"
+	
+	if system.is_empty():
+		output += "No system structure was cached.\n"
+	else:
+		output += "[u]System Structure:[/u]\n"
+		output += "  - N (Matrix Size): {N}\n".format({"N": system.get("N", "N/A")})
+		output += "  - Node Map (node_id -> matrix_idx):\n"
+		var node_map_inverted = {}
+		for node_id in system.node_map:
+			node_map_inverted[system.node_map[node_id]] = node_id
+		var sorted_indices = node_map_inverted.keys()
+		sorted_indices.sort()
+		for idx in sorted_indices:
+			var node_id = node_map_inverted[idx]
+			var node_info = ""
+			if electrical_nodes.has(node_id):
+				var terminals_on_node = []
+				for t in electrical_nodes[node_id].terminals:
+					if is_instance_valid(t):
+						terminals_on_node.append(t.get_parent().name + "." + t.name)
+				node_info = " (Terminals: {t})".format({"t": ", ".join(terminals_on_node)})
+			elif node_id < 0:
+				node_info = " (Internal Node)"
+
+			output += "    - Index {i}: Node {nid}{info}\n".format({"i": idx, "nid": node_id, "info": node_info})
+
+		output += "  - Voltage Source Map (vs_id -> matrix_idx):\n"
+		for vs_id in system.vs_map:
+			var comp = instance_from_id(vs_id)
+			var comp_name = comp.name if is_instance_valid(comp) else "Invalid"
+			output += "    - Index {i}: VS Current for {name} ({id})\n".format({"i": system.vs_map[vs_id], "name": comp_name, "id": vs_id})
+		
+		output += "  - Inductor Map (L_id -> matrix_idx):\n"
+		for l_id in system.inductor_map:
+			var comp = instance_from_id(l_id)
+			var comp_name = comp.name if is_instance_valid(comp) else "Invalid"
+			output += "    - Index {i}: Inductor Current for {name} ({id})\n".format({"i": system.inductor_map[l_id], "name": comp_name, "id": l_id})
+
 	if _last_solver_debug_info.is_empty():
-		return output + "No debug information was recorded.\n"
+		output += "\nNo iteration debug information was recorded.\n"
+	else:
+		for i in range(_last_solver_debug_info.size()):
+			var iter_info = _last_solver_debug_info[i]
+			output += "\n--- Iteration {iter} ---\n".format({"iter": iter_info.iteration})
+			output += "Component States: {s}\n".format({"s": str(iter_info.component_states)})
+			
+			var err_norm = sqrt(iter_info.error_vector_neg_F.reduce(func(acc, val): return acc + val*val, 0.0))
+			var dx_norm = sqrt(iter_info.update_vector_dx.reduce(func(acc, val): return acc + val*val, 0.0))
+			output += "Error Vector Norm: {en}\n".format({"en": err_norm})
+			output += "Update Vector Norm: {un}\n".format({"un": dx_norm})
+			
+			# Only print full matrices for the very last failed iteration
+			if i == _last_solver_debug_info.size() - 1:
+				output += "Jacobian (A) for last iteration:\n" + LinearSolver.matrix_to_string(iter_info.jacobian_A)
+				output += "Error Vector (-F) for last iteration:\n" + LinearSolver.vector_to_string(iter_info.error_vector_neg_F)
+				output += "Update Vector (dx) for last iteration:\n" + LinearSolver.vector_to_string(iter_info.update_vector_dx)
 
-	for i in range(_last_solver_debug_info.size()):
-		var iter_info = _last_solver_debug_info[i]
-		output += "\n--- Iteration {iter} ---\n".format({"iter": iter_info.iteration})
-		output += "Component States: {s}\n".format({"s": str(iter_info.component_states)})
-		
-		var err_norm = sqrt(iter_info.error_vector_neg_F.reduce(func(acc, val): return acc + val*val, 0.0))
-		var dx_norm = sqrt(iter_info.update_vector_dx.reduce(func(acc, val): return acc + val*val, 0.0))
-		output += "Error Vector Norm: {en}\n".format({"en": err_norm})
-		output += "Update Vector Norm: {un}\n".format({"un": dx_norm})
-		
-		# Only print full matrices for the very last failed iteration
-		if i == _last_solver_debug_info.size() - 1:
-			output += "Jacobian (A) for last iteration:\n" + LinearSolver.matrix_to_string(iter_info.jacobian_A)
-			output += "Error Vector (-F) for last iteration:\n" + LinearSolver.vector_to_string(iter_info.error_vector_neg_F)
-			output += "Update Vector (dx) for last iteration:\n" + LinearSolver.vector_to_string(iter_info.update_vector_dx)
-
-	output += "[b][color=yellow]----- END SOLVER DEBUG INFO ----- [/color][/b]\n"
+	output += "\n[b][color=yellow]----- END SOLVER DEBUG INFO ----- [/color][/b]\n"
 	return output
 
 func _check_convergence(delta_x: Array, v_tol: float) -> bool:
