@@ -167,7 +167,7 @@ func gather_sim_results(
 	elif not is_nan(Va) and not is_nan(Vk):
 		var Vd = Va - Vk
 		if not !is_nan(Vd):
-			LinearSolver.print_vector(x, "x on LED results fail")
+			LinearSolver.print_vector(_x, "x on LED results fail")
 			assert(false, "LED {led}: Vd is NaN. Va={va}, Vk={vk}".format({"led": name, "va": Va, "vk": Vk}))
 		comp_data.properties["_internal_voltage"] = Vd
 

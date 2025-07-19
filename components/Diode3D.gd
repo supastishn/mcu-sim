@@ -69,12 +69,12 @@ func gather_sim_results(
 	
 	var current = NAN
 	if not (!is_nan(Va) and !is_nan(Vk)):
-		LinearSolver.print_vector(x, "x on diode results fail")
+		LinearSolver.print_vector(_x, "x on diode results fail")
 		assert(false, "Diode {d}: Terminal voltage is NaN. Va={va}, Vk={vk}".format({ "d": name, "va": Va, "vk": Vk }))
 	var Vd = Va - Vk
 	current = saturation_current * (exp(Vd / (ideality_factor * THERMAL_VOLTAGE)) - 1.0)
 	if not !is_nan(current):
-		LinearSolver.print_vector(x, "x on diode results fail")
+		LinearSolver.print_vector(_x, "x on diode results fail")
 		assert(false, "Diode {d}: Current is NaN. Vd={vd}".format({"d": name, "vd": Vd}))
 	comp_data.properties["_internal_voltage"] = Vd
 

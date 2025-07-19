@@ -548,7 +548,7 @@ func _solve_newton_raphson(delta_time: float) -> bool:
 			LinearSolver.print_vector(b_error, "b_error on norm fail")
 			LinearSolver.print_vector(delta_x, "delta_x on norm fail")
 			assert(false, "Solver update vector norm is NaN. delta_x: {dx}".format({"dx": delta_x}))
-		var damping_factor = clamp(0.1 * log(norm + 1) + 0.3, 0.1, 0.8)
+		var damping_factor = 1.0 - clamp(0.1 * log(norm + 1.0), 0.2, 0.9)
 		var node_map = system.node_map
 		for node_id in node_map:
 			var index = node_map[node_id]
