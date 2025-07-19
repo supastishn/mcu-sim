@@ -218,7 +218,14 @@ func stamp(
 	var ia = node_map.get(na, -1)
 	var ik = node_map.get(nk, -1)
 
+	var I_last = saturation_current * (exp_term - 1.0)
+	var Ieq = I_last - Geq * Vd_limited
+
 	CircuitGraph.stamp_conductance(A, Geq, ia, ik)
+	
+	# Stamp the equivalent current source
+	if ia != -1: b[ia] -= Ieq
+	if ik != -1: b[ik] += Ieq
 
 func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, F_v: Array, system: Dictionary, _delta_time: float):
 	var comp_data = graph.component_node_map.get(self)

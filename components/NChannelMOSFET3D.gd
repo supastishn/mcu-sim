@@ -283,14 +283,21 @@ func stamp(
 				A[idx_s][idx_g] -= gm
 				A[idx_s][idx_s] += (gm + g_ds)
 
-func get_kcl_contributions(graph: CircuitGraph, all_node_voltages: Dictionary, F_v: Array, system: Dictionary, _delta_time: float):
+			# Companion model current source
+			var Id_last = 0.5 * kn_nmos_mna_prop * pow(vgs_minus_vt, 2.0) * (1 + lambda * Vds_last)
+			var Ieq_d = Id_last - (gm * Vgs_for_model_val + g_ds * Vds_last)
+
+			if idx_d != -1: b[idx_d] += Ieq_d
+			if idx_s != -1: b[idx_s] -= Ieq_d
+
+func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, F_v: Array, system: Dictionary, _delta_time: float):
 	var node_d_id = graph.terminal_connections.get(terminal_d.get_instance_id(), -1)
 	var node_g_id = graph.terminal_connections.get(terminal_g.get_instance_id(), -1)
 	var node_s_id = graph.terminal_connections.get(terminal_s.get_instance_id(), -1)
 
-	var Vd = all_node_voltages.get(node_d_id, 0.0)
-	var Vg = all_node_voltages.get(node_g_id, 0.0)
-	var Vs = all_node_voltages.get(node_s_id, 0.0)
+	var Vd = graph.electrical_nodes.get(node_d_id, {}).get("voltage", 0.0)
+	var Vg = graph.electrical_nodes.get(node_g_id, {}).get("voltage", 0.0)
+	var Vs = graph.electrical_nodes.get(node_s_id, {}).get("voltage", 0.0)
 
 	var Vgs = Vg - Vs
 	var Vds = Vd - Vs

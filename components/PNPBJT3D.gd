@@ -197,6 +197,20 @@ func stamp(
 		if idx_b != -1: A[idx_b][idx_b] += gm_f_pnp - g_pi_pnp - g_mu_pnp + gm_r_pnp
 		if idx_c != -1: A[idx_b][idx_c] += g_mu_pnp - gm_r_pnp
 
+	# Companion model current sources
+	var Ie_last = I_es * (exp(Veb_limited / Vt) - 1.0) - alpha_r * I_cs * (exp(Vcb_limited / Vt) - 1.0)
+	var Ic_last = alpha_f * I_es * (exp(Veb_limited / Vt) - 1.0) - I_cs * (exp(Vcb_limited / Vt) - 1.0)
+	var Ib_last = Ie_last - Ic_last
+	
+	var Ieq_e = Ie_last - (g_pi_pnp * Veb - gm_r_pnp * Vcb)
+	var Ieq_c = Ic_last - (gm_f_pnp * Veb - g_mu_pnp * Vcb)
+	var Ieq_b = Ib_last - ((g_pi_pnp - gm_f_pnp) * Veb + (g_mu_pnp - gm_r_pnp) * Vcb)
+	
+	# For PNP, F vector is [-Ie, Ic, Ib].
+	if idx_e != -1: b[idx_e] -= Ieq_e  # For -Ie
+	if idx_c != -1: b[idx_c] += Ieq_c
+	if idx_b != -1: b[idx_b] += Ieq_b
+
 func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, F_v: Array, system: Dictionary, _delta_time: float):
 	var node_e_id = graph.terminal_connections.get(terminal_e.get_instance_id(), -1)
 	var node_b_id = graph.terminal_connections.get(terminal_b.get_instance_id(), -1)

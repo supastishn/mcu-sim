@@ -212,7 +212,7 @@ func stamp(
 		if vout_idx != -1: b[vout_idx] += Gbig * sat_drop
 		if vee_idx != -1: b[vee_idx] -= Gbig * sat_drop
 
-func get_kcl_contributions(graph: CircuitGraph, all_node_voltages: Dictionary, F_v: Array, system: Dictionary, _delta_time: float):
+func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, F_v: Array, system: Dictionary, _delta_time: float):
 	var comp_data = graph.component_node_map.get(self)
 	if not comp_data: return
 	var region = comp_data.properties["operating_region"]
@@ -221,9 +221,9 @@ func get_kcl_contributions(graph: CircuitGraph, all_node_voltages: Dictionary, F
 	var vn_node_id = graph.terminal_connections.get(terminal_vn.get_instance_id(), -1)
 	var vout_node_id = graph.terminal_connections.get(terminal_vout.get_instance_id(), -1)
 	
-	var Vp = all_node_voltages.get(vp_node_id, 0.0)
-	var Vn = all_node_voltages.get(vn_node_id, 0.0)
-	var Vout = all_node_voltages.get(vout_node_id, 0.0)
+	var Vp = graph.electrical_nodes.get(vp_node_id, {}).get("voltage", 0.0)
+	var Vn = graph.electrical_nodes.get(vn_node_id, {}).get("voltage", 0.0)
+	var Vout = graph.electrical_nodes.get(vout_node_id, {}).get("voltage", 0.0)
 	
 	# Input resistance contribution
 	var g_in = 1.0 / input_resistance if input_resistance > 1e-9 else 1e9

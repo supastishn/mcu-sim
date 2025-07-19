@@ -197,6 +197,19 @@ func stamp(
 		if idx_b != -1: A[idx_e][idx_b] += gm_r - g_pi
 		if idx_e != -1: A[idx_e][idx_e] += g_pi
 
+	# Companion model current sources
+	var Ie_last = I_es * (exp(Vbe_limited / Vt) - 1.0) - alpha_r * I_cs * (exp(Vbc_limited / Vt) - 1.0)
+	var Ic_last = alpha_f * I_es * (exp(Vbe_limited / Vt) - 1.0) - I_cs * (exp(Vbc_limited / Vt) - 1.0)
+	var Ib_last = Ie_last - Ic_last
+	
+	var Ieq_c = Ic_last - ((gm_f - g_mu) * Vbe + g_mu * Vbc)
+	var Ieq_e = Ie_last - (g_pi * Vbe - gm_r * Vbc)
+	var Ieq_b = Ib_last - ((g_pi - gm_f) * Vbe + (gm_r - g_mu) * Vbc)
+	
+	if idx_c != -1: b[idx_c] += Ieq_c
+	if idx_b != -1: b[idx_b] += Ieq_b
+	if idx_e != -1: b[idx_e] -= Ieq_e # F vector for emitter is -Ie
+
 func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, F_v: Array, system: Dictionary, _delta_time: float):
 	var node_c_id = graph.terminal_connections.get(terminal_c.get_instance_id(), -1)
 	var node_b_id = graph.terminal_connections.get(terminal_b.get_instance_id(), -1)

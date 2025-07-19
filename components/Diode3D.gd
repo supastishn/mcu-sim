@@ -110,8 +110,16 @@ func stamp(
 	var ia = node_map.get(na, -1)
 	var ik = node_map.get(nk, -1)
 
+	# Companion model current source: I(V0) - G*V0
+	var I_last = saturation_current * (exp_term - 1.0)
+	var Ieq = I_last - Geq * Vd_limited
+
 	# Stamp the equivalent conductance
 	CircuitGraph.stamp_conductance(A, Geq, ia, ik)
+
+	# Stamp the equivalent current source. Ieq flows anode to cathode.
+	if ia != -1: b[ia] -= Ieq
+	if ik != -1: b[ik] += Ieq
 
 func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, F_v: Array, system: Dictionary, _delta_time: float):
 	var node_a_id = graph.terminal_connections.get(terminal_anode.get_instance_id(), -1)
