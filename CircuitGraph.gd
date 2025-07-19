@@ -3,6 +3,7 @@ extends Node
 class_name CircuitGraph
 
 const LinearSolver = preload("res://LinearSolver.gd")
+const GMIN                := 1.0e-12 # Minimum conductance to ground for all nodes
 const R_LED_ON            := 0.1
 const R_LED_OFF           := 1.0e9
 const R_DIODE_ON          := R_LED_ON
@@ -738,6 +739,12 @@ func _build_mna_system(delta_time: float) -> Dictionary:
 	var b: Array = []
 	b.resize(N)
 	b.fill(0.0)
+
+	# Add GMIN to ground for all nodes to aid convergence by preventing floating nodes.
+	for node_id in node_id_to_matrix_index:
+		var matrix_idx = node_id_to_matrix_index[node_id]
+		if matrix_idx < N: # Should always be true
+			A[matrix_idx][matrix_idx] += GMIN
 
 	for comp_data_item in components:
 		var component_node = comp_data_item.component_node

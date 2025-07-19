@@ -90,8 +90,13 @@ func stamp(
 	var Vd_last_iter = comp_data.properties.get("_internal_voltage", 0.0)
 	var n_vt = ideality_factor * THERMAL_VOLTAGE
 
+	# --- Diode Limiting for numerical stability ---
+	# To prevent floating point overflow in exp(), we clamp the diode voltage.
+	var Vcrit = n_vt * log(1e12) # A large but numerically stable conductance
+	var Vd_limited = min(Vd_last_iter, Vcrit)
+
 	# Linearized model from Shockley equation: Geq and Ieq
-	var exp_term = exp(Vd_last_iter / n_vt)
+	var exp_term = exp(Vd_limited / n_vt)
 	var Geq = (saturation_current / n_vt) * exp_term
 	if DEBUG: print("      Diode Stamp: Vd_last={v}, Geq={g}".format({"v": Vd_last_iter, "g": Geq}))
 	var Ieq = saturation_current * (exp_term - 1.0) - Geq * Vd_last_iter

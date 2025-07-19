@@ -145,13 +145,20 @@ func stamp(
 	var n_vt = ideality_factor * THERMAL_VOLTAGE
 	var Vz = zener_voltage
 	
+	# --- Diode Limiting for numerical stability ---
+	var Vcrit_fwd = n_vt * log(1e12)
+	var Vd_limited_fwd = min(Vd_last, Vcrit_fwd)
+	var Vrev = -(Vd_last + Vz)
+	var Vcrit_rev = THERMAL_VOLTAGE * log(1e12)
+	var Vrev_limited = min(Vrev, Vcrit_rev)
+
 	# Forward-bias diode model
-	var exp_fwd = exp(Vd_last / n_vt)
+	var exp_fwd = exp(Vd_limited_fwd / n_vt)
 	var G_fwd = (saturation_current / n_vt) * exp_fwd
 	var I_fwd_eq = saturation_current * (exp_fwd - 1.0) - G_fwd * Vd_last
 
 	# Zener breakdown model (simplified)
-	var exp_rev = exp(-(Vd_last + Vz) / THERMAL_VOLTAGE)
+	var exp_rev = exp(Vrev_limited / THERMAL_VOLTAGE)
 	var G_rev = (saturation_current / THERMAL_VOLTAGE) * exp_rev
 	var I_rev_eq = saturation_current * (exp_rev - 1.0) - G_rev * (-Vd_last)
 

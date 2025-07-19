@@ -156,12 +156,17 @@ func stamp(
 	var alpha_r = alpha_reverse
 	var Vt = THERMAL_VOLTAGE
 
-	# Linearize BE and BC diodes
-	var g_pi = (Is / Vt) * exp(Vbe / Vt)
-	var I_be_eq = Is * (exp(Vbe / Vt) - 1.0) - g_pi * Vbe
+	# --- Diode Limiting for numerical stability ---
+	var Vcrit = Vt * log(1e12)
+	var Vbe_limited = min(Vbe, Vcrit)
+	var Vbc_limited = min(Vbc, Vcrit)
 	
-	var g_mu = (Is / Vt) * exp(Vbc / Vt)
-	var I_bc_eq = Is * (exp(Vbc / Vt) - 1.0) - g_mu * Vbc
+	# Linearize BE and BC diodes
+	var g_pi = (Is / Vt) * exp(Vbe_limited / Vt)
+	var I_be_eq = Is * (exp(Vbe_limited / Vt) - 1.0) - g_pi * Vbe
+	
+	var g_mu = (Is / Vt) * exp(Vbc_limited / Vt)
+	var I_bc_eq = Is * (exp(Vbc_limited / Vt) - 1.0) - g_mu * Vbc
 	if DEBUG: print("      NPN BJT Stamp: Vbe={vbe}, Vbc={vbc}".format({"vbe": Vbe, "vbc": Vbc}))
 
 	# Transconductances

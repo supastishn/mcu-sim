@@ -143,11 +143,9 @@ func stamp(
 	if state_from_comp_data == Switch3D.State.CONNECTED_NC:
 		_inline_stamp_conductance.call(A, g_closed, idx_com, idx_nc)
 		_inline_stamp_conductance.call(A, g_open, idx_com, idx_no)
-		_inline_stamp_conductance.call(A, g_open, idx_nc, idx_no)
 	elif state_from_comp_data == Switch3D.State.CONNECTED_NO:
 		_inline_stamp_conductance.call(A, g_open, idx_com, idx_nc)
 		_inline_stamp_conductance.call(A, g_closed, idx_com, idx_no)
-		_inline_stamp_conductance.call(A, g_open, idx_nc, idx_no)
 
 ## Extracts and stores the current flowing through the active path of the switch.
 func gather_sim_results(

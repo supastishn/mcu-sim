@@ -201,8 +201,12 @@ func stamp(
 	var Vd_last_iter = comp_data.properties.get("_internal_voltage", 0.0)
 	var n_vt = ideality_factor * THERMAL_VOLTAGE
 
+	# --- Diode Limiting for numerical stability ---
+	var Vcrit = n_vt * log(1e12)
+	var Vd_limited = min(Vd_last_iter, Vcrit)
+
 	# Linearized model from Shockley equation
-	var exp_term = exp(Vd_last_iter / n_vt)
+	var exp_term = exp(Vd_limited / n_vt)
 	var Geq = (saturation_current / n_vt) * exp_term
 	if DEBUG: print("      LED Stamp: Vd_last={v}, Geq={g}".format({"v": Vd_last_iter, "g": Geq}))
 
