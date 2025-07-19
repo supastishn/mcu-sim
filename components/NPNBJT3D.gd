@@ -144,6 +144,7 @@ func stamp(
 	comp_data: Dictionary,
 	_delta_time: float
 ):
+	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
 	# Null check for terminals
 	if not is_instance_valid(terminal_c) or not is_instance_valid(terminal_b) or not is_instance_valid(terminal_e):
 		return
@@ -161,6 +162,7 @@ func stamp(
 	
 	var g_mu = (Is / Vt) * exp(Vbc / Vt)
 	var I_bc_eq = Is * (exp(Vbc / Vt) - 1.0) - g_mu * Vbc
+	if DEBUG: print("      NPN BJT Stamp: Vbe={vbe}, Vbc={vbc}".format({"vbe": Vbe, "vbc": Vbc}))
 
 	# Transconductances
 	var gm_f = alpha_f * g_pi
@@ -188,6 +190,7 @@ func stamp(
 		if idx_e != -1: A[idx_c][idx_e] -= -gm_r
 
 func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, F_v: Array, system: Dictionary, _delta_time: float):
+	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
 	var node_c_id = graph.terminal_connections.get(terminal_c.get_instance_id(), -1)
 	var node_b_id = graph.terminal_connections.get(terminal_b.get_instance_id(), -1)
 	var node_e_id = graph.terminal_connections.get(terminal_e.get_instance_id(), -1)
@@ -203,6 +206,7 @@ func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, 
 
 	var Ie = I_es * (exp(Vbe / THERMAL_VOLTAGE) - 1.0) - alpha_reverse * I_cs * (exp(Vbc / THERMAL_VOLTAGE) - 1.0)
 	var Ic = alpha_forward * I_es * (exp(Vbe / THERMAL_VOLTAGE) - 1.0) - I_cs * (exp(Vbc / THERMAL_VOLTAGE) - 1.0)
+	if DEBUG: print("      NPN BJT KCL: Vbe={vbe}, Vbc={vbc}, Ic={ic}, Ie={ie}".format({"vbe":Vbe, "vbc":Vbc, "ic":Ic, "ie":Ie}))
 
 	var idx_c = system.node_map.get(node_c_id, -1)
 	var idx_b = system.node_map.get(node_b_id, -1)

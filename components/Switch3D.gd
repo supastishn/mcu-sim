@@ -109,7 +109,9 @@ func stamp(
 	comp_data: Dictionary, # Used for 'state' (current_state of switch)
 	_delta_time: float # Unused by Switch
 ):
+	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
 	var state_from_comp_data: Switch3D.State = comp_data.state
+	if DEBUG: print("      Switch Stamp: state={s}".format({"s": Switch3D.State.keys()[state_from_comp_data]}))
 	var R_closed = CircuitGraph.R_SWITCH_CLOSED
 	var g_closed = 1.0 / R_closed
 	var R_open = CircuitGraph.R_SWITCH_OPEN

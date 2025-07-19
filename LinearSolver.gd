@@ -9,7 +9,16 @@ class_name LinearSolver
 
 ## Solves a system of linear equations Ax = b using Gaussian elimination with partial pivoting.
 static func solve(A: Array, b: Array) -> Array:
+	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
 	var n = b.size()
+	if DEBUG:
+		print("    LinearSolver.solve called with {N}x{N} matrix".format({"N": n}))
+		if n > 0 and n < 15: # Only print small systems
+			var A_copy = []
+			for r in A: A_copy.push_back(r.duplicate())
+			LinearSolver.print_matrix(A_copy, "Solver Input A")
+			LinearSolver.print_vector(b.duplicate(), "Solver Input b")
+			
 	if A.size() != n:
 		printerr("LinearSolver: Matrix A rows ({a_size}) does not match vector b size ({n_val}).".format({"a_size": A.size(), "n_val": n}))
 		return []
@@ -65,6 +74,12 @@ static func solve(A: Array, b: Array) -> Array:
 			sum_ax += A[i][j] * x[j]
 
 		x[i] = (b[i] - sum_ax) / A[i][i]
+	
+	if DEBUG:
+		if n > 0 and n < 15:
+			LinearSolver.print_vector(x, "Solver Solution x")
+		else:
+			print("    LinearSolver.solve successful for {N}x{N} system.".format({"N": n}))
 
 	return x
 

@@ -91,6 +91,7 @@ func stamp(
 	comp_data: Dictionary, # Used for total_resistance and wiper_position from comp_data.properties
 	_delta_time: float # Unused by Potentiometer
 ):
+	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
 	var total_R_val = comp_data.properties["total_resistance"]
 	var wiper_pos_val = comp_data.properties["wiper_position"]
 
@@ -101,6 +102,7 @@ func stamp(
 	var R2 = total_R_val * (1.0 - wiper_pos_val)
 	if R2 < 1e-9: R2 = 1e-9
 	var g2 = 1.0 / R2
+	if DEBUG: print("      Potentiometer Stamp: R1={r1}, R2={r2}".format({"r1": R1, "r2": R2}))
 
 	var t1_id = terminal1.get_instance_id() if is_instance_valid(terminal1) else -1
 	var t2_id = terminal2.get_instance_id() if is_instance_valid(terminal2) else -1
@@ -127,6 +129,7 @@ func stamp(
 		A[idx2][idxW] -= g2
 
 func get_kcl_contributions(graph: CircuitGraph, all_node_voltages: Dictionary, F_v: Array, system: Dictionary, _delta_time: float):
+	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
 	var t1_node_id = graph.terminal_connections.get(terminal1.get_instance_id(), -1)
 	var t2_node_id = graph.terminal_connections.get(terminal2.get_instance_id(), -1)
 	var tw_node_id = graph.terminal_connections.get(terminal_wiper.get_instance_id(), -1)
@@ -142,6 +145,7 @@ func get_kcl_contributions(graph: CircuitGraph, all_node_voltages: Dictionary, F
 
 	var I1 = (v1 - vw) / R1
 	var I2 = (vw - v2) / R2
+	if DEBUG: print("      Potentiometer KCL: I1={i1}, I2={i2}".format({"i1": I1, "i2": I2}))
 
 	var idx1 = system.node_map.get(t1_node_id, -1)
 	var idx2 = system.node_map.get(t2_node_id, -1)

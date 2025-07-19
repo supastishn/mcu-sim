@@ -126,6 +126,7 @@ func stamp(
 	comp_data: Dictionary, # Used for is_exploded, capacitance, voltage_across_cap_prev_dt
 	delta_time: float
 ):
+	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
 	# --- Numerical stability: clamp delta_time ---
 	delta_time = clamp(delta_time, 1e-12, 0.1)
 
@@ -144,6 +145,8 @@ func stamp(
 
 	var G_eq: float
 	var I_eq_source: float = 0.0
+	
+	if DEBUG: print("      P-Capacitor Stamp: Vc_prev={vc}, dt={dt}".format({"vc": comp_data.properties.get("voltage_across_cap_prev_dt", 0.0), "dt": delta_time}))
 	
 	if comp_data.get("is_exploded", false):
 		G_eq = 1e-9 # Effectively open if exploded
@@ -166,6 +169,7 @@ func stamp(
 	if t2_idx != -1: b[t2_idx] -= I_eq_source
 
 func get_kcl_contributions(graph: CircuitGraph, all_node_voltages: Dictionary, F_v: Array, system: Dictionary, delta_time: float):
+	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
 	var comp_data = graph.component_node_map.get(self)
 	if comp_data.get("is_exploded", false): return
 
@@ -188,6 +192,7 @@ func get_kcl_contributions(graph: CircuitGraph, all_node_voltages: Dictionary, F
 	var Vc_prev = comp_data.properties.get("voltage_across_cap_prev_dt", 0.0)
 	if delta_time < 1e-9: delta_time = 1e-9
 	var I_cap = capacitance * ( (v_int - v2) - Vc_prev) / delta_time
+	if DEBUG: print("      P-Capacitor KCL: I_cap={i}".format({"i": I_cap}))
 
 	var idx_int_cap = system.node_map.get(_internal_node_id, -1)
 	var idx2 = system.node_map.get(t2_node_id, -1)

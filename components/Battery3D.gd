@@ -121,6 +121,7 @@ func stamp(
 	comp_data: Dictionary,
 	_delta_time: float
 ):
+	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
 	var pos_term_instance_id = terminal_pos.get_instance_id() if is_instance_valid(terminal_pos) else -1
 	var neg_term_instance_id = terminal_neg.get_instance_id() if is_instance_valid(terminal_neg) else -1
 
@@ -137,6 +138,7 @@ func stamp(
 	var battery_current_matrix_idx = vs_map[battery_instance_id]
 	
 	var V_target_val = comp_data.properties["target_voltage"]
+	if DEBUG: print("      Battery Stamp: V_target={v}".format({"v": V_target_val}))
 	
 	b[battery_current_matrix_idx] = V_target_val
 	if pos_idx != -1:

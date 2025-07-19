@@ -96,6 +96,7 @@ func stamp(
 	comp_data: Dictionary, # Used for inductance, current_through_L_prev_dt
 	delta_time: float
 ):
+	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
 	# --- Numerical stability: clamp delta_time ---
 	delta_time = clamp(delta_time, 1e-12, 0.1)
 
@@ -133,6 +134,8 @@ func stamp(
 		L_div_dt = L_val_prop / 1e-9
 	else:
 		L_div_dt = L_val_prop / delta_time
+	
+	if DEBUG: print("      Inductor Stamp: L/dt={ldt}, I_prev={iprev}".format({"ldt": L_div_dt, "iprev": I_L_prev_dt_val_prop}))
 
 	if internal_node_idx != -1: A[idx_I_L_val][internal_node_idx] = 1.0
 	if t2_idx != -1: A[idx_I_L_val][t2_idx] = -1.0

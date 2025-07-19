@@ -100,6 +100,7 @@ func get_terminal_info() -> Dictionary:
 # ---------- NON-LINEAR REGION EVAL ----------
 ## Updates the MOSFET's operating region based on an MNA iteration.
 func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter: Array, node_map_iter: Dictionary, _vs_map_iter: Dictionary) -> bool:
+	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
 	if x_iter.is_empty():
 		return false
 
@@ -134,6 +135,7 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 			else:
 				reg = "SATURATION"
 	if reg!=prev:
+		if DEBUG: print("      P-MOSFET State Change: {old} -> {new}".format({"old": prev, "new": reg}))
 		comp_data.properties["operating_region"] = reg
 		return true
 	return false
@@ -141,7 +143,9 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 # ---------- STAMP ----------
 ## Applies the MOSFET's contribution to the MNA matrices based on its current operating region.
 func stamp(A, b, node_map, _vs_map, _opamp_map, _inductor_map, term_conn, comp_data, _dt):
+	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
 	var reg = comp_data.properties.get("operating_region")
+	if DEBUG: print("      P-MOSFET Stamp: region={r}".format({"r": reg}))
 	var vt  = threshold_voltage
 	var kp  = transconductance_parameter
 	var p_lambda = lambda
@@ -168,6 +172,7 @@ func stamp(A, b, node_map, _vs_map, _opamp_map, _inductor_map, term_conn, comp_d
 		# for the Newton-Raphson solver. Only the linearized conductance (g_ds) is stamped here.
 
 func get_kcl_contributions(graph: CircuitGraph, all_node_voltages: Dictionary, F_v: Array, system: Dictionary, _delta_time: float):
+	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
 	var node_d_id = graph.terminal_connections.get(terminal_d.get_instance_id(), -1)
 	var node_g_id = graph.terminal_connections.get(terminal_g.get_instance_id(), -1)
 	var node_s_id = graph.terminal_connections.get(terminal_s.get_instance_id(), -1)
@@ -182,11 +187,16 @@ func get_kcl_contributions(graph: CircuitGraph, all_node_voltages: Dictionary, F
 	var kp = transconductance_parameter
 
 	var Id = 0.0
+	var region = "OFF"
 	if Vsg > vt:
 		if Vsd < (Vsg - vt): # Triode
 			Id = kp * ( (Vsg - vt) * Vsd - 0.5 * pow(Vsd, 2.0) ) * (1 + lambda * Vsd)
+			region = "TRIODE"
 		else: # Saturation
 			Id = 0.5 * kp * pow(Vsg - vt, 2.0) * (1 + lambda * Vsd)
+			region = "SATURATION"
+	
+	if DEBUG: print("      P-MOSFET KCL: region={r}, Vsg={vsg}, Vsd={vsd}, Id={id}".format({"r": region, "vsg": Vsg, "vsd": Vsd, "id": Id}))
 
 	var idx_d = system.node_map.get(node_d_id, -1)
 	var idx_s = system.node_map.get(node_s_id, -1)

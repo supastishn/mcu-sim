@@ -98,6 +98,7 @@ func update_nonlinear_state(
 		node_map: Dictionary,
 		_vs_map: Dictionary
 	) -> bool:
+	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
 
 	if solution_vector.is_empty():
 		return false
@@ -142,6 +143,7 @@ func update_nonlinear_state(
 
 	var previous_region = comp_data.properties["operating_region"]
 	if new_region != previous_region:
+		if DEBUG: print("      OpAmp State Change: {old} -> {new}".format({"old": previous_region, "new": new_region}))
 		comp_data.properties["operating_region"] = new_region
 		return true
 
@@ -160,7 +162,9 @@ func stamp(
 		comp_data: Dictionary,
 		_delta_time: float
 	):
+	var DEBUG = ProjectSettings.get_setting("mcu_sim_debug/solver/logging_enabled", false)
 	var region = comp_data.properties["operating_region"]
+	if DEBUG: print("      OpAmp Stamp: region={r}".format({"r": region}))
 
 	var vp_node_id = terminal_connections.get(terminal_vp.get_instance_id(), -1)
 	var vn_node_id = terminal_connections.get(terminal_vn.get_instance_id(), -1)
