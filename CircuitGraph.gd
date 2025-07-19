@@ -607,7 +607,7 @@ func _solve_newton_raphson(system: Dictionary, delta_time: float) -> bool:
 	assert(false, msg)
 	return false
 
-func _calculate_error_vector(system: Dictionary, b: Array, delta_time: float) -> Array:
+func _calculate_error_vector(system: Dictionary, b: Array, delta_time: float, x_k: Array) -> Array:
 	var N = system.get("N", 0)
 	if N == 0: return []
 	var F = [] # The full error vector F(x)
@@ -625,6 +625,29 @@ func _calculate_error_vector(system: Dictionary, b: Array, delta_time: float) ->
 	for node_id in system.node_map:
 		var i = system.node_map[node_id]
 		F[i] -= b[i]
+
+	# --- FIX: Add currents from voltage sources and inductors to the KCL error sum ---
+	# The KCL error is sum(I_branches) + sum(I_extra_vars) - I_sources = 0
+	# get_kcl_contributions handles I_branches. Now we add I_extra_vars.
+	for vs_id in system.vs_map:
+		var vs_idx = system.vs_map[vs_id]
+		var comp_data = component_node_map.get(vs_id)
+		if not comp_data: continue
+		var i_vs = x_k[vs_idx] # Get current value from the current iteration's solution vector
+		var pos_node_idx = system.node_map.get(terminal_connections.get(comp_data.terminals.POS.get_instance_id(), -1), -1)
+		var neg_node_idx = system.node_map.get(terminal_connections.get(comp_data.terminals.NEG.get_instance_id(), -1), -1)
+		if pos_node_idx != -1: F[pos_node_idx] += i_vs # Current leaves the positive node
+		if neg_node_idx != -1: F[neg_node_idx] -= i_vs # Current enters the negative node
+
+	for ind_id in system.inductor_map:
+		var ind_idx = system.inductor_map[ind_id]
+		var comp_data = component_node_map.get(ind_id)
+		if not comp_data: continue
+		var i_ind = x_k[ind_idx]
+		var internal_node_idx = system.node_map.get(comp_data.component_node._internal_node_id, -1)
+		var t2_node_idx = system.node_map.get(terminal_connections.get(comp_data.terminals.T2.get_instance_id(), -1), -1)
+		if internal_node_idx != -1: F[internal_node_idx] += i_ind
+		if t2_node_idx != -1: F[t2_node_idx] -= i_ind
 
 	# 2. Voltage Source part
 	for vs_id in system.vs_map:
