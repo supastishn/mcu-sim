@@ -599,7 +599,7 @@ func _check_convergence(delta_x: Array, v_tol: float) -> bool:
 func _update_all_nonlinear_states(system: Dictionary) -> bool:
 	var any_state_changed := false
 	var x_iter_voltages_only := []
-	x_iter_voltages_only.resize(system.A.size())
+	x_iter_voltages_only.resize(system.N)
 	x_iter_voltages_only.fill(NAN)
 	for node_id in system.node_map:
 		var idx = system.node_map[node_id]
