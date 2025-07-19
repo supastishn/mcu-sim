@@ -200,8 +200,16 @@ func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, 
 	var v2 = graph.electrical_nodes.get(t2_node_id, {}).get("voltage", 0.0)
 	
 	var i_cap = G_eq * (v_int - v2)
+	# --- FIX: Add the companion model's current source to the error vector ---
+	var Vc_prev_dt_val = comp_data.properties.get("voltage_across_cap_prev_dt", 0.0)
+	var I_eq_source = G_eq * Vc_prev_dt_val
+
 	if internal_node_idx != -1: F_v[internal_node_idx] += i_cap
 	if t2_idx != -1: F_v[t2_idx] -= i_cap
+	# Current source pushes current INTO internal node, and OUT OF t2 node.
+	# KCL is sum of currents LEAVING, so we subtract from internal and add to t2.
+	if internal_node_idx != -1: F_v[internal_node_idx] -= I_eq_source
+	if t2_idx != -1: F_v[t2_idx] += I_eq_source
 
 ## Extracts and stores simulation results, checking for overvoltage or reverse polarity explosion.
 func gather_sim_results(
