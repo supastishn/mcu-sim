@@ -243,8 +243,8 @@ func stamp(
 	# Base Row: d(Ib)/dV = d(-Ie + Ic)/dV
 	if idx_b != -1:
 		if idx_e != -1: A[idx_b][idx_e] += gm_f_pnp - g_pi_pnp
-		if idx_b != -1: A[idx_b][idx_b] += g_pi_pnp + gm_r_pnp - gm_f_pnp - g_mu_pnp
-		if idx_c != -1: A[idx_b][idx_c] += gm_r_pnp - g_mu_pnp
+		if idx_b != -1: A[idx_b][idx_b] += g_pi_pnp - gm_f_pnp + g_mu_pnp - gm_r_pnp
+		if idx_c != -1: A[idx_b][idx_c] += g_mu_pnp - gm_r_pnp
 
 	# Companion model current sources, using conventional current directions
 	var Ie_mag_last = I_es * (exp(Veb / Vt) - 1.0) - alpha_r * I_cs * (exp(Vcb / Vt) - 1.0)
@@ -261,11 +261,11 @@ func stamp(
 	# The Jacobian d(F)/dV has already been stamped.
 	# RHS = J*V_last - F(V_last)
 	
-	var J_V_e = (-g_pi_pnp * Veb - gm_r_pnp * Vcb)
+	var J_V_e = (-g_pi_pnp * Veb + gm_r_pnp * Vcb)
 	var J_V_c = (-gm_f_pnp * Veb + g_mu_pnp * Vcb)
 	var J_V_b = ((gm_f_pnp - g_pi_pnp) * Veb + (g_mu_pnp - gm_r_pnp) * Vcb)
 	
-	var rhs_e = J_V_e - (-Ie_conv_last)
+	var rhs_e = J_V_e + Ie_conv_last
 	var rhs_c = J_V_c - Ic_conv_last
 	var rhs_b = J_V_b - Ib_conv_last
 	

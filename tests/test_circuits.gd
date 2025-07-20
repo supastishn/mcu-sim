@@ -569,7 +569,6 @@ func test_npn_bjt_regions() -> bool:
 	var rig := TestRig.new()
 	add_child(rig)
 	await rig.init()
-	var g = rig.graph
 	var ed = rig.editor
 
 	# --- Cutoff Region ---
@@ -676,7 +675,6 @@ func test_pnp_bjt_regions() -> bool:
 	var rig := TestRig.new()
 	add_child(rig)
 	await rig.init()
-	var g = rig.graph
 	var ed = rig.editor
 
 	# --- Cutoff Region ---
