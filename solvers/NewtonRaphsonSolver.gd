@@ -65,8 +65,6 @@ static func solve(circuit_graph: CircuitGraph, system: Dictionary, delta_time: f
 		iter_info["update_vector_dx"] = delta_x.duplicate()
 
 		if delta_x.is_empty() and not A.is_empty():
-			LinearSolver.print_matrix(A, "A on NR solve fail")
-			LinearSolver.print_vector(b_error, "b_error on NR solve fail")
 			circuit_graph._last_solver_debug_info.push_back(iter_info)
 			var msg = "Linear solver failed during Newton-Raphson iteration. System size: {s}\n".format({"s": A.size()})
 			msg += circuit_graph.get_solver_debug_info_as_string()
@@ -75,9 +73,6 @@ static func solve(circuit_graph: CircuitGraph, system: Dictionary, delta_time: f
 
 		var norm = sqrt(delta_x.reduce(func(acc, val): return acc + val*val, 0.0))
 		if is_nan(norm):
-			LinearSolver.print_matrix(A, "A on norm fail")
-			LinearSolver.print_vector(b_error, "b_error on norm fail")
-			LinearSolver.print_vector(delta_x, "delta_x on norm fail")
 			circuit_graph._last_solver_debug_info.push_back(iter_info)
 			var msg = "Solver update vector norm is NaN. delta_x: {dx}\n".format({"dx": delta_x})
 			msg += circuit_graph.get_solver_debug_info_as_string()
