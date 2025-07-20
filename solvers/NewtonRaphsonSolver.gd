@@ -74,7 +74,7 @@ static func solve(circuit_graph: CircuitGraph, system: Dictionary, delta_time: f
 			return false
 
 		var norm = sqrt(delta_x.reduce(func(acc, val): return acc + val*val, 0.0))
-		if not !is_nan(norm):
+		if is_nan(norm):
 			LinearSolver.print_matrix(A, "A on norm fail")
 			LinearSolver.print_vector(b_error, "b_error on norm fail")
 			LinearSolver.print_vector(delta_x, "delta_x on norm fail")
@@ -116,9 +116,9 @@ static func solve(circuit_graph: CircuitGraph, system: Dictionary, delta_time: f
 		
 		circuit_graph._last_solver_debug_info.push_back(iter_info)
 
-		var state_changed = _update_all_nonlinear_states(circuit_graph, system)
+		_update_all_nonlinear_states(circuit_graph, system)
 		
-		if _check_convergence(delta_x, v_tolerance) and not state_changed:
+		if _check_convergence(delta_x, v_tolerance):
 			return true
 
 	var msg = "NR failed to converge after {i} iterations.".format({"i": max_iter})
