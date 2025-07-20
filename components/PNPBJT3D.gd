@@ -169,7 +169,7 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 	var Vcb = Vc - Vb
 	
 	# Clamp junction voltages to prevent extreme values in the stamp function
-	var Vcrit_clamp = 1.5
+	var Vcrit_clamp = THERMAL_VOLTAGE * log(1e12) # Use same Vcrit as in stamp() for consistency
 	comp_data.properties["_internal_veb"] = clampf(Veb, -5.0, Vcrit_clamp)
 	comp_data.properties["_internal_vcb"] = clampf(Vcb, -5.0, Vcrit_clamp)
 
@@ -251,9 +251,9 @@ func stamp(
 	var Ic_last = alpha_f * I_es * (exp(Veb_limited / Vt) - 1.0) - I_cs * (exp(Vcb_limited / Vt) - 1.0)
 	var Ib_last = Ie_last - Ic_last
 	
-	var Ieq_e = Ie_last - (g_pi_pnp * Veb - gm_r_pnp * Vcb)
-	var Ieq_c = Ic_last - (gm_f_pnp * Veb - g_mu_pnp * Vcb)
-	var Ieq_b = Ib_last - ((g_pi_pnp - gm_f_pnp) * Veb + (g_mu_pnp - gm_r_pnp) * Vcb)
+	var Ieq_e = Ie_last - (g_pi_pnp * Veb_limited - gm_r_pnp * Vcb_limited)
+	var Ieq_c = Ic_last - (gm_f_pnp * Veb_limited - g_mu_pnp * Vcb_limited)
+	var Ieq_b = Ib_last - ((g_pi_pnp - gm_f_pnp) * Veb_limited + (g_mu_pnp - gm_r_pnp) * Vcb_limited)
 	
 	# For PNP, F vector is [-Ie, Ic, Ib].
 	if idx_e != -1: b[idx_e] -= Ieq_e  # For -Ie
