@@ -356,6 +356,14 @@ func test_potentiometer_behavior() -> bool:
 	rig.wire(pot_node.terminal2, ps_node.terminal_neg)
 	rig.ground(ps_node.terminal_neg)
 	
+	# Add a very high resistance load to simulate a voltmeter and prevent a floating node,
+	# which can cause convergence issues.
+	var r_load: Resistor3D = rig.add(ed.ResistorScene, Vector3(2, 0, 0))
+	r_load.resistance = 1e9 # 1 GigaOhm
+	rig.cfg(r_load)
+	rig.wire(pot_node.terminal_wiper, r_load.terminal1)
+	rig.wire(r_load.terminal2, ps_node.terminal_neg) # Connect other end to ground
+
 	var test_cases = [
 		{"pos": 0.0, "expected_v": 10.0},
 		{"pos": 0.25, "expected_v": 7.5},
