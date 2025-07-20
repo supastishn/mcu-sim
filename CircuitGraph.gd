@@ -566,6 +566,7 @@ func _solve_newton_raphson(system: Dictionary, delta_time: float) -> bool:
 		var b_error = _calculate_error_vector(system, matrices.b, delta_time, x_k)
 		
 		iter_info["jacobian_A"] = A.duplicate(true)
+		iter_info["b_vector_from_stamp"] = matrices.b.duplicate()
 		iter_info["error_vector_neg_F"] = b_error.duplicate()
 
 		if A.is_empty(): return true
@@ -741,11 +742,15 @@ func get_solver_debug_info_as_string() -> String:
 			output += "Error Vector Norm: {en}\n".format({"en": err_norm})
 			output += "Update Vector Norm: {un}\n".format({"un": dx_norm})
 			
-			# Only print full matrices for the very last failed iteration
+			output += "Solution Vector (x_k):\n" + LinearSolver.vector_to_string(iter_info.solution_vector_xk)
+			if iter_info.has("b_vector_from_stamp"):
+				output += "Stamp Vector (b):\n" + LinearSolver.vector_to_string(iter_info.b_vector_from_stamp)
+			output += "Error Vector (-F):\n" + LinearSolver.vector_to_string(iter_info.error_vector_neg_F)
+			output += "Update Vector (dx):\n" + LinearSolver.vector_to_string(iter_info.update_vector_dx)
+
+			# Only print full Jacobian for the very last failed iteration to avoid excessive logging
 			if i == _last_solver_debug_info.size() - 1:
 				output += "Jacobian (A) for last iteration:\n" + LinearSolver.matrix_to_string(iter_info.jacobian_A)
-				output += "Error Vector (-F) for last iteration:\n" + LinearSolver.vector_to_string(iter_info.error_vector_neg_F)
-				output += "Update Vector (dx) for last iteration:\n" + LinearSolver.vector_to_string(iter_info.update_vector_dx)
 
 	output += "\n[b][color=yellow]----- END SOLVER DEBUG INFO ----- [/color][/b]\n"
 	return output
