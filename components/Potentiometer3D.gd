@@ -96,11 +96,11 @@ func stamp(
 	var wiper_pos_val = comp_data.properties["wiper_position"]
 
 	var R1 = total_R_val * wiper_pos_val
-	if R1 < 1e-9: R1 = 1e-9
+	if R1 < 1e-3: R1 = 1e-3
 	var g1 = 1.0 / R1
 	
 	var R2 = total_R_val * (1.0 - wiper_pos_val)
-	if R2 < 1e-9: R2 = 1e-9
+	if R2 < 1e-3: R2 = 1e-3
 	var g2 = 1.0 / R2
 
 	var t1_id = terminal1.get_instance_id() if is_instance_valid(terminal1) else -1
@@ -134,10 +134,10 @@ func gather_sim_results(
 	var wiper_pos = comp_data.properties["wiper_position"]
 
 	var R1_val = total_R * wiper_pos
-	if R1_val < 1e-12: R1_val = 1e-12 
+	if R1_val < 1e-3: R1_val = 1e-3
 	
 	var R2_val = total_R * (1.0 - wiper_pos)
-	if R2_val < 1e-12: R2_val = 1e-12
+	if R2_val < 1e-3: R2_val = 1e-3
 
 	var term1_node = comp_data.terminals["T1"]
 	var term2_node = comp_data.terminals["T2"]
@@ -157,14 +157,14 @@ func gather_sim_results(
 
 	var current1W = NAN
 	if not is_nan(V1) and not is_nan(VW):
-		current1W = (V1 - VW) / R1_val if R1_val > 1e-12 else (V1 - VW) * 1e12
+		current1W = (V1 - VW) / R1_val
 		if not !is_nan(current1W):
 			LinearSolver.print_vector(_x, "x on Potentiometer results fail")
 			printerr("Potentiometer {p}: current1W is NaN. V1={v1}, VW={vw}, R1={r1}".format({ "p": name, "v1": V1, "vw": VW, "r1": R1_val }))
 
 	var currentW2 = NAN
 	if not is_nan(VW) and not is_nan(V2):
-		currentW2 = (VW - V2) / R2_val if R2_val > 1e-12 else (VW - V2) * 1e12
+		currentW2 = (VW - V2) / R2_val
 		if not !is_nan(currentW2):
 			LinearSolver.print_vector(_x, "x on Potentiometer results fail")
 			printerr("Potentiometer {p}: currentW2 is NaN. VW={vw}, V2={v2}, R2={r2}".format({ "p": name, "vw": VW, "v2": V2, "r2": R2_val }))
