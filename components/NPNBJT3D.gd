@@ -137,9 +137,11 @@ func gather_sim_results(
 	elif Vbc > Vth:
 		region = "INVERSE"
 
+	var Vce = Vc - Ve
 	circuit.component_results[comp_id]["Ic"] = Ic
 	circuit.component_results[comp_id]["Ib"] = Ib
 	circuit.component_results[comp_id]["Ie"] = Ie
+	circuit.component_results[comp_id]["Vce"] = Vce
 	circuit.component_results[comp_id]["region"] = region
 
 ## Updates the BJT's operating region based on an MNA iteration.
@@ -170,7 +172,7 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 	var new_region = "OFF"
 	var Vth = 0.5
 	if (Vb - Ve) > Vth:
-		if (Vb - Vc) > 0: new_region = "SATURATION"
+		if (Vb - Vc) > Vth: new_region = "SATURATION"
 		else: new_region = "ACTIVE"
 	elif (Vb - Vc) > Vth:
 		new_region = "INVERSE"

@@ -647,17 +647,13 @@ func test_npn_bjt_regions() -> bool:
 	if not TestUtils.assert_true(rig.solve(), "NPN Saturation Solve", rig): ok = false
 	if ok:
 		var results = rig.results(bjt_sat)
-		var vce = results.get("Vds", NAN) # Vds for MOSFET, but test reuses
+		var results = rig.results(bjt_sat)
+		var vce = results.get("Vce", NAN)
 		var ic = results.get("Ic", NAN)
 		var ib = results.get("Ib", NAN)
 		
-		var node_c_id = g.terminal_connections.get(bjt_sat.terminal_c.get_instance_id(),-1)
-		var node_e_id = g.terminal_connections.get(bjt_sat.terminal_e.get_instance_id(),-1)
-		var vc = g.electrical_nodes.get(node_c_id, {}).get("voltage", NAN)
-		var ve = g.electrical_nodes.get(node_e_id, {}).get("voltage", NAN)
-		vce = vc - ve
-		
 		if not TestUtils.assert_equals(results.get("region", "ERROR"), "SATURATION", "NPN BJT Test (Saturation): Region is SATURATION"): ok = false
+		if not TestUtils.assert_not_nan(vce, "NPN BJT Test (Saturation): Vce is not NaN"): ok = false
 		if not TestUtils.assert_true(vce < 0.4, "NPN BJT Test (Saturation): Vce is small (<0.4V)"): ok = false
 		if not TestUtils.assert_approx_equals(ic, (ps_sat_vcc.target_voltage - vce) / rc_sat.resistance, 1e-3, "NPN BJT Test (Saturation): Ic is limited by Rc"): ok = false
 		# Vbe is not fixed, ~0.7-0.8V. Ib = (5.0-0.75)/10k = ~425uA
