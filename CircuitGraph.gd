@@ -512,8 +512,6 @@ func solve_single_time_step(delta_time: float) -> bool:
 	var converged = NewtonRaphsonSolver.solve(self, system, delta_time)
 	
 	if not converged:
-		var debug_info = get_solver_debug_info_as_string()
-		assert(converged, "Solver failed to converge." + debug_info)
 		# Clear results to indicate failure
 		component_results.clear()
 		return false
