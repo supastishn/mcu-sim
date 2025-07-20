@@ -324,12 +324,19 @@ func connect_terminals(terminal_a: Area3D, terminal_b: Area3D):
 		if node_a == node_b:
 			return
 		else:
-			var node_b_terminals = electrical_nodes[node_b]["terminals"].duplicate()
-			for terminal in node_b_terminals:
+			# Ensure that if one of the nodes is the ground node, it is preserved.
+			var node_to_keep_id = node_a
+			var node_to_merge_id = node_b
+			if ground_node_id != -1 and node_to_merge_id == ground_node_id:
+				node_to_keep_id = node_b
+				node_to_merge_id = node_a
+
+			var node_to_merge_terminals = electrical_nodes[node_to_merge_id]["terminals"].duplicate()
+			for terminal in node_to_merge_terminals:
 				var term_id = terminal.get_instance_id()
-				terminal_connections[term_id] = node_a
-				electrical_nodes[node_a]["terminals"].push_back(terminal)
-			electrical_nodes.erase(node_b)
+				terminal_connections[term_id] = node_to_keep_id
+				electrical_nodes[node_to_keep_id]["terminals"].push_back(terminal)
+			electrical_nodes.erase(node_to_merge_id)
 
 
 ## Designates the electrical node connected to the given terminal as the circuit's ground reference.
