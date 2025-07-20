@@ -244,10 +244,13 @@ func stamp(
 	var Ic_last = alpha_f * I_es * (exp(Vbe / Vt) - 1.0) - I_cs * (exp(Vbc / Vt) - 1.0)
 	var Ib_last = Ie_last - Ic_last
 	
-	var Ieq_c = Ic_last - (gm_f * Vbe - g_mu * Vbc)
-	var Ieq_e = Ie_last - (g_pi * Vbe - gm_r * Vbc)
-	var Ieq_b = Ib_last - ((g_pi - gm_f) * Vbe + (g_mu - gm_r) * Vbc)
+	# We need to add the RHS for the Newton-Raphson update, which is J*V_last - F(V_last).
+	# F(V_last) is the vector of KCL errors [Ic, Ib, -Ie].
+	var rhs_c = (gm_f * Vbe - g_mu * Vbc) - Ic_last
+	var rhs_b = ((g_pi - gm_f) * Vbe + (g_mu - gm_r) * Vbc) - Ib_last
+	# For the emitter, F_e = -Ie. So the RHS contribution is d(-Ie)/dV * V - (-Ie) = Ie_last - d(Ie)/dV * V
+	var rhs_e = Ie_last - (g_pi * Vbe - gm_r * Vbc)
 	
-	if idx_c != -1: b[idx_c] += Ieq_c
-	if idx_b != -1: b[idx_b] += Ieq_b
-	if idx_e != -1: b[idx_e] -= Ieq_e # F vector for emitter is -Ie
+	if idx_c != -1: b[idx_c] += rhs_c
+	if idx_b != -1: b[idx_b] += rhs_b
+	if idx_e != -1: b[idx_e] += rhs_e

@@ -255,12 +255,13 @@ func stamp(
 	var Ic_conv_last = -Ic_mag_last
 	var Ib_conv_last = -(Ie_mag_last - Ic_mag_last)
 
-	# Ieq(I) = I_last - dI/dV * V_last
-	var Ieq_Ie = Ie_conv_last - (g_pi_pnp * Veb - gm_r_pnp * Vcb)
-	var Ieq_Ic = Ic_conv_last - (-gm_f_pnp * Veb + g_mu_pnp * Vcb)
-	var Ieq_Ib = Ib_conv_last - ((gm_f_pnp - g_pi_pnp) * Veb + (gm_r_pnp - g_mu_pnp) * Vcb)
-
-	# For PNP, KCL error vector F is [-Ie, Ic, Ib]. We add Ieq(F) to b.
-	if idx_e != -1: b[idx_e] += -Ieq_Ie  # Ieq(-Ie) = -Ieq(Ie)
-	if idx_c != -1: b[idx_c] += Ieq_Ic
-	if idx_b != -1: b[idx_b] += Ieq_Ib
+	# We need to add the RHS for the Newton-Raphson update, which is J*V_last - F(V_last).
+	# For PNP, KCL error vector F is [-Ie, Ic, Ib].
+	# The Jacobian d(F)/dV has already been stamped.
+	var rhs_e = (Ie_conv_last) - (g_pi_pnp * Veb - gm_r_pnp * Vcb)
+	var rhs_c = (-gm_f_pnp * Veb + g_mu_pnp * Vcb) - (Ic_conv_last)
+	var rhs_b = ((gm_f_pnp - g_pi_pnp) * Veb + (gm_r_pnp - g_mu_pnp) * Vcb) - (Ib_conv_last)
+	
+	if idx_e != -1: b[idx_e] += rhs_e
+	if idx_c != -1: b[idx_c] += rhs_c
+	if idx_b != -1: b[idx_b] += rhs_b
