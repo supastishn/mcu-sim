@@ -119,7 +119,7 @@ func gather_sim_results(
 		var I_es = Is / alpha_f
 		var I_cs = Is / alpha_r
 		
-		var Vcrit = Vt * log(1e12) # Use same Vcrit as in stamp() for consistency
+		var Vcrit = Vt * log(1e14) # Use same Vcrit as in stamp() for consistency
 		var Vbe_limited = min(Vbe, Vcrit)
 		var Vbc_limited = min(Vbc, Vcrit)
 
@@ -162,7 +162,7 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 	var Vbc = Vb - Vc
 
 	# Clamp junction voltages to prevent extreme values in the stamp function
-	var Vcrit_clamp = THERMAL_VOLTAGE * log(1e12) # Use same Vcrit as in stamp() for consistency
+	var Vcrit_clamp = THERMAL_VOLTAGE * log(1e14) # Use same Vcrit as in stamp() for consistency
 	comp_data.properties["_internal_vbe"] = clampf(Vbe, -5.0, Vcrit_clamp)
 	comp_data.properties["_internal_vbc"] = clampf(Vbc, -5.0, Vcrit_clamp)
 
@@ -203,7 +203,7 @@ func stamp(
 	var Vt = THERMAL_VOLTAGE
 
 	# --- Diode Limiting for numerical stability ---
-	var Vcrit = Vt * log(1e12)
+	var Vcrit = Vt * log(1e14)
 	var Vbe_limited = min(Vbe, Vcrit)
 	var Vbc_limited = min(Vbc, Vcrit)
 	

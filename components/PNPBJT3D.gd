@@ -119,7 +119,7 @@ func gather_sim_results(
 		var I_es = Is / alpha_f
 		var I_cs = Is / alpha_r
 		
-		var Vcrit = Vt * log(1e12) # Use same Vcrit as in stamp() for consistency
+		var Vcrit = Vt * log(1e14) # Use same Vcrit as in stamp() for consistency
 		var Veb_limited = min(Veb, Vcrit)
 		var Vcb_limited = min(Vcb, Vcrit)
 
@@ -169,7 +169,7 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 	var Vcb = Vc - Vb
 	
 	# Clamp junction voltages to prevent extreme values in the stamp function
-	var Vcrit_clamp = THERMAL_VOLTAGE * log(1e12) # Use same Vcrit as in stamp() for consistency
+	var Vcrit_clamp = THERMAL_VOLTAGE * log(1e14) # Use same Vcrit as in stamp() for consistency
 	comp_data.properties["_internal_veb"] = clampf(Veb, -5.0, Vcrit_clamp)
 	comp_data.properties["_internal_vcb"] = clampf(Vcb, -5.0, Vcrit_clamp)
 
@@ -210,7 +210,7 @@ func stamp(
 	var Vt = THERMAL_VOLTAGE
 
 	# --- Diode Limiting for numerical stability ---
-	var Vcrit = Vt * log(1e12)
+	var Vcrit = Vt * log(1e14)
 	var Veb_limited = min(Veb, Vcrit)
 	var Vcb_limited = min(Vcb, Vcrit)
 
@@ -243,7 +243,7 @@ func stamp(
 	# Base Row: d(Ib)/dV = d(-Ie + Ic)/dV
 	if idx_b != -1:
 		if idx_e != -1: A[idx_b][idx_e] += gm_f_pnp - g_pi_pnp
-		if idx_b != -1: A[idx_b][idx_b] += g_pi_pnp - gm_r_pnp + gm_f_pnp - g_mu_pnp
+		if idx_b != -1: A[idx_b][idx_b] += g_pi_pnp + gm_r_pnp - gm_f_pnp - g_mu_pnp
 		if idx_c != -1: A[idx_b][idx_c] += gm_r_pnp - g_mu_pnp
 
 	# Companion model current sources, using conventional current directions
