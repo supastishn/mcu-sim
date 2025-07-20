@@ -28,6 +28,8 @@ signal configuration_changed(component_node: Node3D)
 ## Reference to the Label3D for displaying simulation info.
 @onready var info_label: Label3D = $InfoLabel
 
+const REGION_HYSTERESIS_MARGIN: float = 0.05
+
 ## Called when the node enters the scene tree. Initializes the component.
 func _ready():
 	hide_info()
@@ -132,9 +134,15 @@ func update_nonlinear_state(
 		var high_rail = Vcc - rail_drop
 		var low_rail  = Vee + rail_drop
 
-		if ideal_vout > high_rail:
+		# Hysteresis to prevent region oscillation
+		var prev_region = comp_data.properties["operating_region"]
+		if prev_region == "SAT_HIGH" and ideal_vout >= high_rail - REGION_HYSTERESIS_MARGIN:
 			new_region = "SAT_HIGH"
-		elif ideal_vout < low_rail:
+		elif prev_region == "SAT_LOW" and ideal_vout <= low_rail + REGION_HYSTERESIS_MARGIN:
+			new_region = "SAT_LOW"
+		elif ideal_vout > high_rail + REGION_HYSTERESIS_MARGIN:
+			new_region = "SAT_HIGH"
+		elif ideal_vout < low_rail - REGION_HYSTERESIS_MARGIN:
 			new_region = "SAT_LOW"
 		else:
 			new_region = "LINEAR"
