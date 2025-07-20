@@ -104,8 +104,7 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 	if is_nan(v_vin) or is_nan(v_vout):
 		new_status = "DISCONNECTED"
 	else:
-		var v_diff = v_vin - v_vout
-		if v_diff < dropout_voltage:
+		if v_vin < (regulated_voltage + dropout_voltage):
 			new_status = "DROPOUT"
 		else:
 			new_status = "REGULATED"
