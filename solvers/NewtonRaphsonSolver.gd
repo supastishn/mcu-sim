@@ -96,7 +96,7 @@ static func solve(circuit_graph: CircuitGraph, system: Dictionary, delta_time: f
 				if matrix_idx < delta_x.size():
 					max_dv = max(max_dv, abs(delta_x[matrix_idx]))
 
-			var VOLTAGE_CHANGE_LIMIT = 0.1 # Limit voltage change to 0.1V per iteration to improve stability
+			var VOLTAGE_CHANGE_LIMIT = 0.05 # Limit voltage change to 0.05V per iteration to improve stability
 			if max_dv > VOLTAGE_CHANGE_LIMIT:
 				damping_factor = VOLTAGE_CHANGE_LIMIT / max_dv
 		
