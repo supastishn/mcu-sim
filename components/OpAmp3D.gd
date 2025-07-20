@@ -212,45 +212,6 @@ func stamp(
 		if vout_idx != -1: b[vout_idx] += Gbig * sat_drop
 		if vee_idx != -1: b[vee_idx] -= Gbig * sat_drop
 
-func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, F_v: Array, system: Dictionary, _delta_time: float):
-	var comp_data = graph.component_node_map.get(self)
-	if not comp_data: return
-	var region = comp_data.properties["operating_region"]
-	
-	var vp_node_id = graph.terminal_connections.get(terminal_vp.get_instance_id(), -1)
-	var vn_node_id = graph.terminal_connections.get(terminal_vn.get_instance_id(), -1)
-	var vout_node_id = graph.terminal_connections.get(terminal_vout.get_instance_id(), -1)
-	
-	var Vp = graph.electrical_nodes.get(vp_node_id, {}).get("voltage", 0.0)
-	var Vn = graph.electrical_nodes.get(vn_node_id, {}).get("voltage", 0.0)
-	var Vout = graph.electrical_nodes.get(vout_node_id, {}).get("voltage", 0.0)
-	
-	# Input resistance contribution
-	var g_in = 1.0 / input_resistance if input_resistance > 1e-9 else 1e9
-	var i_in = g_in * (Vp - Vn)
-	var vp_idx = system.node_map.get(vp_node_id, -1)
-	var vn_idx = system.node_map.get(vn_node_id, -1)
-	if vp_idx != -1: F_v[vp_idx] += i_in
-	if vn_idx != -1: F_v[vn_idx] -= i_in
-
-	# Output stage contribution
-	if region == "LINEAR":
-		var g_out = 1.0 / output_resistance if output_resistance > 1e-9 else 1e9
-		var transconductance = open_loop_gain * g_out
-		
-		# VCCS current (flows into vout from ground)
-		var i_vccs = transconductance * (Vp - Vn)
-		# Resistor current (flows out of vout to ground)
-		var i_rout = g_out * Vout
-		
-		var vout_idx = system.node_map.get(vout_node_id, -1)
-		# Total current leaving vout is i_rout - i_vccs
-		if vout_idx != -1:
-			F_v[vout_idx] += i_rout - i_vccs
-	# Note: Saturation modes are handled by large conductances stamped in stamp(),
-	# which is simpler than calculating the currents here. The error vector
-	# will be handled correctly by the solver from the stamped matrix.
-
 
 ## Extracts and stores simulation results for this component.
 func gather_sim_results(

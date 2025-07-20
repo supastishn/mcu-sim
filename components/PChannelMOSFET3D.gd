@@ -190,43 +190,6 @@ func stamp(A, b, node_map, _vs_map, _inductor_map, term_conn, comp_data, _dt):
 		if idx_s != -1: b[idx_s] += Ieq_d
 		if idx_d != -1: b[idx_d] -= Ieq_d
 
-func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, F_v: Array, system: Dictionary, _delta_time: float):
-	var node_d_id = graph.terminal_connections.get(terminal_d.get_instance_id(), -1)
-	var node_g_id = graph.terminal_connections.get(terminal_g.get_instance_id(), -1)
-	var node_s_id = graph.terminal_connections.get(terminal_s.get_instance_id(), -1)
-
-	var Vd = graph.electrical_nodes.get(node_d_id, {}).get("voltage", 0.0)
-	var Vg = graph.electrical_nodes.get(node_g_id, {}).get("voltage", 0.0)
-	var Vs = graph.electrical_nodes.get(node_s_id, {}).get("voltage", 0.0)
-
-	var Vsg = Vs - Vg
-	var Vsd = Vs - Vd
-	var vt = threshold_voltage
-	var kp = transconductance_parameter
-
-	var Id = 0.0
-	var region = "OFF"
-	if Vsg > vt:
-		if Vsd < (Vsg - vt): # Triode
-			Id = kp * ( (Vsg - vt) * Vsd - 0.5 * pow(Vsd, 2.0) ) * (1 + lambda * Vsd)
-			region = "TRIODE"
-		else: # Saturation
-			Id = 0.5 * kp * pow(Vsg - vt, 2.0) * (1 + lambda * Vsd)
-			region = "SATURATION"
-	
-	if not !is_nan(Id):
-		LinearSolver.print_matrix(system.A, "A on P-MOS kcl fail")
-		LinearSolver.print_vector(F_v, "F_v on P-MOS kcl fail")
-		printerr("P-MOSFET {mos}: Id is NaN. Region={r}, Vsg={vsg}, Vsd={vsd}".format({ "mos": name, "r": region, "vsg": Vsg, "vsd": Vsd }))
-		return
-
-	var idx_d = system.node_map.get(node_d_id, -1)
-	var idx_s = system.node_map.get(node_s_id, -1)
-	
-	# Current flows S to D
-	if idx_s != -1: F_v[idx_s] += Id
-	if idx_d != -1: F_v[idx_d] -= Id
-
 # ---------- gather_sim_results ----------
 ## Extracts and stores simulation results (currents, voltages, region) for this component.
 func gather_sim_results(circuit,comp_data,_x,_node_map,_vs_map,_inductor_map,_dt):

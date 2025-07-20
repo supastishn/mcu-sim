@@ -134,27 +134,3 @@ func stamp(
 	# Stamp the equivalent current source. Ieq flows anode to cathode.
 	if ia != -1: b[ia] -= Ieq
 	if ik != -1: b[ik] += Ieq
-
-func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, F_v: Array, system: Dictionary, _delta_time: float):
-	var node_a_id = graph.terminal_connections.get(terminal_anode.get_instance_id(), -1)
-	var node_k_id = graph.terminal_connections.get(terminal_kathode.get_instance_id(), -1)
-	var Va = graph.electrical_nodes.get(node_a_id, {}).get("voltage", 0.0)
-	var Vk = graph.electrical_nodes.get(node_k_id, {}).get("voltage", 0.0)
-	var Vd = Va - Vk
-
-	var n_vt = ideality_factor * THERMAL_VOLTAGE
-	var Vcrit = n_vt * log(1e12) # Clamp to avoid overflow
-	var Vd_limited = min(Vd, Vcrit)
-	
-	var current = saturation_current * (exp(Vd_limited / n_vt) - 1.0)
-	if not !is_nan(current):
-		LinearSolver.print_matrix(system.A, "A on diode kcl fail")
-		LinearSolver.print_vector(F_v, "F_v on diode kcl fail")
-		printerr("Diode {d}: Current is NaN. Vd_limited={vdl}".format({"d": name, "vdl": Vd_limited}))
-		return
-	
-	var ia = system.node_map.get(node_a_id, -1)
-	var ik = system.node_map.get(node_k_id, -1)
-	
-	if ia != -1: F_v[ia] += current
-	if ik != -1: F_v[ik] -= current

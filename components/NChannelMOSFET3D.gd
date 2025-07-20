@@ -289,39 +289,3 @@ func stamp(
 
 			if idx_d != -1: b[idx_d] += Ieq_d
 			if idx_s != -1: b[idx_s] -= Ieq_d
-
-func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, F_v: Array, system: Dictionary, _delta_time: float):
-	var node_d_id = graph.terminal_connections.get(terminal_d.get_instance_id(), -1)
-	var node_g_id = graph.terminal_connections.get(terminal_g.get_instance_id(), -1)
-	var node_s_id = graph.terminal_connections.get(terminal_s.get_instance_id(), -1)
-
-	var Vd = graph.electrical_nodes.get(node_d_id, {}).get("voltage", 0.0)
-	var Vg = graph.electrical_nodes.get(node_g_id, {}).get("voltage", 0.0)
-	var Vs = graph.electrical_nodes.get(node_s_id, {}).get("voltage", 0.0)
-
-	var Vgs = Vg - Vs
-	var Vds = Vd - Vs
-	var vt = threshold_voltage
-	var kn = transconductance_parameter
-	
-	var Id = 0.0
-	var region = "OFF"
-	if Vgs > vt:
-		if Vds < (Vgs - vt): # Triode
-			Id = kn * ( (Vgs - vt) * Vds - 0.5 * pow(Vds, 2.0) ) * (1 + lambda * Vds)
-			region = "TRIODE"
-		else: # Saturation
-			Id = 0.5 * kn * pow(Vgs - vt, 2.0) * (1 + lambda * Vds)
-			region = "SATURATION"
-
-	if not !is_nan(Id):
-		LinearSolver.print_matrix(system.A, "A on N-MOS kcl fail")
-		LinearSolver.print_vector(F_v, "F_v on N-MOS kcl fail")
-		printerr("N-MOSFET {mos}: Id is NaN. Region={r}, Vgs={vgs}, Vds={vds}".format({ "mos": name, "r": region, "vgs": Vgs, "vds": Vds }))
-		return
-
-	var idx_d = system.node_map.get(node_d_id, -1)
-	var idx_s = system.node_map.get(node_s_id, -1)
-
-	if idx_d != -1: F_v[idx_d] += Id
-	if idx_s != -1: F_v[idx_s] -= Id

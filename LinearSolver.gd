@@ -137,3 +137,34 @@ static func print_vector(V: Array, p_name: String = "Vector"):
 	vec_str += "]"
 	print(vec_str)
 	print("--------------")
+
+
+## Helper function to multiply a matrix A by a vector x.
+static func multiply_matrix_vector(A: Array, x: Array) -> Array:
+	var n_rows = A.size()
+	if n_rows == 0: return []
+	var n_cols = x.size()
+	if A[0].size() != n_cols:
+		printerr("LinearSolver: Matrix-vector multiply dimension mismatch.")
+		return []
+		
+	var b = []
+	b.resize(n_rows)
+	for i in range(n_rows):
+		var sum_val = 0.0
+		for j in range(n_cols):
+			sum_val += A[i][j] * x[j]
+		b[i] = sum_val
+	return b
+
+
+## Helper function to subtract vector v2 from v1.
+static func subtract_vectors(v1: Array, v2: Array) -> Array:
+	if v1.size() != v2.size():
+		printerr("LinearSolver: Vector subtraction size mismatch.")
+		return []
+	var result = []
+	result.resize(v1.size())
+	for i in range(v1.size()):
+		result[i] = v1[i] - v2[i]
+	return result

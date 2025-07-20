@@ -242,38 +242,3 @@ func stamp(
 	if idx_c != -1: b[idx_c] += Ieq_c
 	if idx_b != -1: b[idx_b] += Ieq_b
 	if idx_e != -1: b[idx_e] -= Ieq_e # F vector for emitter is -Ie
-
-func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, F_v: Array, system: Dictionary, _delta_time: float):
-	var node_c_id = graph.terminal_connections.get(terminal_c.get_instance_id(), -1)
-	var node_b_id = graph.terminal_connections.get(terminal_b.get_instance_id(), -1)
-	var node_e_id = graph.terminal_connections.get(terminal_e.get_instance_id(), -1)
-	var Vc = graph.electrical_nodes.get(node_c_id, {}).get("voltage", 0.0)
-	var Vb = graph.electrical_nodes.get(node_b_id, {}).get("voltage", 0.0)
-	var Ve = graph.electrical_nodes.get(node_e_id, {}).get("voltage", 0.0)
-
-	var Vbe = Vb - Ve
-	var Vbc = Vb - Vc
-	
-	var I_es = saturation_current / alpha_forward
-	var I_cs = saturation_current / alpha_reverse
-	
-	var Vt = THERMAL_VOLTAGE
-	var Vcrit = Vt * log(1e12)
-	var Vbe_limited = min(Vbe, Vcrit)
-	var Vbc_limited = min(Vbc, Vcrit)
-
-	var Ie = I_es * (exp(Vbe_limited / Vt) - 1.0) - alpha_reverse * I_cs * (exp(Vbc_limited / Vt) - 1.0)
-	var Ic = alpha_forward * I_es * (exp(Vbe_limited / Vt) - 1.0) - I_cs * (exp(Vbc_limited / Vt) - 1.0)
-	if not (!is_nan(Ie) and !is_nan(Ic)):
-		LinearSolver.print_matrix(system.A, "A on NPN kcl fail")
-		LinearSolver.print_vector(F_v, "F_v on NPN kcl fail")
-		printerr("NPNBJT {bjt}: Current is NaN. Ie={ie}, Ic={ic}, Vbe_lim={vbel}, Vbc_lim={vbcl}".format({ "bjt": name, "ie": Ie, "ic": Ic, "vbel": Vbe_limited, "vbcl": Vbc_limited }))
-		return
-
-	var idx_c = system.node_map.get(node_c_id, -1)
-	var idx_b = system.node_map.get(node_b_id, -1)
-	var idx_e = system.node_map.get(node_e_id, -1)
-	
-	if idx_c != -1: F_v[idx_c] += Ic
-	if idx_b != -1: F_v[idx_b] += Ie - Ic # Ib
-	if idx_e != -1: F_v[idx_e] -= Ie

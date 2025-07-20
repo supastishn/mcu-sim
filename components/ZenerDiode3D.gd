@@ -179,39 +179,3 @@ func stamp(
 
 	if ia != -1: b[ia] -= Ieq
 	if ik != -1: b[ik] += Ieq
-
-func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, F_v: Array, system: Dictionary, _delta_time: float):
-	var node_a_id = graph.terminal_connections.get(terminal_anode.get_instance_id(), -1)
-	var node_k_id = graph.terminal_connections.get(terminal_kathode.get_instance_id(), -1)
-	var Va = graph.electrical_nodes.get(node_a_id, {}).get("voltage", 0.0)
-	var Vk = graph.electrical_nodes.get(node_k_id, {}).get("voltage", 0.0)
-	var Vd = Va - Vk
-
-	var Is = saturation_current
-	var n = ideality_factor
-	var Vz = zener_voltage
-	var V_thermal = THERMAL_VOLTAGE
-	var n_vt = n * V_thermal
-	
-	# --- Diode Limiting for numerical stability ---
-	var Vcrit_fwd = n_vt * log(1e12)
-	var Vd_limited_fwd = min(Vd, Vcrit_fwd)
-	
-	var Vrev = -(Vd + Vz)
-	var Vcrit_rev = V_thermal * log(1e12)
-	var Vrev_limited = min(Vrev, Vcrit_rev)
-
-	var I_fwd = Is * (exp(Vd_limited_fwd / n_vt) - 1.0)
-	var I_rev = Is * (exp(Vrev_limited / V_thermal) - 1.0)
-	var current = I_fwd - I_rev
-	if not !is_nan(current):
-		LinearSolver.print_matrix(system.A, "A on zener kcl fail")
-		LinearSolver.print_vector(F_v, "F_v on zener kcl fail")
-		printerr("Zener {z}: Current is NaN. I_fwd={ifwd}, I_rev={irev}, Vd_lim={vdlim}, Vrev_lim={vrevlim}".format({ "z": name, "ifwd": I_fwd, "irev": I_rev, "vdlim": Vd_limited_fwd, "vrevlim": Vrev_limited }))
-		return
-
-	var ia = system.node_map.get(node_a_id, -1)
-	var ik = system.node_map.get(node_k_id, -1)
-	
-	if ia != -1: F_v[ia] += current
-	if ik != -1: F_v[ik] -= current

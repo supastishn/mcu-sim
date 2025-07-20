@@ -166,51 +166,6 @@ func stamp(
 	if internal_node_idx != -1: b[internal_node_idx] += I_eq_source
 	if t2_idx != -1: b[t2_idx] -= I_eq_source
 
-func get_kcl_contributions(graph: CircuitGraph, _all_node_voltages: Dictionary, F_v: Array, system: Dictionary, delta_time: float):
-	var comp_data = graph.component_node_map.get(self)
-	if not comp_data: return
-	delta_time = clamp(delta_time, 1e-12, 0.1)
-
-	# ESR part
-	var esr = equivalent_series_resistance
-	var internal_node_id = _internal_node_id
-	var internal_node_idx = system.node_map.get(internal_node_id, -1)
-	var t1_node_id = graph.terminal_connections.get(terminal1.get_instance_id(),-1)
-	var t1_idx = system.node_map.get(t1_node_id, -1)
-	
-	var v1 = graph.electrical_nodes.get(t1_node_id, {}).get("voltage", 0.0)
-	var v_int = graph.electrical_nodes.get(internal_node_id, {}).get("voltage", 0.0)
-	
-	var g_esr = 1e9 if esr <= 1e-9 else (1.0 / esr)
-	var i_esr = g_esr * (v1 - v_int)
-	if t1_idx != -1: F_v[t1_idx] += i_esr
-	if internal_node_idx != -1: F_v[internal_node_idx] -= i_esr
-	
-	# Capacitor companion model (Geq part)
-	var G_eq: float
-	if comp_data.get("is_exploded", false): G_eq = 1e-9
-	else:
-		var C_val = capacitance
-		if C_val <= 1e-12: C_val = 1e-12
-		if delta_time <= 1e-9: G_eq = 1e9
-		else: G_eq = C_val / delta_time
-
-	var t2_node_id = graph.terminal_connections.get(terminal2.get_instance_id(),-1)
-	var t2_idx = system.node_map.get(t2_node_id, -1)
-	var v2 = graph.electrical_nodes.get(t2_node_id, {}).get("voltage", 0.0)
-	
-	var i_cap = G_eq * (v_int - v2)
-	# --- FIX: Add the companion model's current source to the error vector ---
-	var Vc_prev_dt_val = comp_data.properties.get("voltage_across_cap_prev_dt", 0.0)
-	var I_eq_source = G_eq * Vc_prev_dt_val
-
-	if internal_node_idx != -1: F_v[internal_node_idx] += i_cap
-	if t2_idx != -1: F_v[t2_idx] -= i_cap
-	# Current source pushes current INTO internal node, and OUT OF t2 node.
-	# KCL is sum of currents LEAVING, so we subtract from internal and add to t2.
-	if internal_node_idx != -1: F_v[internal_node_idx] -= I_eq_source
-	if t2_idx != -1: F_v[t2_idx] += I_eq_source
-
 ## Extracts and stores simulation results, checking for overvoltage or reverse polarity explosion.
 func gather_sim_results(
 	circuit      : CircuitGraph,
