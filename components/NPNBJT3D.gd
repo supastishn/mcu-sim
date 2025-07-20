@@ -130,7 +130,7 @@ func gather_sim_results(
 	var region = "OFF"
 	var Vth = 0.5
 	if Vbe > Vth:
-		if Vbc > 0:
+		if Vbc > Vth:
 			region = "SATURATION"
 		else:
 			region = "ACTIVE"
@@ -205,15 +205,13 @@ func stamp(
 	var Vt = THERMAL_VOLTAGE
 
 	# --- Diode Limiting for numerical stability ---
-	var Vcrit = Vt * log(1e14)
-	var Vbe_limited = min(Vbe, Vcrit)
-	var Vbc_limited = min(Vbc, Vcrit)
+	# The Vbe and Vbc values are already clamped in update_nonlinear_state.
 	
 	# Conductances of the BE and BC diodes
 	var I_es = Is / alpha_f
 	var I_cs = Is / alpha_r
-	var g_pi = (I_es / Vt) * exp(Vbe_limited / Vt)
-	var g_mu = (I_cs / Vt) * exp(Vbc_limited / Vt)
+	var g_pi = (I_es / Vt) * exp(Vbe / Vt)
+	var g_mu = (I_cs / Vt) * exp(Vbc / Vt)
 
 	# Transconductances
 	var gm_f = alpha_f * g_pi
@@ -242,13 +240,13 @@ func stamp(
 		if idx_e != -1: A[idx_e][idx_e] += g_pi
 
 	# Companion model current sources
-	var Ie_last = I_es * (exp(Vbe_limited / Vt) - 1.0) - alpha_r * I_cs * (exp(Vbc_limited / Vt) - 1.0)
-	var Ic_last = alpha_f * I_es * (exp(Vbe_limited / Vt) - 1.0) - I_cs * (exp(Vbc_limited / Vt) - 1.0)
+	var Ie_last = I_es * (exp(Vbe / Vt) - 1.0) - alpha_r * I_cs * (exp(Vbc / Vt) - 1.0)
+	var Ic_last = alpha_f * I_es * (exp(Vbe / Vt) - 1.0) - I_cs * (exp(Vbc / Vt) - 1.0)
 	var Ib_last = Ie_last - Ic_last
 	
-	var Ieq_c = Ic_last - (gm_f * Vbe_limited - g_mu * Vbc_limited)
-	var Ieq_e = Ie_last - (g_pi * Vbe_limited - gm_r * Vbc_limited)
-	var Ieq_b = Ib_last - ((g_pi - gm_f) * Vbe_limited + (g_mu - gm_r) * Vbc_limited)
+	var Ieq_c = Ic_last - (gm_f * Vbe - g_mu * Vbc)
+	var Ieq_e = Ie_last - (g_pi * Vbe - gm_r * Vbc)
+	var Ieq_b = Ib_last - ((g_pi - gm_f) * Vbe + (g_mu - gm_r) * Vbc)
 	
 	if idx_c != -1: b[idx_c] += Ieq_c
 	if idx_b != -1: b[idx_b] += Ieq_b

@@ -753,14 +753,10 @@ func test_pnp_bjt_regions() -> bool:
 	if ok:
 		var results = rig.results(bjt_pnp_sat)
 		var ic_sat = results.get("Ic", NAN)
-
-		var node_e_id = g.terminal_connections.get(bjt_pnp_sat.terminal_e.get_instance_id(),-1)
-		var node_c_id = g.terminal_connections.get(bjt_pnp_sat.terminal_c.get_instance_id(),-1)
-		var ve = g.electrical_nodes.get(node_e_id, {}).get("voltage", NAN)
-		var vc = g.electrical_nodes.get(node_c_id, {}).get("voltage", NAN)
-		var vec = ve - vc
+		var vec = results.get("Vec", NAN)
 
 		if not TestUtils.assert_equals(results.get("region", "ERROR"), "SATURATION", "PNP BJT Test (Saturation): Region is SATURATION"): ok = false
+		if not TestUtils.assert_not_nan(vec, "PNP BJT Test (Saturation): Vec is not NaN"): ok = false
 		if not TestUtils.assert_true(vec < 0.4, "PNP BJT Test (Saturation): Vec is small (<0.4V)"): ok = false
 		var expected_ic = (ps_pnp_sat_vcc.target_voltage - vec) / rc_pnp_sat.resistance
 		if not TestUtils.assert_approx_equals(abs(ic_sat), expected_ic, 1e-3, "PNP BJT Test (Saturation): Ic is limited by Rc"): ok = false

@@ -613,7 +613,7 @@ func _solve_newton_raphson(system: Dictionary, delta_time: float) -> bool:
 				max_dv = max(max_dv, abs(delta_x[matrix_idx]))
 
 		var damping_factor = 1.0
-		var VOLTAGE_CHANGE_LIMIT = 0.2 # Limit voltage change to 0.2V per iteration to improve stability
+		var VOLTAGE_CHANGE_LIMIT = 0.1 # Limit voltage change to 0.1V per iteration to improve stability
 		if max_dv > VOLTAGE_CHANGE_LIMIT:
 			damping_factor = VOLTAGE_CHANGE_LIMIT / max_dv
 		

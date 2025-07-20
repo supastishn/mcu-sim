@@ -136,17 +136,20 @@ func gather_sim_results(
 	var region = "OFF"
 	var Vth = 0.5
 	if not is_nan(Veb):
+		var Vb_minus_Vc = Vb - Vc
 		if Veb > Vth:
-			if Vcb > Vth:
+			if Vb_minus_Vc > Vth:
 				region = "SATURATION"
 			else:
 				region = "ACTIVE"
-		elif Vcb > Vth:
+		elif Vb_minus_Vc > Vth:
 			region = "INVERSE"
-
+	
+	var Vec = Ve - Vc
 	circuit.component_results[comp_id]["Ic"] = Ic
 	circuit.component_results[comp_id]["Ib"] = Ib
 	circuit.component_results[comp_id]["Ie"] = Ie
+	circuit.component_results[comp_id]["Vec"] = Vec
 	circuit.component_results[comp_id]["region"] = region
 
 ## Updates the BJT's operating region based on an MNA iteration.
@@ -177,9 +180,9 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 	var new_region = "OFF"
 	var Vth = 0.5
 	if (Ve - Vb) > Vth:
-		if (Vc - Vb) > Vth: new_region = "SATURATION"
+		if (Vb - Vc) > Vth: new_region = "SATURATION"
 		else: new_region = "ACTIVE"
-	elif (Vc - Vb) > Vth:
+	elif (Vb - Vc) > Vth:
 		new_region = "INVERSE"
 
 	if new_region != previous_region:
@@ -210,15 +213,13 @@ func stamp(
 	var Vt = THERMAL_VOLTAGE
 
 	# --- Diode Limiting for numerical stability ---
-	var Vcrit = Vt * log(1e14)
-	var Veb_limited = min(Veb, Vcrit)
-	var Vcb_limited = min(Vcb, Vcrit)
+	# The Veb and Vcb values are already clamped in update_nonlinear_state.
 
 	# Conductances of the EB and CB diodes
 	var I_es = Is / alpha_f
 	var I_cs = Is / alpha_r
-	var g_pi_pnp = (I_es / Vt) * exp(Veb_limited / Vt)
-	var g_mu_pnp = (I_cs / Vt) * exp(Vcb_limited / Vt)
+	var g_pi_pnp = (I_es / Vt) * exp(Veb / Vt)
+	var g_mu_pnp = (I_cs / Vt) * exp(Vcb / Vt)
 
 	# Transconductances
 	var gm_f_pnp = alpha_f * g_pi_pnp
@@ -247,17 +248,17 @@ func stamp(
 		if idx_c != -1: A[idx_b][idx_c] += gm_r_pnp - g_mu_pnp
 
 	# Companion model current sources, using conventional current directions
-	var Ie_mag_last = I_es * (exp(Veb_limited / Vt) - 1.0) - alpha_r * I_cs * (exp(Vcb_limited / Vt) - 1.0)
-	var Ic_mag_last = alpha_f * I_es * (exp(Veb_limited / Vt) - 1.0) - I_cs * (exp(Vcb_limited / Vt) - 1.0)
+	var Ie_mag_last = I_es * (exp(Veb / Vt) - 1.0) - alpha_r * I_cs * (exp(Vcb / Vt) - 1.0)
+	var Ic_mag_last = alpha_f * I_es * (exp(Veb / Vt) - 1.0) - I_cs * (exp(Vcb / Vt) - 1.0)
 	
 	var Ie_conv_last = Ie_mag_last
 	var Ic_conv_last = -Ic_mag_last
 	var Ib_conv_last = -(Ie_mag_last - Ic_mag_last)
 
 	# Ieq(I) = I_last - dI/dV * V_last
-	var Ieq_Ie = Ie_conv_last - (g_pi_pnp * Veb_limited - gm_r_pnp * Vcb_limited)
-	var Ieq_Ic = Ic_conv_last - (-gm_f_pnp * Veb_limited + g_mu_pnp * Vcb_limited)
-	var Ieq_Ib = Ib_conv_last - ((gm_f_pnp - g_pi_pnp) * Veb_limited + (gm_r_pnp - g_mu_pnp) * Vcb_limited)
+	var Ieq_Ie = Ie_conv_last - (g_pi_pnp * Veb - gm_r_pnp * Vcb)
+	var Ieq_Ic = Ic_conv_last - (-gm_f_pnp * Veb + g_mu_pnp * Vcb)
+	var Ieq_Ib = Ib_conv_last - ((gm_f_pnp - g_pi_pnp) * Veb + (gm_r_pnp - g_mu_pnp) * Vcb)
 
 	# For PNP, KCL error vector F is [-Ie, Ic, Ib]. We add Ieq(F) to b.
 	if idx_e != -1: b[idx_e] += -Ieq_Ie  # Ieq(-Ie) = -Ieq(Ie)
