@@ -244,7 +244,7 @@ func stamp(
 	var Ic_last = alpha_f * I_es * (exp(Vbe_limited / Vt) - 1.0) - I_cs * (exp(Vbc_limited / Vt) - 1.0)
 	var Ib_last = Ie_last - Ic_last
 	
-	var Ieq_c = Ic_last - ((gm_f - g_mu) * Vbe_limited + g_mu * Vbc_limited)
+	var Ieq_c = Ic_last - (gm_f * Vbe_limited - g_mu * Vbc_limited)
 	var Ieq_e = Ie_last - (g_pi * Vbe_limited - gm_r * Vbc_limited)
 	var Ieq_b = Ib_last - ((g_pi - gm_f) * Vbe_limited + (g_mu - gm_r) * Vbc_limited)
 	

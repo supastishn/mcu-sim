@@ -229,7 +229,7 @@ func stamp(
 	var idx_b = node_map.get(terminal_connections.get(terminal_b.get_instance_id(), -1), -1)
 	var idx_c = node_map.get(terminal_connections.get(terminal_c.get_instance_id(), -1), -1)
 
-	# KCL Error vector F is [F_e, F_c, F_b] = [-Ie, Ic, Ib]. Stamp Jacobian dF/dV.
+	# KCL Error vector F is [-Ie, Ic, Ib]. Stamp Jacobian dF/dV.
 	# Emitter Row: d(-Ie)/dV
 	if idx_e != -1:
 		if idx_e != -1: A[idx_e][idx_e] -= g_pi_pnp
@@ -237,25 +237,29 @@ func stamp(
 		if idx_c != -1: A[idx_e][idx_c] += gm_r_pnp
 	# Collector Row: d(Ic)/dV
 	if idx_c != -1:
-		if idx_e != -1: A[idx_c][idx_e] += gm_f_pnp
-		if idx_b != -1: A[idx_c][idx_b] += g_mu_pnp - gm_f_pnp
-		if idx_c != -1: A[idx_c][idx_c] -= g_mu_pnp
-	# Base Row: d(Ib)/dV = d(Ie-Ic)/dV
+		if idx_e != -1: A[idx_c][idx_e] -= gm_f_pnp
+		if idx_b != -1: A[idx_c][idx_b] += gm_f_pnp - g_mu_pnp
+		if idx_c != -1: A[idx_c][idx_c] += g_mu_pnp
+	# Base Row: d(Ib)/dV = d(-Ie + Ic)/dV
 	if idx_b != -1:
-		if idx_e != -1: A[idx_b][idx_e] += g_pi_pnp - gm_f_pnp
-		if idx_b != -1: A[idx_b][idx_b] += gm_f_pnp - g_pi_pnp - g_mu_pnp + gm_r_pnp
-		if idx_c != -1: A[idx_b][idx_c] += g_mu_pnp - gm_r_pnp
+		if idx_e != -1: A[idx_b][idx_e] += gm_f_pnp - g_pi_pnp
+		if idx_b != -1: A[idx_b][idx_b] += g_pi_pnp - gm_r_pnp + gm_f_pnp - g_mu_pnp
+		if idx_c != -1: A[idx_b][idx_c] += gm_r_pnp - g_mu_pnp
 
-	# Companion model current sources
-	var Ie_last = I_es * (exp(Veb_limited / Vt) - 1.0) - alpha_r * I_cs * (exp(Vcb_limited / Vt) - 1.0)
-	var Ic_last = alpha_f * I_es * (exp(Veb_limited / Vt) - 1.0) - I_cs * (exp(Vcb_limited / Vt) - 1.0)
-	var Ib_last = Ie_last - Ic_last
+	# Companion model current sources, using conventional current directions
+	var Ie_mag_last = I_es * (exp(Veb_limited / Vt) - 1.0) - alpha_r * I_cs * (exp(Vcb_limited / Vt) - 1.0)
+	var Ic_mag_last = alpha_f * I_es * (exp(Veb_limited / Vt) - 1.0) - I_cs * (exp(Vcb_limited / Vt) - 1.0)
 	
-	var Ieq_e = Ie_last - (g_pi_pnp * Veb_limited - gm_r_pnp * Vcb_limited)
-	var Ieq_c = Ic_last - (gm_f_pnp * Veb_limited - g_mu_pnp * Vcb_limited)
-	var Ieq_b = Ib_last - ((g_pi_pnp - gm_f_pnp) * Veb_limited + (g_mu_pnp - gm_r_pnp) * Vcb_limited)
-	
-	# For PNP, F vector is [-Ie, Ic, Ib].
-	if idx_e != -1: b[idx_e] -= Ieq_e  # For -Ie
-	if idx_c != -1: b[idx_c] += Ieq_c
-	if idx_b != -1: b[idx_b] += Ieq_b
+	var Ie_conv_last = Ie_mag_last
+	var Ic_conv_last = -Ic_mag_last
+	var Ib_conv_last = -(Ie_mag_last - Ic_mag_last)
+
+	# Ieq(I) = I_last - dI/dV * V_last
+	var Ieq_Ie = Ie_conv_last - (g_pi_pnp * Veb_limited - gm_r_pnp * Vcb_limited)
+	var Ieq_Ic = Ic_conv_last - (-gm_f_pnp * Veb_limited + g_mu_pnp * Vcb_limited)
+	var Ieq_Ib = Ib_conv_last - ((gm_f_pnp - g_pi_pnp) * Veb_limited + (gm_r_pnp - g_mu_pnp) * Vcb_limited)
+
+	# For PNP, KCL error vector F is [-Ie, Ic, Ib]. We add Ieq(F) to b.
+	if idx_e != -1: b[idx_e] += -Ieq_Ie  # Ieq(-Ie) = -Ieq(Ie)
+	if idx_c != -1: b[idx_c] += Ieq_Ic
+	if idx_b != -1: b[idx_b] += Ieq_Ib
