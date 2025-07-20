@@ -647,7 +647,6 @@ func test_npn_bjt_regions() -> bool:
 	if not TestUtils.assert_true(rig.solve(), "NPN Saturation Solve", rig): ok = false
 	if ok:
 		var results = rig.results(bjt_sat)
-		var results = rig.results(bjt_sat)
 		var vce = results.get("Vce", NAN)
 		var ic = results.get("Ic", NAN)
 		var ib = results.get("Ib", NAN)
