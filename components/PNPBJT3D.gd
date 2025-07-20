@@ -173,14 +173,6 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 	comp_data.properties["_internal_veb"] = clampf(Veb, -5.0, Vcrit_clamp)
 	comp_data.properties["_internal_vcb"] = clampf(Vcb, -5.0, Vcrit_clamp)
 
-	var Veb = Ve - Vb
-	var Vcb = Vc - Vb
-	
-	# Clamp junction voltages to prevent extreme values in the stamp function
-	var Vcrit_clamp = THERMAL_VOLTAGE * log(1e14) # Use same Vcrit as in stamp() for consistency
-	comp_data.properties["_internal_veb"] = clampf(Veb, -5.0, Vcrit_clamp)
-	comp_data.properties["_internal_vcb"] = clampf(Vcb, -5.0, Vcrit_clamp)
-
 	var previous_region = comp_data.properties["operating_region"]
 	var new_region = "OFF"
 	var Vth = 0.5
