@@ -604,7 +604,19 @@ func _solve_newton_raphson(system: Dictionary, delta_time: float) -> bool:
 			assert(false, msg)
 			return false
 
-		var damping_factor = 1.0 # Use a fixed, full step.
+		# --- Damping using voltage limiting ---
+		var max_dv = 0.0
+		# Find max voltage change, only considering node voltage variables
+		for node_id in system.node_map:
+			var matrix_idx = system.node_map[node_id]
+			if matrix_idx < delta_x.size():
+				max_dv = max(max_dv, abs(delta_x[matrix_idx]))
+
+		var damping_factor = 1.0
+		var VOLTAGE_CHANGE_LIMIT = 0.5 # Limit voltage change to 0.5V per iteration
+		if max_dv > VOLTAGE_CHANGE_LIMIT:
+			damping_factor = VOLTAGE_CHANGE_LIMIT / max_dv
+		
 		iter_info["damping_factor"] = damping_factor
 		
 		# Update the full solution vector x_k

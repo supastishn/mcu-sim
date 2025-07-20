@@ -118,9 +118,13 @@ func gather_sim_results(
 
 		var I_es = Is / alpha_f
 		var I_cs = Is / alpha_r
+		
+		var Vcrit = Vt * log(1e14)
+		var Vbe_limited = min(Vbe, Vcrit)
+		var Vbc_limited = min(Vbc, Vcrit)
 
-		Ie = I_es * (exp(Vbe / Vt) - 1.0) - alpha_r * I_cs * (exp(Vbc / Vt) - 1.0)
-		Ic = alpha_f * I_es * (exp(Vbe / Vt) - 1.0) - I_cs * (exp(Vbc / Vt) - 1.0)
+		Ie = I_es * (exp(Vbe_limited / Vt) - 1.0) - alpha_r * I_cs * (exp(Vbc_limited / Vt) - 1.0)
+		Ic = alpha_f * I_es * (exp(Vbe_limited / Vt) - 1.0) - I_cs * (exp(Vbc_limited / Vt) - 1.0)
 		Ib = Ie - Ic
 
 	var region = "OFF"
@@ -154,8 +158,13 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 	var Vb = x_iter[idx_b] if idx_b != -1 else (0.0 if node_b_id == circuit.ground_node_id else 0.0)
 	var Ve = x_iter[idx_e] if idx_e != -1 else (0.0 if node_e_id == circuit.ground_node_id else 0.0)
 
-	comp_data.properties["_internal_vbe"] = Vb - Ve
-	comp_data.properties["_internal_vbc"] = Vb - Vc
+	var Vbe = Vb - Ve
+	var Vbc = Vb - Vc
+
+	# Clamp junction voltages to prevent extreme values in the stamp function
+	var Vcrit_clamp = 1.5
+	comp_data.properties["_internal_vbe"] = clampf(Vbe, -5.0, Vcrit_clamp)
+	comp_data.properties["_internal_vbc"] = clampf(Vbc, -5.0, Vcrit_clamp)
 
 	var previous_region = comp_data.properties["operating_region"]
 	var new_region = "OFF"

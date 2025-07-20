@@ -118,25 +118,74 @@ func gather_sim_results(
 
 		var I_es = Is / alpha_f
 		var I_cs = Is / alpha_r
+		
+		var Vcrit = Vt * log(1e14) # Use a large but safe value for exp()
+		var Veb_limited = min(Veb, Vcrit)
+		var Vcb_limited = min(Vcb, Vcrit)
 
-		Ie = I_es * (exp(Veb / Vt) - 1.0) - alpha_r * I_cs * (exp(Vcb / Vt) - 1.0)
-		Ic = alpha_f * I_es * (exp(Veb / Vt) - 1.0) - I_cs * (exp(Vcb / Vt) - 1.0)
-		Ib = -(Ie - Ic) # Current flows into base for PNP, so it's negative
-
+		# Calculate current magnitudes based on Ebers-Moll
+		var Ie_mag = I_es * (exp(Veb_limited / Vt) - 1.0) - alpha_r * I_cs * (exp(Vcb_limited / Vt) - 1.0)
+		var Ic_mag = alpha_f * I_es * (exp(Veb_limited / Vt) - 1.0) - I_cs * (exp(Vcb_limited / Vt) - 1.0)
+		var Ib_mag = Ie_mag - Ic_mag
+		
+		# Conventional currents: Ie flows IN (+), Ic and Ib flow OUT (-)
+		Ie = Ie_mag
+		Ic = -Ic_mag
+		Ib = -Ib_mag
+		
 	var region = "OFF"
 	var Vth = 0.5
-	if Veb > Vth:
-		if Vcb > 0:
-			region = "SATURATION"
-		else:
-			region = "ACTIVE"
-	elif Vcb > Vth:
-		region = "INVERSE"
+	if not is_nan(Veb):
+		if Veb > Vth:
+			if Vcb > Vth:
+				region = "SATURATION"
+			else:
+				region = "ACTIVE"
+		elif Vcb > Vth:
+			region = "INVERSE"
 
-	circuit.component_results[comp_id]["Ic"] = -Ic
+	circuit.component_results[comp_id]["Ic"] = Ic
 	circuit.component_results[comp_id]["Ib"] = Ib
 	circuit.component_results[comp_id]["Ie"] = Ie
 	circuit.component_results[comp_id]["region"] = region
+
+## Updates the BJT's operating region based on an MNA iteration.
+func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter: Array, node_map_iter: Dictionary, _vs_map_iter: Dictionary) -> bool:
+	if x_iter.is_empty(): return false
+
+	var node_e_id = circuit.terminal_connections.get(terminal_e.get_instance_id(), -1)
+	var node_b_id = circuit.terminal_connections.get(terminal_b.get_instance_id(), -1)
+	var node_c_id = circuit.terminal_connections.get(terminal_c.get_instance_id(), -1)
+
+	var idx_e = node_map_iter.get(node_e_id, -1)
+	var idx_b = node_map_iter.get(node_b_id, -1)
+	var idx_c = node_map_iter.get(node_c_id, -1)
+
+	var Ve = x_iter[idx_e] if idx_e != -1 else (0.0 if node_e_id == circuit.ground_node_id else 0.0)
+	var Vb = x_iter[idx_b] if idx_b != -1 else (0.0 if node_b_id == circuit.ground_node_id else 0.0)
+	var Vc = x_iter[idx_c] if idx_c != -1 else (0.0 if node_c_id == circuit.ground_node_id else 0.0)
+
+	var Veb = Ve - Vb
+	var Vcb = Vc - Vb
+	
+	# Clamp junction voltages to prevent extreme values in the stamp function
+	var Vcrit_clamp = 1.5
+	comp_data.properties["_internal_veb"] = clampf(Veb, -5.0, Vcrit_clamp)
+	comp_data.properties["_internal_vcb"] = clampf(Vcb, -5.0, Vcrit_clamp)
+
+	var previous_region = comp_data.properties["operating_region"]
+	var new_region = "OFF"
+	var Vth = 0.5
+	if (Ve - Vb) > Vth:
+		if (Vc - Vb) > Vth: new_region = "SATURATION"
+		else: new_region = "ACTIVE"
+	elif (Vc - Vb) > Vth:
+		new_region = "INVERSE"
+
+	if new_region != previous_region:
+		comp_data.properties["operating_region"] = new_region
+		return true
+	return false
 
 ## Applies the BJT's contribution to the MNA matrices based on its current operating region.
 func stamp(
@@ -153,7 +202,7 @@ func stamp(
 	if not is_instance_valid(terminal_e) or not is_instance_valid(terminal_b) or not is_instance_valid(terminal_c):
 		return
 	# Simplified Ebers-Moll Model Stamp for PNP
-	var Veb = comp_data.properties.get("_internal_veb", 0.7)
+	var Veb = comp_data.properties.get("_internal_veb", 0.0)
 	var Vcb = comp_data.properties.get("_internal_vcb", 0.0)
 	var Is = saturation_current
 	var alpha_f = alpha_forward
