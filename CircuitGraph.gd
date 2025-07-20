@@ -774,9 +774,18 @@ func _stamp_mna_matrices(system: Dictionary, delta_time: float) -> Dictionary:
 
 ## Builds the structural part of the MNA system (node maps, matrix sizes).
 func _build_system_structure() -> Dictionary:
+	# Discover internal nodes required by components first, to exclude them from the main node list.
+	var internal_nodes: Array[int] = []
+	for comp in components:
+		if comp.component_node.has_method("get_internal_nodes"):
+			var comp_internal_nodes = comp.component_node.get_internal_nodes(self)
+			for internal_node_id in comp_internal_nodes:
+				if not internal_nodes.has(internal_node_id):
+					internal_nodes.push_back(internal_node_id)
+					
 	var non_ground_nodes: Array[int] = []
 	for node_id in electrical_nodes:
-		if node_id != ground_node_id:
+		if node_id != ground_node_id and not internal_nodes.has(node_id):
 			non_ground_nodes.push_back(node_id)
 
 	var active_voltage_sources: Array[Dictionary] = []
@@ -812,15 +821,6 @@ func _build_system_structure() -> Dictionary:
 		var ind_id = ind_comp_data.component_node.get_instance_id()
 		inductor_id_to_matrix_index[ind_id] = num_nodes + num_active_vs + i
 	
-	# Discover internal nodes required by components
-	var internal_nodes: Array[int] = []
-	for comp in components:
-		if comp.component_node.has_method("get_internal_nodes"):
-			var comp_internal_nodes = comp.component_node.get_internal_nodes(self)
-			for internal_node_id in comp_internal_nodes:
-				if not internal_nodes.has(internal_node_id):
-					internal_nodes.push_back(internal_node_id)
-
 	var num_internal_nodes = internal_nodes.size()
 	for i in range(num_internal_nodes):
 		var internal_node_id = internal_nodes[i]
