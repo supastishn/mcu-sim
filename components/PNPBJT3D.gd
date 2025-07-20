@@ -119,7 +119,7 @@ func gather_sim_results(
 		var I_es = Is / alpha_f
 		var I_cs = Is / alpha_r
 		
-		var Vcrit = Vt * log(1e14) # Use a large but safe value for exp()
+		var Vcrit = Vt * log(1e12) # Use same Vcrit as in stamp() for consistency
 		var Veb_limited = min(Veb, Vcrit)
 		var Vcb_limited = min(Vcb, Vcrit)
 

@@ -119,7 +119,7 @@ func gather_sim_results(
 		var I_es = Is / alpha_f
 		var I_cs = Is / alpha_r
 		
-		var Vcrit = Vt * log(1e14)
+		var Vcrit = Vt * log(1e12) # Use same Vcrit as in stamp() for consistency
 		var Vbe_limited = min(Vbe, Vcrit)
 		var Vbc_limited = min(Vbc, Vcrit)
 
@@ -246,7 +246,7 @@ func stamp(
 	
 	var Ieq_c = Ic_last - ((gm_f - g_mu) * Vbe_limited + g_mu * Vbc_limited)
 	var Ieq_e = Ie_last - (g_pi * Vbe_limited - gm_r * Vbc_limited)
-	var Ieq_b = Ib_last - ((g_pi - gm_f) * Vbe_limited + (gm_r - g_mu) * Vbc_limited)
+	var Ieq_b = Ib_last - ((g_pi - gm_f) * Vbe_limited + (g_mu - gm_r) * Vbc_limited)
 	
 	if idx_c != -1: b[idx_c] += Ieq_c
 	if idx_b != -1: b[idx_b] += Ieq_b
