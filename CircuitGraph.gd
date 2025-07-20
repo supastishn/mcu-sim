@@ -325,11 +325,19 @@ func connect_terminals(terminal_a: Area3D, terminal_b: Area3D):
 			return
 		else:
 			# Ensure that if one of the nodes is the ground node, it is preserved.
-			var node_to_keep_id = node_a
-			var node_to_merge_id = node_b
-			if ground_node_id != -1 and node_to_merge_id == ground_node_id:
+			var node_to_keep_id
+			var node_to_merge_id
+
+			if node_a == ground_node_id:
+				node_to_keep_id = node_a
+				node_to_merge_id = node_b
+			elif node_b == ground_node_id:
 				node_to_keep_id = node_b
 				node_to_merge_id = node_a
+			else:
+				# Neither is ground, default to merging B into A.
+				node_to_keep_id = node_a
+				node_to_merge_id = node_b
 
 			var node_to_merge_terminals = electrical_nodes[node_to_merge_id]["terminals"].duplicate()
 			for terminal in node_to_merge_terminals:
