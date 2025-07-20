@@ -489,7 +489,7 @@ func solve_single_time_step(delta_time: float) -> bool:
 
 	# Reset stateful components that have state machines
 	for comp_data_item in components:
-		if comp_data_item.type in ["ZenerDiode", "Relay", "NPNBJT", "PNPBJT", "NChannelMOSFET", "PChannelMOSFET", "OpAmp"]:
+		if comp_data_item.type in ["ZenerDiode", "Relay", "NPNBJT", "PNPBJT", "NChannelMOSFET", "PChannelMOSFET"]:
 			# The old BJT/MOSFET models need this reset. It's safe for new models.
 			if comp_data_item.has("properties") and comp_data_item.properties.has("operating_region"):
 				comp_data_item.properties["operating_region"] = "OFF"
