@@ -544,6 +544,12 @@ func _solve_newton_raphson(system: Dictionary, delta_time: float) -> bool:
 	_last_solver_debug_info.clear()
 
 	for i in range(max_iter):
+		# Update graph state from solution vector BEFORE calculating error and stamping
+		for node_id in system.node_map:
+			var index = system.node_map[node_id]
+			if electrical_nodes.has(node_id):
+				electrical_nodes[node_id].voltage = x_k[index]
+
 		var iter_info = {"iteration": i}
 		iter_info["solution_vector_xk"] = x_k.duplicate()
 
