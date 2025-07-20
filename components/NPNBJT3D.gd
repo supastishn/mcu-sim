@@ -2,8 +2,6 @@ extends Node3D
 
 class_name NPNBJT3D
 
-const LinearSolver = preload("res://solvers/LinearSolver.gd")
-
 
 ## Emitted when a key property of the BJT changes.
 signal configuration_changed(component_node: Node3D)

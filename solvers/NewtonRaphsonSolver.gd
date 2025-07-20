@@ -2,9 +2,6 @@ extends Node
 
 class_name NewtonRaphsonSolver
 
-const LinearSolver = preload("res://solvers/LinearSolver.gd")
-
-
 ## Solves a non-linear circuit using Newton-Raphson.
 static func solve(circuit_graph: CircuitGraph, system: Dictionary, delta_time: float) -> bool:
 	var max_iter = 100
@@ -114,9 +111,10 @@ static func solve(circuit_graph: CircuitGraph, system: Dictionary, delta_time: f
 		
 		circuit_graph._last_solver_debug_info.push_back(iter_info)
 
-		_update_all_nonlinear_states(circuit_graph, system)
+		var state_changed = _update_all_nonlinear_states(circuit_graph, system)
 		
-		if _check_convergence(delta_x, v_tolerance):
+		# Converged ONLY if the update is small AND no component states changed.
+		if not state_changed and _check_convergence(delta_x, v_tolerance):
 			return true
 
 	var msg = "NR failed to converge after {i} iterations.".format({"i": max_iter})

@@ -2,8 +2,6 @@ extends Node3D
 
 class_name PNPBJT3D
 
-const LinearSolver = preload("res://solvers/LinearSolver.gd")
-
 
 ## Emitted when a key property of the BJT changes.
 signal configuration_changed(component_node: Node3D)
@@ -135,14 +133,13 @@ func gather_sim_results(
 		
 	var region = "OFF"
 	var Vth = 0.5
-	if not is_nan(Veb):
-		var Vb_minus_Vc = Vb - Vc
+	if not is_nan(Veb) and not is_nan(Vcb):
 		if Veb > Vth:
-			if Vb_minus_Vc > Vth:
+			if Vcb > Vth:
 				region = "SATURATION"
 			else:
 				region = "ACTIVE"
-		elif Vb_minus_Vc > Vth:
+		elif Vcb > Vth:
 			region = "INVERSE"
 	
 	var Vec = Ve - Vc
@@ -176,13 +173,23 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 	comp_data.properties["_internal_veb"] = clampf(Veb, -5.0, Vcrit_clamp)
 	comp_data.properties["_internal_vcb"] = clampf(Vcb, -5.0, Vcrit_clamp)
 
+	var Veb = Ve - Vb
+	var Vcb = Vc - Vb
+	
+	# Clamp junction voltages to prevent extreme values in the stamp function
+	var Vcrit_clamp = THERMAL_VOLTAGE * log(1e14) # Use same Vcrit as in stamp() for consistency
+	comp_data.properties["_internal_veb"] = clampf(Veb, -5.0, Vcrit_clamp)
+	comp_data.properties["_internal_vcb"] = clampf(Vcb, -5.0, Vcrit_clamp)
+
 	var previous_region = comp_data.properties["operating_region"]
 	var new_region = "OFF"
 	var Vth = 0.5
-	if (Ve - Vb) > Vth:
-		if (Vb - Vc) > Vth: new_region = "SATURATION"
-		else: new_region = "ACTIVE"
-	elif (Vb - Vc) > Vth:
+	if Veb > Vth: # Emitter-Base forward biased
+		if Vcb > Vth: # Collector-Base forward biased
+			new_region = "SATURATION"
+		else:
+			new_region = "ACTIVE"
+	elif Vcb > Vth: # Emitter-Base reverse biased, Collector-Base forward biased
 		new_region = "INVERSE"
 
 	if new_region != previous_region:
@@ -256,11 +263,19 @@ func stamp(
 	var Ib_conv_last = -(Ie_mag_last - Ic_mag_last)
 
 	# We need to add the RHS for the Newton-Raphson update, which is J*V_last - F(V_last).
-	# For PNP, KCL error vector F is [-Ie, Ic, Ib].
+	# For PNP, KCL error vector F is [Ie, -Ic, -Ib] (currents LEAVING node).
+	# The Ebers-Moll currents are conventional (Ie in, Ic/Ib out).
+	# So F is [-Ie_conv, Ic_conv, Ib_conv].
 	# The Jacobian d(F)/dV has already been stamped.
-	var rhs_e = (Ie_conv_last) - (g_pi_pnp * Veb - gm_r_pnp * Vcb)
-	var rhs_c = (-gm_f_pnp * Veb + g_mu_pnp * Vcb) - (Ic_conv_last)
-	var rhs_b = ((gm_f_pnp - g_pi_pnp) * Veb + (gm_r_pnp - g_mu_pnp) * Vcb) - (Ib_conv_last)
+	# RHS = J*V_last - F(V_last)
+	
+	var J_V_e = (-g_pi_pnp * Veb - gm_r_pnp * Vcb)
+	var J_V_c = (-gm_f_pnp * Veb + g_mu_pnp * Vcb)
+	var J_V_b = ((gm_f_pnp - g_pi_pnp) * Veb + (g_mu_pnp - gm_r_pnp) * Vcb)
+	
+	var rhs_e = J_V_e - (-Ie_conv_last)
+	var rhs_c = J_V_c - Ic_conv_last
+	var rhs_b = J_V_b - Ib_conv_last
 	
 	if idx_e != -1: b[idx_e] += rhs_e
 	if idx_c != -1: b[idx_c] += rhs_c

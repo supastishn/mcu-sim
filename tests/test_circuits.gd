@@ -1207,9 +1207,11 @@ func test_pmosfet_regions() -> bool:
 	print_debug("    SAT solve → region=" + region_str + " , Id=" + str(id_val))
 	if not TestUtils.assert_equals(res.get("region",""), "SATURATION", "PMOS Test (SAT): Region is SATURATION"): ok = false
 	var Vsg_sat = res.get("Vgs", NAN) * -1.0
+	var Vsd_sat = res.get("Vds", NAN) * -1.0
 	var kp_sat = pmos_sat.transconductance_parameter
 	var vt_sat = pmos_sat.threshold_voltage
-	var expected_id_sat = 0.5 * kp_sat * pow(Vsg_sat - vt_sat, 2)
+	var p_lambda_sat = pmos_sat.lambda
+	var expected_id_sat = 0.5 * kp_sat * pow(Vsg_sat - vt_sat, 2) * (1.0 + p_lambda_sat * Vsd_sat)
 	if not TestUtils.assert_approx_equals(id_val, expected_id_sat, 0.01, "PMOS Test (SAT): Id matches expected"): ok = false
 	rig.cleanup()
 	return ok
