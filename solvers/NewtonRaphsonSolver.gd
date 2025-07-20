@@ -78,19 +78,19 @@ static func solve(circuit_graph: CircuitGraph, system: Dictionary, delta_time: f
 
 		# --- Damping using voltage limiting ---
 		var damping_factor = 1.0
-		# Don't damp on the first iteration (i==0) to allow linear circuits to converge in one step.
-		# For subsequent iterations, damping helps stabilize non-linear components.
-		if i > 0:
-			var max_dv = 0.0
-			# Find max voltage change, only considering node voltage variables
-			for node_id in system.node_map:
-				var matrix_idx = system.node_map[node_id]
-				if matrix_idx < delta_x.size():
-					max_dv = max(max_dv, abs(delta_x[matrix_idx]))
+		# Apply damping on all iterations to prevent large steps, especially the first one,
+		# which can cause instability in non-linear circuits. Linear circuits may take a
+		# few more iterations, but stability is more important.
+		var max_dv = 0.0
+		# Find max voltage change, only considering node voltage variables
+		for node_id in system.node_map:
+			var matrix_idx = system.node_map[node_id]
+			if matrix_idx < delta_x.size():
+				max_dv = max(max_dv, abs(delta_x[matrix_idx]))
 
-			var VOLTAGE_CHANGE_LIMIT = 0.5 # Limit voltage change to 0.5V per iteration to improve stability
-			if max_dv > VOLTAGE_CHANGE_LIMIT:
-				damping_factor = VOLTAGE_CHANGE_LIMIT / max_dv
+		var VOLTAGE_CHANGE_LIMIT = 0.5 # Limit voltage change to 0.5V per iteration to improve stability
+		if max_dv > VOLTAGE_CHANGE_LIMIT:
+			damping_factor = VOLTAGE_CHANGE_LIMIT / max_dv
 		
 		iter_info["damping_factor"] = damping_factor
 		
