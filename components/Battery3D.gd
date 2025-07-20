@@ -2,7 +2,7 @@ extends Node3D
 
 class_name Battery3D
 
-const LinearSolver = preload("res://LinearSolver.gd")
+const LinearSolver = preload("res://solvers/LinearSolver.gd")
 
 
 ## Emitted when a key property (like number of cells) changes.

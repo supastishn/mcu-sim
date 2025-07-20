@@ -2,7 +2,7 @@ extends Node3D
 
 class_name ZenerDiode3D
 
-const LinearSolver = preload("res://LinearSolver.gd")
+const LinearSolver = preload("res://solvers/LinearSolver.gd")
 
 
 ## Emitted when a key property (like forward or zener voltage) of the diode changes.

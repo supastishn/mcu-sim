@@ -2,7 +2,7 @@ extends Node3D
 
 class_name NonPolarizedCapacitor3D
 
-const LinearSolver = preload("res://LinearSolver.gd")
+const LinearSolver = preload("res://solvers/LinearSolver.gd")
 
 
 ## Emitted when a key property (like capacitance or max voltage) of the capacitor changes.

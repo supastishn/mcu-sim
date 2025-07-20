@@ -2,7 +2,7 @@ extends Node3D
 
 class_name LED3D
 
-const LinearSolver = preload("res://LinearSolver.gd")
+const LinearSolver = preload("res://solvers/LinearSolver.gd")
 
 
 ## The saturation current of the diode model.

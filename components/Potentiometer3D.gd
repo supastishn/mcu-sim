@@ -2,7 +2,7 @@ extends Node3D
 
 class_name Potentiometer3D
 
-const LinearSolver = preload("res://LinearSolver.gd")
+const LinearSolver = preload("res://solvers/LinearSolver.gd")
 
 
 ## Emitted when the wiper position changes, usually via the UI slider.
