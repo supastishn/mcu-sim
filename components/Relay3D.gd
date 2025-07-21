@@ -159,8 +159,8 @@ func stamp(
 	comp_data: Dictionary,
 	_delta_time: float
 ):
-	var is_energized = comp_data.properties["is_energized"]
-	print_debug("Relay '{n}' stamp: is_energized={e}".format({"n":name, "e":is_energized}))
+	var is_energized_state = comp_data.properties["is_energized"]
+	print_debug("Relay '{n}' stamp: is_energized={e}".format({"n":name, "e":is_energized_state}))
 	
 	var R_coil_path_val: float
 	# Use max() for coil resistance to avoid division by zero
@@ -179,7 +179,7 @@ func stamp(
 	
 	
 	
-	if comp_data.properties["is_energized"]: 
+	if is_energized_state: 
 		R_coil_path_val = R_coil_actual_prop
 	else:
 		R_coil_path_val = CircuitGraph.R_SWITCH_OPEN 
@@ -205,7 +205,7 @@ func stamp(
 
 	print_debug("  Relay '{n}' stamp: idx_com={ic}, idx_no={ino}, idx_nc={inc}".format({"n":name, "ic":idx_com_sw, "ino":idx_no_sw, "inc":idx_nc_sw}))
 
-	if comp_data.properties["is_energized"]: 
+	if is_energized_state: 
 		print_debug("    Relay '{n}' stamping ENERGIZED: com-no closed, com-nc open".format({"n":name}))
 		CircuitGraph.stamp_conductance(A, g_sw_closed_val, idx_com_sw, idx_no_sw)
 		CircuitGraph.stamp_conductance(A, g_sw_open_val, idx_com_sw, idx_nc_sw)

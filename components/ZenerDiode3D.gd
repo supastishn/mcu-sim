@@ -10,9 +10,9 @@ signal configuration_changed(component_node: Node3D)
 
 
 ## The saturation current of the diode model.
-@export var saturation_current: float = 1e-12
+@export var saturation_current: float = 1e-12 : set = set_saturation_current
 ## The ideality factor (emission coefficient) of the diode model.
-@export var ideality_factor: float = 1.0
+@export var ideality_factor: float = 1.0 : set = set_ideality_factor
 const THERMAL_VOLTAGE: float = 0.02585
 
 ## The reverse breakdown (Zener) voltage, in Volts.
@@ -48,6 +48,23 @@ func set_zener_voltage(value: float):
 		emit_signal("configuration_changed", self)
 
 
+## Sets the saturation current and emits a signal.
+func set_saturation_current(value: float):
+	if is_equal_approx(saturation_current, value):
+		saturation_current = value
+		return
+	saturation_current = value
+	if is_inside_tree():
+		emit_signal("configuration_changed", self)
+
+## Sets the ideality factor and emits a signal.
+func set_ideality_factor(value: float):
+	if is_equal_approx(ideality_factor, value):
+		ideality_factor = value
+		return
+	ideality_factor = value
+	if is_inside_tree():
+		emit_signal("configuration_changed", self)
 
 ## Displays the calculated state, voltage, and current on the component's 3D label.
 func show_info(results: Dictionary):

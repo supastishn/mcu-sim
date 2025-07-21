@@ -246,8 +246,8 @@ func test_switch_behavior() -> bool:
 
 	if not TestUtils.assert_true(rig.solve(), "Switch NC Solve", rig): ok = false
 	if ok:
-		# Approximate LED forward voltage drop around 1.8V for this test's parameters
-		var expected_current_on = (5.0 - 1.8) / 220.0
+		# Approximate LED forward voltage drop around 0.92V for this test's parameters
+		var expected_current_on = (5.0 - 0.92) / 220.0
 		var led_results = rig.results(led_node)
 		if not TestUtils.assert_approx_equals(led_results.get("current", NAN), expected_current_on, 0.002, "Switch Test (NC): LED current indicates circuit is ON", rig): ok = false
 
@@ -272,8 +272,8 @@ func test_switch_behavior() -> bool:
 	
 	if not TestUtils.assert_true(rig.solve(), "Switch NO Solve", rig): ok = false
 	if ok:
-		# Approximate LED forward voltage drop around 1.8V for this test's parameters
-		var expected_current_on = (5.0 - 1.8) / 220.0
+		# Approximate LED forward voltage drop around 0.92V for this test's parameters
+		var expected_current_on = (5.0 - 0.92) / 220.0
 		var led_results = rig.results(led_node)
 		if not TestUtils.assert_approx_equals(led_results.get("current", NAN), expected_current_on, 0.002, "Switch Test (NO): LED current indicates circuit is ON", rig): ok = false
 

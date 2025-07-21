@@ -8,11 +8,11 @@ signal configuration_changed(component_node: Node3D)
 
 
 ## The saturation current of the transistor.
-@export var saturation_current: float = 1e-15
+@export var saturation_current: float = 1e-15 : set = set_saturation_current
 ## The forward common-base current gain.
-@export var alpha_forward: float = 0.99
+@export var alpha_forward: float = 0.99 : set = set_alpha_forward
 ## The reverse common-base current gain.
-@export var alpha_reverse: float = 0.5
+@export var alpha_reverse: float = 0.5 : set = set_alpha_reverse
 const THERMAL_VOLTAGE: float = 0.02585
 
 ## Reference to the Emitter terminal Area3D node.
@@ -34,6 +34,32 @@ func _ready():
 	reset_visual_state()
 
 
+## Sets the saturation current and emits a signal.
+func set_saturation_current(value: float):
+	if is_equal_approx(saturation_current, value):
+		saturation_current = value
+		return
+	saturation_current = value
+	if is_inside_tree():
+		emit_signal("configuration_changed", self)
+
+## Sets the forward alpha and emits a signal.
+func set_alpha_forward(value: float):
+	if is_equal_approx(alpha_forward, value):
+		alpha_forward = value
+		return
+	alpha_forward = value
+	if is_inside_tree():
+		emit_signal("configuration_changed", self)
+
+## Sets the reverse alpha and emits a signal.
+func set_alpha_reverse(value: float):
+	if is_equal_approx(alpha_reverse, value):
+		alpha_reverse = value
+		return
+	alpha_reverse = value
+	if is_inside_tree():
+		emit_signal("configuration_changed", self)
 
 ## Displays the calculated operating region and currents on the component's 3D label.
 func show_info(results: Dictionary):
