@@ -9,8 +9,6 @@ static func assert_true(condition: bool, message: String = "", context = null) -
 		elif context is CircuitGraph and is_instance_valid(context):
 			err_msg += "\n" + context.get_solver_debug_info_as_string()
 		assert(condition, err_msg)
-	else:
-		print("  PASSED: {msg}".format({"msg": message if message else "Condition is true"}))
 
 	return condition
 
@@ -23,8 +21,6 @@ static func assert_false(condition: bool, message: String = "", context = null) 
 		elif context is CircuitGraph and is_instance_valid(context):
 			err_msg += "\n" + context.get_solver_debug_info_as_string()
 		assert(not condition, err_msg)
-	else:
-		print("  PASSED: {msg}".format({"msg": message if message else "Condition is false"}))
 	return not condition
 
 ## Asserts that two float values are approximately equal within a given tolerance.
@@ -41,8 +37,6 @@ static func assert_approx_equals(actual: float, expected: float, tolerance: floa
 		elif context is CircuitGraph and is_instance_valid(context):
 			err_msg += "\n" + context.get_solver_debug_info_as_string()
 		assert(are_equal, err_msg)
-	else:
-		print("  PASSED: {pfx} (Actual: {act}, Expected: {exp}, Tolerance: {tol})".format({"pfx": msg_prefix, "act": actual, "exp": expected, "tol": tolerance}))
 	return are_equal
 
 ## Asserts that two values are equal.
@@ -59,8 +53,6 @@ static func assert_equals(actual, expected, message: String = "", context = null
 		elif context is CircuitGraph and is_instance_valid(context):
 			err_msg += "\n" + context.get_solver_debug_info_as_string()
 		assert(are_equal, err_msg)
-	else:
-		print("  PASSED: {pfx} (Actual: {act}, Expected: {exp})".format({"pfx": msg_prefix, "act": actual, "exp": expected}))
 	return are_equal
 
 ## Asserts that a float value is not NaN (Not a Number).
@@ -77,6 +69,4 @@ static func assert_not_nan(value: float, message: String = "", context = null) -
 		elif context is CircuitGraph and is_instance_valid(context):
 			err_msg += "\n" + context.get_solver_debug_info_as_string()
 		assert(is_not_nan, err_msg)
-	else:
-		print("  PASSED: {pfx} (Actual: {act})".format({"pfx": msg_prefix, "act": value}))
 	return is_not_nan

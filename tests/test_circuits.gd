@@ -66,7 +66,6 @@ func run_all_tests() -> Dictionary:
 	all_tests.append_array(interactions_test_runner.get_tests())
 
 	for test_case in all_tests:
-		print_rich("\n[b]{name}[/b]".format({"name": test_case.name}))
 		local_total_tests += 1
 		if await test_case.func.call():
 			local_passed_tests += 1
@@ -151,7 +150,6 @@ func test_op_amp_inverting_amplifier() -> bool:
 	await rig.init()
 	var ed = rig.editor
 
-	print("  Op-Amp Test: Inverting Amplifier (Linear Region)")
 	var ps_vcc: PowerSource3D = rig.add(ed.PowerSourceScene, Vector3(0,0,2))
 	var ps_vee: PowerSource3D = rig.add(ed.PowerSourceScene, Vector3(0,0,3))
 	var ps_vin: PowerSource3D = rig.add(ed.PowerSourceScene, Vector3(0,0,4))
@@ -191,7 +189,6 @@ func test_op_amp_inverting_amplifier() -> bool:
 		var expected_vout = - (r_f.resistance / r_in.resistance) * ps_vin.target_voltage
 		if not TestUtils.assert_approx_equals(results.get("Vout", NAN), expected_vout, 0.1, "Op-Amp Vout matches expected gain", rig): ok = false
 
-	print("  Op-Amp Test: Inverting Amplifier (Saturation)")
 	ps_vin.target_voltage = 2.0 # This should drive output to -20V, which will saturate
 	rig.cfg(ps_vin)
 	
@@ -203,7 +200,6 @@ func test_op_amp_inverting_amplifier() -> bool:
 		var expected_sat_volt = -ps_vee.target_voltage + opamp.rail_saturation_voltage
 		if not TestUtils.assert_approx_equals(results_sat.get("Vout", NAN), expected_sat_volt, 0.1, "Op-Amp Vout is saturated low", rig): ok = false
 
-	print("  Op-Amp Test: Inverting Amplifier (High Saturation)")
 	ps_vin.target_voltage = -2.0 # This should drive output to +20V, which will saturate
 	rig.cfg(ps_vin)
 
@@ -228,7 +224,6 @@ func test_switch_behavior() -> bool:
 	var ed = rig.editor
 
 	# --- NC Test ---
-	print("  Switch Test: Testing NC operation (default state).")
 	var ps_node: PowerSource3D = rig.add(ed.PowerSourceScene)
 	var switch_node: Switch3D = rig.add(ed.SwitchScene, Vector3(1,0,0))
 	var res_node: Resistor3D = rig.add(ed.ResistorScene, Vector3(2,0,0))
@@ -252,7 +247,6 @@ func test_switch_behavior() -> bool:
 		if not TestUtils.assert_approx_equals(led_results.get("current", NAN), expected_current_on, 0.002, "Switch Test (NC): LED current indicates circuit is ON", rig): ok = false
 
 	# --- NO Test ---
-	print("  Switch Test: Testing NO operation.")
 	rig.reset_graph()
 	ps_node = rig.add(ed.PowerSourceScene)
 	switch_node = rig.add(ed.SwitchScene, Vector3(1,0,0))
@@ -290,7 +284,6 @@ func test_diode_behavior() -> bool:
 	var ed = rig.editor
 
 	# --- Forward Bias ---
-	print("  Diode Test: Testing Forward Bias.")
 	var ps_node: PowerSource3D = rig.add(ed.PowerSourceScene)
 	var res_node: Resistor3D = rig.add(ed.ResistorScene, Vector3(1,0,0))
 	var diode_node: Diode3D = rig.add(ed.DiodeScene, Vector3(2,0,0))
@@ -314,7 +307,6 @@ func test_diode_behavior() -> bool:
 		if not TestUtils.assert_approx_equals(diode_results.get("current", NAN), expected_current, 0.001, "Diode Test (Fwd): Current matches expected", rig): ok = false
 
 	# --- Reverse Bias ---
-	print("  Diode Test: Testing Reverse Bias.")
 	rig.reset_graph()
 	ps_node = rig.add(ed.PowerSourceScene)
 	res_node = rig.add(ed.ResistorScene, Vector3(1,0,0))
@@ -374,7 +366,6 @@ func test_potentiometer_behavior() -> bool:
 	]
 
 	for case in test_cases:
-		print("  Potentiometer Test: Wiper at {p}".format({"p": case.pos}))
 		pot_node.set_wiper_position(case.pos)
 		
 		if not TestUtils.assert_true(rig.solve(), "Potentiometer Solve pos={p}".format({"p": case.pos}), rig): ok = false; continue
@@ -417,7 +408,6 @@ func test_battery_behavior() -> bool:
 	]
 	
 	for case in test_cases:
-		print("  Battery Test: {c} cells".format({"c": case.cells}))
 		bat_node.set_num_cells(case.cells)
 		
 		if not TestUtils.assert_true(rig.solve(), "Battery Solve cells={c}".format({"c": case.cells}), rig): ok = false; continue
@@ -450,7 +440,6 @@ func test_polarized_capacitor_behavior() -> bool:
 	var res_node: Resistor3D = rig.add(ed.ResistorScene, Vector3(1,0,0))
 	var cap_node: PolarizedCapacitor3D = rig.add(ed.PolarizedCapacitorScene, Vector3(2,0,0))
 
-	print("  Polarized Capacitor Test: Charging.")
 	ps_node.target_voltage = 10.0; rig.cfg(ps_node)
 	res_node.resistance = 1000.0; rig.cfg(res_node)
 	cap_node.capacitance = 100e-6; cap_node.max_voltage = 16.0; rig.cfg(cap_node)
@@ -473,7 +462,6 @@ func test_polarized_capacitor_behavior() -> bool:
 		var cap_graph_data = g.component_node_map.get(cap_node)
 		if not TestUtils.assert_false(cap_graph_data.get("is_exploded", true), "Polarized Capacitor Test (Charging): Capacitor is NOT exploded", rig): ok = false
 
-	print("  Polarized Capacitor Test: Explosion (Overvoltage).")
 	ps_node.target_voltage = 20.0; rig.cfg(ps_node)
 	
 	var exploded = false
@@ -573,7 +561,6 @@ func test_npn_bjt_regions() -> bool:
 	var ed = rig.editor
 
 	# --- Cutoff Region ---
-	print("  NPN BJT Test: Cutoff Region.")
 	var ps_cutoff: PowerSource3D = rig.add(ed.PowerSourceScene)
 	var rc_cutoff: Resistor3D = rig.add(ed.ResistorScene, Vector3(1,0,0))
 	var bjt_cutoff: NPNBJT3D = rig.add(ed.NPNBJTScene, Vector3(2,0,0))
@@ -595,7 +582,6 @@ func test_npn_bjt_regions() -> bool:
 		if not TestUtils.assert_approx_equals(results.get("Ic", NAN), 0.0, 1e-6, "NPN BJT Test (Cutoff): Collector current is near zero", rig): ok = false
 
 	# --- Active Region ---
-	print("  NPN BJT Test: Active Region.")
 	await rig.reset_graph()
 	var ps_active_vcc: PowerSource3D = rig.add(ed.PowerSourceScene)
 	var ps_active_vbb: PowerSource3D = rig.add(ed.PowerSourceScene, Vector3(0,0,1))
@@ -630,7 +616,6 @@ func test_npn_bjt_regions() -> bool:
 		if not TestUtils.assert_approx_equals(ic, beta * ib, 5e-4, "NPN BJT Test (Active): Collector current is beta * Ib", rig): ok = false
 
 	# --- Saturation Region ---
-	print("  NPN BJT Test: Saturation Region.")
 	await rig.reset_graph()
 	var ps_sat_vcc: PowerSource3D = rig.add(ed.PowerSourceScene)
 	var ps_sat_vbb: PowerSource3D = rig.add(ed.PowerSourceScene, Vector3(0,0,1))
@@ -679,7 +664,6 @@ func test_pnp_bjt_regions() -> bool:
 	var ed = rig.editor
 
 	# --- Cutoff Region ---
-	print("  PNP BJT Test: Cutoff Region.")
 	var ps_pnp_cutoff: PowerSource3D = rig.add(ed.PowerSourceScene)
 	var rc_pnp_cutoff: Resistor3D = rig.add(ed.ResistorScene, Vector3(1,0,0))
 	var bjt_pnp_cutoff: PNPBJT3D = rig.add(ed.PNPBJTScene, Vector3(2,0,0))
@@ -701,7 +685,6 @@ func test_pnp_bjt_regions() -> bool:
 		if not TestUtils.assert_approx_equals(results.get("Ic", NAN), 0.0, 1e-6, "PNP BJT Test (Cutoff): Collector current is near zero", rig): ok = false
 
 	# --- Active Region ---
-	print("  PNP BJT Test: Active Region.")
 	await rig.reset_graph()
 	var ps_pnp_active_vcc: PowerSource3D = rig.add(ed.PowerSourceScene)
 	var ps_pnp_active_vb_supply: PowerSource3D = rig.add(ed.PowerSourceScene, Vector3(0,0,1))
@@ -734,7 +717,6 @@ func test_pnp_bjt_regions() -> bool:
 		if not TestUtils.assert_approx_equals(abs(ic), beta * abs(ib), 5e-4, "PNP BJT Test (Active): Collector current is beta * Ib", rig): ok = false
 
 	# --- Saturation Region ---
-	print("  PNP BJT Test: Saturation Region.")
 	await rig.reset_graph()
 	var ps_pnp_sat_vcc: PowerSource3D = rig.add(ed.PowerSourceScene)
 	var ps_pnp_sat_vb_supply: PowerSource3D = rig.add(ed.PowerSourceScene, Vector3(0,0,1))
@@ -785,7 +767,6 @@ func test_zener_diode_behavior() -> bool:
 	var R_series_val = 100.0
 
 	# --- Forward Bias ---
-	print("  Zener Diode Test: Forward Bias.")
 	var ps_fwd: PowerSource3D = rig.add(ed.PowerSourceScene)
 	var res_fwd: Resistor3D = rig.add(ed.ResistorScene, Vector3(1,0,0))
 	var zener_fwd: ZenerDiode3D = rig.add(ed.ZenerDiodeScene, Vector3(2,0,0))
@@ -807,7 +788,6 @@ func test_zener_diode_behavior() -> bool:
 		if not TestUtils.assert_equals(results.get("state", "ERROR"), "FORWARD", "Zener Test (Fwd): State is FORWARD", rig): ok = false
 
 	# --- Reverse Bias (OFF) ---
-	print("  Zener Diode Test: Reverse Bias (OFF).")
 	await rig.reset_graph()
 	var ps_rev_off: PowerSource3D = rig.add(ed.PowerSourceScene)
 	var res_rev_off: Resistor3D = rig.add(ed.ResistorScene, Vector3(1,0,0))
@@ -829,7 +809,6 @@ func test_zener_diode_behavior() -> bool:
 		if not TestUtils.assert_equals(results.get("state", "ERROR"), "OFF", "Zener Test (Rev OFF): State is OFF", rig): ok = false
 
 	# --- Reverse Bias (ZENER Breakdown) ---
-	print("  Zener Diode Test: Reverse Bias (ZENER Breakdown).")
 	await rig.reset_graph()
 	var ps_breakdown: PowerSource3D = rig.add(ed.PowerSourceScene)
 	var res_breakdown: Resistor3D = rig.add(ed.ResistorScene, Vector3(1,0,0))
@@ -867,7 +846,7 @@ func test_relay_behavior() -> bool:
 
 	var relay_signal_voltage_threshold_v = 5.0
 	var relay_coil_resistance_val = 100.0
-	var load_led_vf = 1.8
+	var load_led_vf = 0.92 # More realistic Vf for this current, see test_switch_behavior
 	var load_led_min_i = 0.001
 	var load_led_max_i = 0.020
 	var load_res_val = 220.0
@@ -876,7 +855,6 @@ func test_relay_behavior() -> bool:
 	var signal_supply_v_on = 6.0
 
 	# --- De-energized ---
-	print("  Relay Test: De-energized (NC path active).")
 	var ps_signal_supply_off: PowerSource3D = rig.add(ed.PowerSourceScene, Vector3(0,0,-1))
 	var relay_node_off: Relay3D = rig.add(ed.RelayScene, Vector3.ZERO)
 	var ps_load_off: PowerSource3D = rig.add(ed.PowerSourceScene, Vector3(0,0,1))
@@ -914,7 +892,6 @@ func test_relay_behavior() -> bool:
 		if not TestUtils.assert_approx_equals(rig.results(led_no_off).get("current", NAN), 0.0, 1e-6, "Relay Test (De-energized): NO LED is OFF", rig): ok = false
 
 	# --- Energized ---
-	print("  Relay Test: Energized (NO path active).")
 	await rig.reset_graph()
 	var ps_signal_supply_on: PowerSource3D = rig.add(ed.PowerSourceScene, Vector3(0,0,-1))
 	var relay_node_on: Relay3D = rig.add(ed.RelayScene, Vector3.ZERO)
@@ -1035,7 +1012,6 @@ func test_nmosfet_regions() -> bool:
 	var ed = rig.editor
 
 	# ---------- OFF (cut-off) ----------
-	print("  N-MOSFET Test: OFF region.")
 	var ps_d_off: PowerSource3D = rig.add(ed.PowerSourceScene)
 	var ps_g_off: PowerSource3D = rig.add(ed.PowerSourceScene, Vector3(0,0,1))
 	var r_off: Resistor3D = rig.add(ed.ResistorScene, Vector3(1,0,0))
@@ -1059,7 +1035,6 @@ func test_nmosfet_regions() -> bool:
 		if not TestUtils.assert_approx_equals(res.get("Id", NAN), 0.0, 1e-6, "NMOS Test (OFF): Id ~ 0", rig): ok = false
 
 	# ---------- TRIODE ----------
-	print("  N-MOSFET Test: TRIODE region.")
 	await rig.reset_graph()
 	var ps_d_tri: PowerSource3D = rig.add(ed.PowerSourceScene)
 	var ps_g_tri: PowerSource3D = rig.add(ed.PowerSourceScene, Vector3(0,0,1))
@@ -1090,7 +1065,6 @@ func test_nmosfet_regions() -> bool:
 		if not TestUtils.assert_approx_equals(Id_tri, Id_expect, 0.01, "NMOS Test (TRI): Id matches expected", rig): ok = false
 
 	# ---------- SATURATION ----------
-	print("  N-MOSFET Test: SATURATION region.")
 	await rig.reset_graph()
 	var ps_d_sat: PowerSource3D = rig.add(ed.PowerSourceScene)
 	var ps_g_sat: PowerSource3D = rig.add(ed.PowerSourceScene, Vector3(0,0,1))
@@ -1123,7 +1097,6 @@ func test_nmosfet_regions() -> bool:
 
 ## Tests the P-Channel MOSFET model in its three main operating regions: OFF, TRIODE, and SATURATION.
 func test_pmosfet_regions() -> bool:
-	print("  P-MOSFET Test: starting")
 	var ok := true
 	var rig := TestRig.new()
 	add_child(rig)
@@ -1148,9 +1121,8 @@ func test_pmosfet_regions() -> bool:
 
 	if not TestUtils.assert_true(rig.solve(), "PMOS OFF Solve", rig): ok = false
 	var res = rig.results(pmos_off)
-	var region_str = res.get("region", "N/A")
+	var _region_str = res.get("region", "N/A")
 	var id_val = res.get("Id", NAN)
-	print_debug("    OFF solve → region=" + region_str + " , Id=" + str(id_val))
 	if not TestUtils.assert_equals(res.get("region",""), "OFF", "PMOS Test (OFF): Region is OFF", rig): ok = false
 	if not TestUtils.assert_approx_equals(res.get("Id",0.0), 0.0, 1e-6, "PMOS Test (OFF): Id ~ 0", rig): ok = false
 	# ---- TRIODE ----
@@ -1174,9 +1146,8 @@ func test_pmosfet_regions() -> bool:
 
 	if not TestUtils.assert_true(rig.solve(), "PMOS TRIODE Solve", rig): ok = false
 	res = rig.results(pmos_tr)
-	region_str = res.get("region", "N/A")
+	_region_str = res.get("region", "N/A")
 	id_val = res.get("Id", NAN)
-	print_debug("    TRIODE solve → region=" + region_str + " , Id=" + str(id_val))
 	if not TestUtils.assert_equals(res.get("region",""), "TRIODE", "PMOS Test (TRI): Region is TRIODE", rig): ok = false
 	var Vsg_tri = res.get("Vgs", NAN) * -1.0
 	var Vsd_tri = res.get("Vds", NAN) * -1.0
@@ -1201,9 +1172,8 @@ func test_pmosfet_regions() -> bool:
 	rig.ground(ps_s_sat.terminal_neg)
 	if not TestUtils.assert_true(rig.solve(), "PMOS SATURATION Solve", rig): ok = false
 	res = rig.results(pmos_sat)
-	region_str = res.get("region", "N/A")
+	_region_str = res.get("region", "N/A")
 	id_val = res.get("Id", NAN)
-	print_debug("    SAT solve → region=" + region_str + " , Id=" + str(id_val))
 	if not TestUtils.assert_equals(res.get("region",""), "SATURATION", "PMOS Test (SAT): Region is SATURATION", rig): ok = false
 	var Vsg_sat = res.get("Vgs", NAN) * -1.0
 	var Vsd_sat = res.get("Vds", NAN) * -1.0

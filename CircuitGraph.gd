@@ -220,6 +220,8 @@ func add_component(component: Node3D):
 		component_data.properties["open_loop_gain"] = component.open_loop_gain
 		component_data.properties["rail_saturation_voltage"] = component.rail_saturation_voltage
 		component_data.properties["operating_region"] = "LINEAR" # Start in linear region
+		component_data.properties["Vcc_last_iter"] = 0.0
+		component_data.properties["Vee_last_iter"] = 0.0
 		component_data.terminals["Vp"] = component.terminal_vp
 		component_data.terminals["Vn"] = component.terminal_vn
 		component_data.terminals["Vout"] = component.terminal_vout
@@ -466,6 +468,8 @@ func component_config_changed(component_node: Node3D):
 		found_component_data.properties["open_loop_gain"] = component_node.open_loop_gain
 		found_component_data.properties["rail_saturation_voltage"] = component_node.rail_saturation_voltage
 		found_component_data.properties["operating_region"] = "LINEAR"
+		found_component_data.properties["Vcc_last_iter"] = 0.0
+		found_component_data.properties["Vee_last_iter"] = 0.0
 	else:
 		return
 

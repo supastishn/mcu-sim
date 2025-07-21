@@ -118,6 +118,10 @@ func update_nonlinear_state(
 	var Vcc = solution_vector[vcc_idx] if vcc_idx != -1 else (0.0 if vcc_node_id == circuit.ground_node_id else NAN)
 	var Vee = solution_vector[vee_idx] if vee_idx != -1 else (0.0 if vee_node_id == circuit.ground_node_id else NAN)
 
+	# Store the rail voltages for the stamp function to use.
+	comp_data.properties["Vcc_last_iter"] = Vcc
+	comp_data.properties["Vee_last_iter"] = Vee
+
 	var new_region = ""
 	if is_nan(Vp) or is_nan(Vn) or is_nan(Vcc) or is_nan(Vee):
 		new_region = "OFF"
@@ -211,18 +215,27 @@ func stamp(
 			if vn_idx != -1:
 				A[vout_idx][vn_idx] += transconductance
 	elif region == "SAT_HIGH":
-		# Enforce Vout = Vcc - rail_saturation_voltage with a large conductance model
+		# Enforce Vout = Vcc - rail_saturation_voltage.
+		# This is a VCVS where Vout = 1*Vcc - sat_drop.
+		# KCL at Vout node: G(Vout - (Vcc - sat_drop)) = 0
+		# G*Vout - G*Vcc = -G*sat_drop
 		var sat_drop = comp_data.properties["rail_saturation_voltage"]
-		CircuitGraph.stamp_conductance(A, Gbig, vout_idx, vcc_idx)
-		if vout_idx != -1: b[vout_idx] -= Gbig * sat_drop
-		if vcc_idx != -1: b[vcc_idx] += Gbig * sat_drop
+		if vout_idx != -1:
+			A[vout_idx][vout_idx] += Gbig
+			b[vout_idx] -= Gbig * sat_drop
+			if vcc_idx != -1:
+				A[vout_idx][vcc_idx] -= Gbig
 
 	elif region == "SAT_LOW":
-		# Enforce Vout = Vee + rail_saturation_voltage with a large conductance model
+		# Enforce Vout = Vee + rail_saturation_voltage.
+		# Vout = 1*Vee + sat_drop
+		# G*Vout - G*Vee = G*sat_drop
 		var sat_drop = comp_data.properties["rail_saturation_voltage"]
-		CircuitGraph.stamp_conductance(A, Gbig, vout_idx, vee_idx)
-		if vout_idx != -1: b[vout_idx] += Gbig * sat_drop
-		if vee_idx != -1: b[vee_idx] -= Gbig * sat_drop
+		if vout_idx != -1:
+			A[vout_idx][vout_idx] += Gbig
+			b[vout_idx] += Gbig * sat_drop
+			if vee_idx != -1:
+				A[vout_idx][vee_idx] -= Gbig
 
 
 ## Extracts and stores simulation results for this component.
