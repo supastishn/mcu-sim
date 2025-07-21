@@ -2,8 +2,6 @@ extends Node3D
 
 class_name LED3D
 
-const LinearSolver = preload("res://solvers/LinearSolver.gd")
-
 
 ## The saturation current of the diode model.
 @export var saturation_current: float = 1.0e-12
@@ -155,10 +153,6 @@ func gather_sim_results(
 	var Va = circuit.electrical_nodes.get(circuit.terminal_connections.get(comp_data.terminals["A"].get_instance_id(), -1), {}).get("voltage", NAN)
 	var Vk = circuit.electrical_nodes.get(circuit.terminal_connections.get(comp_data.terminals["K"].get_instance_id(), -1), {}).get("voltage", NAN)
 	
-	var Is = comp_data.properties["saturation_current"]
-	var n = comp_data.properties["ideality_factor"]
-	var V_thermal = THERMAL_VOLTAGE
-	
 	var current = NAN
 	var is_logically_burned = comp_data.get("is_burned", false)
 
@@ -195,10 +189,13 @@ func stamp(
 	comp_data: Dictionary,
 	_delta_time: float
 ):
+	var na = terminal_connections.get(terminal_anode.get_instance_id(), -1)
+	var nk = terminal_connections.get(terminal_kathode.get_instance_id(), -1)
+	var ia = node_map.get(na, -1)
+	var ik = node_map.get(nk, -1)
+
 	var is_burned = comp_data.get("is_burned", false)
 	if is_burned:
-		var ia = node_map.get(terminal_connections.get(terminal_anode.get_instance_id(), -1), -1)
-		var ik = node_map.get(terminal_connections.get(terminal_kathode.get_instance_id(), -1), -1)
 		CircuitGraph.stamp_conductance(A, 1.0 / CircuitGraph.R_LED_OFF, ia, ik)
 		return
 
@@ -212,11 +209,6 @@ func stamp(
 	# Linearized model from Shockley equation
 	var exp_term = exp(Vd_limited / n_vt)
 	var Geq = (saturation_current / n_vt) * exp_term
-
-	var na = terminal_connections.get(terminal_anode.get_instance_id(), -1)
-	var nk = terminal_connections.get(terminal_kathode.get_instance_id(), -1)
-	var ia = node_map.get(na, -1)
-	var ik = node_map.get(nk, -1)
 
 	var I_last = saturation_current * (exp_term - 1.0)
 	var Ieq = I_last - Geq * Vd_limited

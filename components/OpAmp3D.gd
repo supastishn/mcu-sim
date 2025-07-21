@@ -136,16 +136,20 @@ func update_nonlinear_state(
 
 		# Hysteresis to prevent region oscillation
 		var prev_region = comp_data.properties["operating_region"]
-		if prev_region == "SAT_HIGH" and ideal_vout >= high_rail - REGION_HYSTERESIS_MARGIN:
-			new_region = "SAT_HIGH"
-		elif prev_region == "SAT_LOW" and ideal_vout <= low_rail + REGION_HYSTERESIS_MARGIN:
-			new_region = "SAT_LOW"
-		elif ideal_vout > high_rail + REGION_HYSTERESIS_MARGIN:
-			new_region = "SAT_HIGH"
-		elif ideal_vout < low_rail - REGION_HYSTERESIS_MARGIN:
-			new_region = "SAT_LOW"
-		else:
-			new_region = "LINEAR"
+		
+		new_region = prev_region
+		match prev_region:
+			"LINEAR", "OFF":
+				if ideal_vout > high_rail + REGION_HYSTERESIS_MARGIN:
+					new_region = "SAT_HIGH"
+				elif ideal_vout < low_rail - REGION_HYSTERESIS_MARGIN:
+					new_region = "SAT_LOW"
+			"SAT_HIGH":
+				if ideal_vout < high_rail - REGION_HYSTERESIS_MARGIN:
+					new_region = "LINEAR"
+			"SAT_LOW":
+				if ideal_vout > low_rail + REGION_HYSTERESIS_MARGIN:
+					new_region = "LINEAR"
 
 	var previous_region = comp_data.properties["operating_region"]
 	if new_region != previous_region:
