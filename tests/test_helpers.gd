@@ -48,6 +48,13 @@ func solve(dt := 0.01) -> bool:
 func results(comp: Node3D) -> Dictionary:
 	return graph.component_results.get(comp.get_instance_id(), {})
 
+## Resets node voltages to zero and clears any previous simulation results.
+func reset_voltages() -> void:
+	graph.component_results.clear()
+	graph._is_solved = false
+	for node_id in graph.electrical_nodes:
+		graph.electrical_nodes[node_id].voltage = 0.0
+
 ## Resets the entire graph, removing all components and wires.
 func reset_graph() -> void:
 	for cd in graph.components.duplicate():

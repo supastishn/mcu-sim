@@ -200,6 +200,7 @@ func test_op_amp_inverting_amplifier() -> bool:
 		var expected_sat_volt = -ps_vee.target_voltage + opamp.rail_saturation_voltage
 		if not TestUtils.assert_approx_equals(results_sat.get("Vout", NAN), expected_sat_volt, 0.1, "Op-Amp Vout is saturated low", rig): ok = false
 
+	rig.reset_voltages()
 	ps_vin.target_voltage = -2.0 # This should drive output to +20V, which will saturate
 	rig.cfg(ps_vin)
 
