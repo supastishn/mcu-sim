@@ -105,8 +105,9 @@ func gather_sim_results(
 	var Vcb = NAN
 	
 	if not (!is_nan(Vc) and !is_nan(Vb) and !is_nan(Ve)):
-		LinearSolver.print_vector(_x, "x on PNP results fail")
-		printerr("PNPBJT {bjt}: Terminal voltage NaN in gather_sim_results. Vc={vc}, Vb={vb}, Ve={ve}".format({ "bjt": name, "vc": Vc, "vb": Vb, "ve": Ve }))
+		var err_msg = "PNPBJT {bjt}: Terminal voltage NaN in gather_sim_results. Vc={vc}, Vb={vb}, Ve={ve}".format({ "bjt": name, "vc": Vc, "vb": Vb, "ve": Ve })
+		err_msg += "\nSolution vector x: " + LinearSolver.vector_to_string(_x)
+		assert(false, err_msg)
 		return
 	if not is_nan(Vc) and not is_nan(Vb) and not is_nan(Ve):
 		print_debug("PNP '{n}' gather_results: Ve={ve:.3f}, Vb={vb:.3f}, Vc={vc:.3f}".format({"n":name, "ve":Ve, "vb":Vb, "vc":Vc}))

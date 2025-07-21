@@ -125,8 +125,9 @@ func gather_sim_results(
 	var state = "OFF"
 
 	if not (!is_nan(Va) and !is_nan(Vk)):
-		LinearSolver.print_vector(_x, "x on zener results fail")
-		printerr("Zener {z}: Terminal voltage NaN in gather_sim_results. Va={va}, Vk={vk}".format({ "z": name, "va": Va, "vk": Vk }))
+		var err_msg = "Zener {z}: Terminal voltage NaN in gather_sim_results. Va={va}, Vk={vk}".format({ "z": name, "va": Va, "vk": Vk })
+		err_msg += "\nSolution vector x: " + LinearSolver.vector_to_string(_x)
+		assert(false, err_msg)
 		return
 	if not is_nan(Va) and not is_nan(Vk):
 		var Vd = Va - Vk
