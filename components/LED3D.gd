@@ -139,6 +139,41 @@ func get_terminal_info() -> Dictionary:
 		"K": {"node": terminal_kathode, "pos": terminal_kathode.position}
 	}
 
+## Updates the LED's state (burned or not) based on an MNA iteration.
+func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter: Array, node_map_iter: Dictionary, _vs_map_iter: Dictionary) -> bool:
+	if x_iter.is_empty(): return false
+
+	var node_a_id = circuit.terminal_connections.get(terminal_anode.get_instance_id(), -1)
+	var node_k_id = circuit.terminal_connections.get(terminal_kathode.get_instance_id(), -1)
+
+	var idx_a = node_map_iter.get(node_a_id, -1)
+	var idx_k = node_map_iter.get(node_k_id, -1)
+
+	var Va = x_iter[idx_a] if idx_a != -1 else (0.0 if node_a_id == circuit.ground_node_id else 0.0)
+	var Vk = x_iter[idx_k] if idx_k != -1 else (0.0 if node_k_id == circuit.ground_node_id else 0.0)
+	
+	var Vd = Va - Vk
+	comp_data.properties["_internal_voltage"] = Vd
+
+	var was_burned = comp_data.get("is_burned", false)
+	if was_burned:
+		return false # Once burned, state doesn't change
+
+	var is_burned_now = false
+	if Vd < -REVERSE_BREAKDOWN_VOLTAGE:
+		is_burned_now = true
+	else:
+		# Check if forward voltage would cause overcurrent
+		var Vd_max = (ideality_factor * THERMAL_VOLTAGE) * log(max_current_before_burn / saturation_current + 1.0)
+		if Vd > Vd_max:
+			is_burned_now = true
+	
+	if is_burned_now:
+		comp_data["is_burned"] = true
+		return true # State changed from not-burned to burned
+	
+	return false
+
 ## Extracts and stores simulation results for this component from the main solution vector.
 func gather_sim_results(
 		circuit      : CircuitGraph,
@@ -160,21 +195,8 @@ func gather_sim_results(
 		current = 0.0
 	elif not is_nan(Va) and not is_nan(Vk):
 		var Vd = Va - Vk
-		if not !is_nan(Vd):
-			LinearSolver.print_vector(_x, "x on LED results fail")
-			printerr("LED {led}: Vd is NaN. Va={va}, Vk={vk}".format({"led": name, "va": Va, "vk": Vk}))
-			return
-		comp_data.properties["_internal_voltage"] = Vd
-
-		# Check for reverse breakdown
-		if Vd < -REVERSE_BREAKDOWN_VOLTAGE:
-			comp_data["is_burned"] = true
-			current = 0.0
-		else:
-			current = saturation_current * (exp(Vd / (ideality_factor * THERMAL_VOLTAGE)) - 1.0)
-			if abs(current) > max_current_before_burn:
-				comp_data["is_burned"] = true
-				current = 0.0
+		# Use the full Shockley equation for final result, not the limited one
+		current = saturation_current * (exp(Vd / (ideality_factor * THERMAL_VOLTAGE)) - 1.0)
 	
 	circuit.component_results[comp_id]["current"] = current
 

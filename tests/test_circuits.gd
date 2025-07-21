@@ -744,7 +744,7 @@ func test_pnp_bjt_regions() -> bool:
 	ps_pnp_sat_vcc.target_voltage = 10.0; rig.cfg(ps_pnp_sat_vcc)
 	ps_pnp_sat_vb_supply.target_voltage = 5.0; rig.cfg(ps_pnp_sat_vb_supply)
 	rc_pnp_sat.resistance = 1000.0; rig.cfg(rc_pnp_sat)
-	rb_pnp_sat.resistance = 10000.0; rig.cfg(rb_pnp_sat)
+	rb_pnp_sat.resistance = 1000.0; rig.cfg(rb_pnp_sat)
 	bjt_pnp_sat.alpha_forward = 0.99; rig.cfg(bjt_pnp_sat)
 	
 	rig.wire(bjt_pnp_sat.terminal_e, ps_pnp_sat_vcc.terminal_pos)
