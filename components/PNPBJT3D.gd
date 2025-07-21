@@ -136,7 +136,6 @@ func gather_sim_results(
 		assert(false, err_msg)
 		return
 	if not is_nan(Vc) and not is_nan(Vb) and not is_nan(Ve):
-		print_debug("PNP '{n}' gather_results: Ve={ve:.3f}, Vb={vb:.3f}, Vc={vc:.3f}".format({"n":name, "ve":Ve, "vb":Vb, "vc":Vc}))
 		Veb = Ve - Vb
 		Vcb = Vc - Vb
 		comp_data.properties["_internal_veb"] = Veb
@@ -159,16 +158,7 @@ func gather_sim_results(
 		Ic = -Ic_mag
 		Ib = -Ib_mag
 		
-	var region = "OFF"
-	var Vth = 0.5
-	if not is_nan(Veb) and not is_nan(Vcb):
-		if Veb > Vth:
-			if Vcb > Vth:
-				region = "SATURATION"
-			else:
-				region = "ACTIVE"
-		elif Vcb > Vth:
-			region = "INVERSE"
+	var region = comp_data.properties.get("operating_region", "OFF")
 	
 	var Vec = Ve - Vc
 	circuit.component_results[comp_id]["Ic"] = Ic
@@ -196,28 +186,35 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 	var Veb = Ve - Vb
 	var Vcb = Vc - Vb
 	
-	print_debug("PNP '{n}' update_nonlinear: Ve={ve:.3f}, Vb={vb:.3f}, Vc={vc:.3f} -> Veb={veb:.3f}, Vcb={vcb:.3f}".format({"n":name, "ve":Ve, "vb":Vb, "vc":Vc, "veb":Veb, "vcb":Vcb}))
 	# Clamp junction voltages to prevent extreme values in the stamp function
 	var Vcrit_clamp = THERMAL_VOLTAGE * log(1e14) # Use same Vcrit as in stamp() for consistency
 	comp_data.properties["_internal_veb"] = clampf(Veb, -5.0, Vcrit_clamp)
 	comp_data.properties["_internal_vcb"] = clampf(Vcb, -5.0, Vcrit_clamp)
 
 	var previous_region = comp_data.properties["operating_region"]
-	var new_region = "OFF"
+	var new_region = previous_region
 	var Vth = 0.5 # Base threshold for junction forward bias
+	var HYSTERESIS = 0.05 # 50mV voltage margin
 
-	# Determine new region based on junction voltages
-	var be_on = Veb > Vth
-	var cb_on = Vcb > Vth
-
-	if be_on and cb_on:
-		new_region = "SATURATION"
-	elif be_on:
-		new_region = "ACTIVE"
-	elif cb_on:
-		new_region = "INVERSE"
-	else:
-		new_region = "OFF"
+	# Determine new region with hysteresis to prevent oscillation
+	match previous_region:
+		"OFF":
+			if Veb > Vth and Vcb > Vth: new_region = "SATURATION"
+			elif Veb > Vth: new_region = "ACTIVE"
+			elif Vcb > Vth: new_region = "INVERSE"
+		"ACTIVE":
+			if Veb < Vth - HYSTERESIS: new_region = "OFF"
+			elif Vcb > Vth: new_region = "SATURATION"
+		"SATURATION":
+			# Need to check both junctions to leave saturation
+			var be_is_off = Veb < Vth - HYSTERESIS
+			var cb_is_off = Vcb < Vth - HYSTERESIS
+			if be_is_off and cb_is_off: new_region = "OFF"
+			elif be_is_off: new_region = "INVERSE" # CB still on
+			elif cb_is_off: new_region = "ACTIVE"  # BE still on
+		"INVERSE":
+			if Vcb < Vth - HYSTERESIS: new_region = "OFF"
+			elif Veb > Vth: new_region = "SATURATION"
 
 	if new_region != previous_region:
 		print("  PNP '{n}' region change: {pr} -> {nr} (Veb={veb:.3f}, Vcb={vcb:.3f})".format({"n":name, "pr":previous_region, "nr":new_region, "veb":Veb, "vcb":Vcb}))
@@ -246,8 +243,6 @@ func stamp(
 	var alpha_f = alpha_forward
 	var alpha_r = alpha_reverse
 	var Vt = THERMAL_VOLTAGE
-
-	print_debug("PNP '{n}' stamp: Veb={veb:.3f}, Vcb={vcb:.3f}, region={r}".format({"n": name, "veb":Veb, "vcb":Vcb, "r":comp_data.properties["operating_region"]}))
 
 	# --- Diode Limiting for numerical stability ---
 	# The Veb and Vcb values are already clamped in update_nonlinear_state.
