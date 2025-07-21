@@ -153,23 +153,27 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 	var Vk = x_iter[idx_k] if idx_k != -1 else (0.0 if node_k_id == circuit.ground_node_id else 0.0)
 	
 	var Vd = Va - Vk
-	comp_data.properties["_internal_voltage"] = Vd
 
 	var was_burned = comp_data.get("is_burned", false)
 	if was_burned:
+		comp_data.properties["_internal_voltage"] = Vd
 		return false # Once burned, state doesn't change
 
+	var Vd_for_check = comp_data.properties.get("_internal_voltage", 0.0)
+	comp_data.properties["_internal_voltage"] = Vd
+
 	var is_burned_now = false
-	if Vd < -REVERSE_BREAKDOWN_VOLTAGE:
+	# Check if forward voltage would cause overcurrent. Use previous voltage to avoid instability.
+	var Vd_max = (ideality_factor * THERMAL_VOLTAGE) * log(max_current_before_burn / saturation_current + 1.0)
+	
+	if Vd_for_check < -REVERSE_BREAKDOWN_VOLTAGE:
 		is_burned_now = true
-	else:
-		# Check if forward voltage would cause overcurrent
-		var Vd_max = (ideality_factor * THERMAL_VOLTAGE) * log(max_current_before_burn / saturation_current + 1.0)
-		if Vd > Vd_max:
-			is_burned_now = true
+	elif Vd_for_check > Vd_max:
+		is_burned_now = true
 	
 	if is_burned_now:
 		comp_data["is_burned"] = true
+		print("LED '{n}' burned: Vd_check={vd:.3f}, Vd_max={vmax:.3f}".format({"n":name, "vd":Vd_for_check, "vmax":Vd_max}))
 		return true # State changed from not-burned to burned
 	
 	return false

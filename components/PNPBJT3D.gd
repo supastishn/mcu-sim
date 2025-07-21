@@ -176,18 +176,25 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 	comp_data.properties["_internal_vcb"] = clampf(Vcb, -5.0, Vcrit_clamp)
 
 	var previous_region = comp_data.properties["operating_region"]
-	var new_region = "OFF"
-	var Vth = 0.5
-	if Veb > Vth: # Emitter-Base forward biased
-		if Vcb > Vth: # Collector-Base forward biased
-			new_region = "SATURATION"
-		else:
-			new_region = "ACTIVE"
-	elif Vcb > Vth: # Emitter-Base reverse biased, Collector-Base forward biased
+	var new_region = previous_region # Start with current region
+	var Vth = 0.5 # Base threshold for junction forward bias
+	var margin = 0.05 # Hysteresis margin
+
+	# Determine new region based on junction voltages with hysteresis
+	var be_on = Veb > (Vth - margin if previous_region == "ACTIVE" or previous_region == "SATURATION" else Vth + margin)
+	var cb_on = Vcb > (Vth - margin if previous_region == "INVERSE" or previous_region == "SATURATION" else Vth + margin)
+
+	if be_on and cb_on:
+		new_region = "SATURATION"
+	elif be_on:
+		new_region = "ACTIVE"
+	elif cb_on:
 		new_region = "INVERSE"
+	else:
+		new_region = "OFF"
 
 	if new_region != previous_region:
-		print_debug("  PNP '{n}' region change: {pr} -> {nr}".format({"n":name, "pr":previous_region, "nr":new_region}))
+		print("  PNP '{n}' region change: {pr} -> {nr} (Veb={veb:.3f}, Vcb={vcb:.3f})".format({"n":name, "pr":previous_region, "nr":new_region, "veb":Veb, "vcb":Vcb}))
 		comp_data.properties["operating_region"] = new_region
 		return true
 	return false
