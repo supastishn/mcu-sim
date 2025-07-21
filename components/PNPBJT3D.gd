@@ -109,6 +109,7 @@ func gather_sim_results(
 		printerr("PNPBJT {bjt}: Terminal voltage NaN in gather_sim_results. Vc={vc}, Vb={vb}, Ve={ve}".format({ "bjt": name, "vc": Vc, "vb": Vb, "ve": Ve }))
 		return
 	if not is_nan(Vc) and not is_nan(Vb) and not is_nan(Ve):
+		print_debug("PNP '{n}' gather_results: Ve={ve:.3f}, Vb={vb:.3f}, Vc={vc:.3f}".format({"n":name, "ve":Ve, "vb":Vb, "vc":Vc}))
 		Veb = Ve - Vb
 		Vcb = Vc - Vb
 		comp_data.properties["_internal_veb"] = Veb
@@ -168,6 +169,7 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 	var Veb = Ve - Vb
 	var Vcb = Vc - Vb
 	
+	print_debug("PNP '{n}' update_nonlinear: Ve={ve:.3f}, Vb={vb:.3f}, Vc={vc:.3f} -> Veb={veb:.3f}, Vcb={vcb:.3f}".format({"n":name, "ve":Ve, "vb":Vb, "vc":Vc, "veb":Veb, "vcb":Vcb}))
 	# Clamp junction voltages to prevent extreme values in the stamp function
 	var Vcrit_clamp = THERMAL_VOLTAGE * log(1e14) # Use same Vcrit as in stamp() for consistency
 	comp_data.properties["_internal_veb"] = clampf(Veb, -5.0, Vcrit_clamp)
@@ -185,6 +187,7 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 		new_region = "INVERSE"
 
 	if new_region != previous_region:
+		print_debug("  PNP '{n}' region change: {pr} -> {nr}".format({"n":name, "pr":previous_region, "nr":new_region}))
 		comp_data.properties["operating_region"] = new_region
 		return true
 	return false
@@ -210,6 +213,8 @@ func stamp(
 	var alpha_f = alpha_forward
 	var alpha_r = alpha_reverse
 	var Vt = THERMAL_VOLTAGE
+
+	print_debug("PNP '{n}' stamp: Veb={veb:.3f}, Vcb={vcb:.3f}, region={r}".format({"n": name, "veb":Veb, "vcb":Vcb, "r":comp_data.properties["operating_region"]}))
 
 	# --- Diode Limiting for numerical stability ---
 	# The Veb and Vcb values are already clamped in update_nonlinear_state.

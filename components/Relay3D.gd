@@ -116,6 +116,8 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 	var V_gnd = x_iter[idx_gnd] if idx_gnd != -1 else (0.0 if node_gnd_id == circuit.ground_node_id else NAN)
 	var V_sig = x_iter[idx_sig] if idx_sig != -1 else (0.0 if node_sig_id == circuit.ground_node_id else NAN)
 
+	print_debug("Relay '{n}' update_nonlinear: Vcc={vcc:.3f}, Vgnd={vgnd:.3f}, Vsig={vsig:.3f}".format({"n":name, "vcc":V_vcc, "vgnd":V_gnd, "vsig":V_sig}))
+
 	var sig_threshold_relay = comp_data.properties["signal_voltage_threshold"]
 	var previous_energized_state = comp_data.properties["is_energized"]
 	var new_energized_state = previous_energized_state
@@ -132,7 +134,13 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 
 		new_energized_state = signal_is_high_enough and vcc_is_sufficient
 
+		print_debug("  Relay '{n}' update_nonlinear: actual_Vsig={asig:.3f} (thresh={th:.3f}), actual_Vcc={avcc:.3f} (min={min_vcc:.3f}) -> signal_high={sh}, vcc_ok={vo}, new_state={ns}".format({
+			"n":name, "asig":actual_signal_voltage, "th":sig_threshold_relay, "avcc":actual_vcc_supply_voltage, "min_vcc":vcc_min_voltage_for_operation,
+			"sh":signal_is_high_enough, "vo":vcc_is_sufficient, "ns":new_energized_state
+		}))
+
 	if new_energized_state != previous_energized_state:
+		print_debug("  Relay '{n}' state change: {p} -> {n_state}".format({"n":name, "p":previous_energized_state, "n_state":new_energized_state}))
 		comp_data.properties["is_energized"] = new_energized_state
 		return true
 	return false
@@ -151,6 +159,8 @@ func stamp(
 	comp_data: Dictionary,
 	_delta_time: float
 ):
+	var is_energized = comp_data.properties["is_energized"]
+	print_debug("Relay '{n}' stamp: is_energized={e}".format({"n":name, "e":is_energized}))
 	
 	var R_coil_path_val: float
 	# Use max() for coil resistance to avoid division by zero
@@ -193,10 +203,14 @@ func stamp(
 	var idx_no_sw = node_map.get(node_no_lookup_sw, -1)
 	var idx_nc_sw = node_map.get(node_nc_lookup_sw, -1)
 
+	print_debug("  Relay '{n}' stamp: idx_com={ic}, idx_no={ino}, idx_nc={inc}".format({"n":name, "ic":idx_com_sw, "ino":idx_no_sw, "inc":idx_nc_sw}))
+
 	if comp_data.properties["is_energized"]: 
+		print_debug("    Relay '{n}' stamping ENERGIZED: com-no closed, com-nc open".format({"n":name}))
 		CircuitGraph.stamp_conductance(A, g_sw_closed_val, idx_com_sw, idx_no_sw)
 		CircuitGraph.stamp_conductance(A, g_sw_open_val, idx_com_sw, idx_nc_sw)
 	else: 
+		print_debug("    Relay '{n}' stamping DE-ENERGIZED: com-no open, com-nc closed".format({"n":name}))
 		CircuitGraph.stamp_conductance(A, g_sw_open_val, idx_com_sw, idx_no_sw)
 		CircuitGraph.stamp_conductance(A, g_sw_closed_val, idx_com_sw, idx_nc_sw)
 	return
