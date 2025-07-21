@@ -133,11 +133,6 @@ func gather_sim_results(
 	var Va = circuit.electrical_nodes.get(circuit.terminal_connections.get(comp_data.terminals["A"].get_instance_id(), -1), {}).get("voltage", NAN)
 	var Vk = circuit.electrical_nodes.get(circuit.terminal_connections.get(comp_data.terminals["K"].get_instance_id(), -1), {}).get("voltage", NAN)
 	
-	var Is = comp_data.properties["saturation_current"]
-	var n = comp_data.properties["ideality_factor"]
-	var Vz = comp_data.properties["zener_voltage"]
-	var V_thermal = THERMAL_VOLTAGE
-	
 	var current = NAN
 	var state = "OFF"
 
@@ -148,18 +143,21 @@ func gather_sim_results(
 		return
 	if not is_nan(Va) and not is_nan(Vk):
 		var Vd = Va - Vk
+		var Is = comp_data.properties["saturation_current"]
+		var n = comp_data.properties["ideality_factor"]
+		var Vz = comp_data.properties["zener_voltage"]
 		
 		# Forward bias calculation (with clamping for safety)
-		var n_vt = n * V_thermal
+		var n_vt = n * THERMAL_VOLTAGE
 		var Vcrit_fwd = n_vt * log(1e12)
 		var Vd_limited_fwd = min(Vd, Vcrit_fwd)
 		var I_fwd = Is * (exp(Vd_limited_fwd / n_vt) - 1.0)
 		
 		# Reverse bias (Zener) calculation (with clamping for safety)
 		var Vrev = -(Vd + Vz)
-		var Vcrit_rev = V_thermal * log(1e12)
+		var Vcrit_rev = THERMAL_VOLTAGE * log(1e12)
 		var Vrev_limited = min(Vrev, Vcrit_rev)
-		var I_rev = Is * (exp(Vrev_limited / V_thermal) - 1.0)
+		var I_rev = Is * (exp(Vrev_limited / THERMAL_VOLTAGE) - 1.0)
 		
 		current = I_fwd - I_rev # Total current
 

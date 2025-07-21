@@ -179,9 +179,15 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 	var idx_b = node_map_iter.get(node_b_id, -1)
 	var idx_c = node_map_iter.get(node_c_id, -1)
 
-	var Ve = x_iter[idx_e] if idx_e != -1 else (0.0 if node_e_id == circuit.ground_node_id else 0.0)
-	var Vb = x_iter[idx_b] if idx_b != -1 else (0.0 if node_b_id == circuit.ground_node_id else 0.0)
-	var Vc = x_iter[idx_c] if idx_c != -1 else (0.0 if node_c_id == circuit.ground_node_id else 0.0)
+	var Ve = x_iter[idx_e] if idx_e != -1 else (0.0 if node_e_id == circuit.ground_node_id else NAN)
+	var Vb = x_iter[idx_b] if idx_b != -1 else (0.0 if node_b_id == circuit.ground_node_id else NAN)
+	var Vc = x_iter[idx_c] if idx_c != -1 else (0.0 if node_c_id == circuit.ground_node_id else NAN)
+
+	var previous_region = comp_data.properties["operating_region"]
+
+	if is_nan(Ve) or is_nan(Vb) or is_nan(Vc):
+		comp_data.properties["operating_region"] = "OFF"
+		return previous_region != "OFF"
 
 	var Veb = Ve - Vb
 	var Vcb = Vc - Vb
@@ -191,33 +197,33 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 	comp_data.properties["_internal_veb"] = clampf(Veb, -5.0, Vcrit_clamp)
 	comp_data.properties["_internal_vcb"] = clampf(Vcb, -5.0, Vcrit_clamp)
 
-	var previous_region = comp_data.properties["operating_region"]
 	var new_region = previous_region
-	var Vth = 0.5 # Base threshold for junction forward bias
+	var Vth_be = 0.5
+	var Vth_cb = 0.4 # Use a lower threshold for the collector-base junction
 	var HYSTERESIS = 0.05 # 50mV voltage margin
 
 	# Determine new region with hysteresis to prevent oscillation
 	match previous_region:
 		"OFF":
-			if Veb > Vth and Vcb > Vth: new_region = "SATURATION"
-			elif Veb > Vth: new_region = "ACTIVE"
-			elif Vcb > Vth: new_region = "INVERSE"
+			if Veb > Vth_be and Vcb > Vth_cb: new_region = "SATURATION"
+			elif Veb > Vth_be: new_region = "ACTIVE"
+			elif Vcb > Vth_cb: new_region = "INVERSE"
 		"ACTIVE":
-			if Veb < Vth - HYSTERESIS: new_region = "OFF"
-			elif Vcb > Vth: new_region = "SATURATION"
+			if Veb < Vth_be - HYSTERESIS: new_region = "OFF"
+			elif Vcb > Vth_cb: new_region = "SATURATION"
 		"SATURATION":
 			# Need to check both junctions to leave saturation
-			var be_is_off = Veb < Vth - HYSTERESIS
-			var cb_is_off = Vcb < Vth - HYSTERESIS
+			var be_is_off = Veb < Vth_be - HYSTERESIS
+			var cb_is_off = Vcb < Vth_cb - HYSTERESIS
 			if be_is_off and cb_is_off: new_region = "OFF"
 			elif be_is_off: new_region = "INVERSE" # CB still on
 			elif cb_is_off: new_region = "ACTIVE"  # BE still on
 		"INVERSE":
-			if Vcb < Vth - HYSTERESIS: new_region = "OFF"
-			elif Veb > Vth: new_region = "SATURATION"
+			if Vcb < Vth_cb - HYSTERESIS: new_region = "OFF"
+			elif Veb > Vth_be: new_region = "SATURATION"
 
 	if new_region != previous_region:
-		print("  PNP '{n}' region change: {pr} -> {nr} (Veb={veb:.3f}, Vcb={vcb:.3f})".format({"n":name, "pr":previous_region, "nr":new_region, "veb":Veb, "vcb":Vcb}))
+		print("  PNP '%s' region change: %s -> %s (Veb=%.3f, Vcb=%.3f)" % [name, previous_region, new_region, Veb, Vcb])
 		comp_data.properties["operating_region"] = new_region
 		return true
 	return false
@@ -277,7 +283,7 @@ func stamp(
 	if idx_b != -1:
 		if idx_e != -1: A[idx_b][idx_e] += gm_f_pnp - g_pi_pnp
 		if idx_b != -1: A[idx_b][idx_b] += g_pi_pnp - gm_f_pnp + g_mu_pnp - gm_r_pnp
-		if idx_c != -1: A[idx_b][idx_c] += g_mu_pnp - gm_r_pnp
+		if idx_c != -1: A[idx_b][idx_c] += gm_r_pnp - g_mu_pnp
 
 	# Companion model current sources, using conventional current directions
 	var Ie_mag_last = I_es * (exp(Veb / Vt) - 1.0) - alpha_r * I_cs * (exp(Vcb / Vt) - 1.0)
@@ -296,7 +302,7 @@ func stamp(
 	
 	var J_V_e = (-g_pi_pnp * Veb + gm_r_pnp * Vcb)
 	var J_V_c = (-gm_f_pnp * Veb + g_mu_pnp * Vcb)
-	var J_V_b = ((gm_f_pnp - g_pi_pnp) * Veb + (g_mu_pnp - gm_r_pnp) * Vcb)
+	var J_V_b = ((gm_f_pnp - g_pi_pnp) * Veb + (gm_r_pnp - g_mu_pnp) * Vcb)
 	
 	var rhs_e = J_V_e + Ie_conv_last
 	var rhs_c = J_V_c - Ic_conv_last
