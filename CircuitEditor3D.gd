@@ -195,7 +195,7 @@ func _input(event):
 						return 
 
 					var mouse_pos = event.position
-					var hit = ComponentInteractionUtils.get_interactive_object_at(camera, mouse_pos)
+					var hit = ComponentInteractionUtils.get_interactive_object_at(camera, mouse_pos, components_node)
 					_potential_drag_target = null 
 
 					match hit.type:
