@@ -228,7 +228,8 @@ func test_breadboard_connectivity() -> bool:
 
 	# --- Test 1: Connectivity within a terminal strip ---
 	var bb_node: Node3D = rig.add(BreadboardScene)
-	await get_tree().process_frame # Let breadboard's deferred connections run
+	bb_node.init_breadboard(rig.graph)  # Initialize breadboard with circuit graph
+	await get_tree().process_frame # Let deferred connections run
 
 	var ps_node: PowerSource3D = rig.add(ed.PowerSourceScene)
 	var res_node: Resistor3D = rig.add(ed.ResistorScene)
@@ -238,8 +239,14 @@ func test_breadboard_connectivity() -> bool:
 	res_node.resistance = 220.0; rig.cfg(res_node)
 	led_node.min_current_to_light = 0.001; rig.cfg(led_node)
 
-	var term_1a = bb_node.get_node_or_null("Terminals/s1_1a")
-	var term_1e = bb_node.get_node_or_null("Terminals/s1_1e")
+	var terminals_container = bb_node.get_node("Terminals")
+	if not terminals_container:
+		printerr("  FAILED: Could not find Terminals container node.")
+		rig.cleanup()
+		return false
+		
+	var term_1a = terminals_container.get_node_or_null("s1_1a")
+	var term_1e = terminals_container.get_node_or_null("s1_1e")
 
 	if not is_instance_valid(term_1a) or not is_instance_valid(term_1e):
 		printerr("  FAILED: Could not find required breadboard terminals for strip test.")
@@ -260,7 +267,9 @@ func test_breadboard_connectivity() -> bool:
 	# --- Test 2: Isolation between terminal strips ---
 	await rig.reset_graph()
 
-	bb_node = rig.add(BreadboardScene); await get_tree().process_frame
+	bb_node = rig.add(BreadboardScene)
+	bb_node.init_breadboard(rig.graph)
+	await get_tree().process_frame
 	ps_node = rig.add(ed.PowerSourceScene)
 	res_node = rig.add(ed.ResistorScene)
 	led_node = rig.add(ed.LEDScene)
@@ -291,7 +300,9 @@ func test_breadboard_connectivity() -> bool:
 	# --- Test 3: Power Rail Connectivity ---
 	await rig.reset_graph()
 
-	bb_node = rig.add(BreadboardScene); await get_tree().process_frame
+	bb_node = rig.add(BreadboardScene)
+	bb_node.init_breadboard(rig.graph)
+	await get_tree().process_frame
 	ps_node = rig.add(ed.PowerSourceScene)
 	res_node = rig.add(ed.ResistorScene)
 	led_node = rig.add(ed.LEDScene)

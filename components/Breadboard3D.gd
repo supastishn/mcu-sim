@@ -7,13 +7,8 @@ class_name Breadboard3D
 const TerminalFeedbackScript = preload("res://components/TerminalFeedback.gd")
 const col_labels = ["a", "b", "c", "d", "e"]
 
-## Called when the node enters the scene tree.
-func _ready():
-	var circuit_graph: CircuitGraph = get_tree().current_scene.get_node_or_null("CircuitGraph")
-	if not is_instance_valid(circuit_graph):
-		printerr("Breadboard3D: Could not find CircuitGraph node.")
-		return
-		
+## Initialize breadboard with circuit graph reference
+func init_breadboard(circuit_graph: CircuitGraph) -> void:
 	var all_terminals = generate_terminals()
 	circuit_graph.register_dynamic_terminals(self, all_terminals)
 	call_deferred("connect_internal_strips")

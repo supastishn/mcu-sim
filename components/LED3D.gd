@@ -220,7 +220,6 @@ func stamp(
 	var ik = node_map.get(nk, -1)
 
 	var is_burned = comp_data.get("is_burned", false)
-	print_debug("LED '{n}' stamp: burned={b}, ia={ia}, ik={ik}".format({"n": name, "b": is_burned, "ia": ia, "ik": ik}))
 	if is_burned:
 		CircuitGraph.stamp_conductance(A, 1.0 / CircuitGraph.R_LED_OFF, ia, ik)
 		return
@@ -239,7 +238,6 @@ func stamp(
 	var I_last = saturation_current * (exp_term - 1.0)
 	var Ieq = I_last - Geq * Vd_limited
 
-	print_debug("  LED '{n}' stamp: Vd_last={vd}, Vd_lim={vdl}, Geq={g}, Ieq={i}".format({"n": name, "vd": Vd_last_iter, "vdl": Vd_limited, "g": Geq, "i": Ieq}))
 	CircuitGraph.stamp_conductance(A, Geq, ia, ik)
 	
 	# Stamp the equivalent current source

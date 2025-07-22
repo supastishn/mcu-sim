@@ -127,11 +127,9 @@ func stamp(
 	var idx_no = node_map.get(node_no_id_lookup, -1)
 
 	if state_from_comp_data == Switch3D.State.CONNECTED_NC:
-		print_debug("Switch '{n}' stamp: State=NC. Stamping COM-NC ({ic},{inc}) closed, COM-NO ({ic},{ino}) open.".format({"n":name, "ic":idx_com, "inc":idx_nc, "ino":idx_no}))
 		CircuitGraph.stamp_conductance(A, g_closed, idx_com, idx_nc)
 		CircuitGraph.stamp_conductance(A, g_open, idx_com, idx_no)
 	elif state_from_comp_data == Switch3D.State.CONNECTED_NO:
-		print_debug("Switch '{n}' stamp: State=NO. Stamping COM-NC ({ic},{inc}) open, COM-NO ({ic},{ino}) closed.".format({"n":name, "ic":idx_com, "inc":idx_nc, "ino":idx_no}))
 		CircuitGraph.stamp_conductance(A, g_open, idx_com, idx_nc)
 		CircuitGraph.stamp_conductance(A, g_closed, idx_com, idx_no)
 

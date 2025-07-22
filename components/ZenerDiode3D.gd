@@ -185,16 +185,12 @@ func stamp(
 	var n_vt = ideality_factor * THERMAL_VOLTAGE
 	var Vz = zener_voltage
 	
-	print_debug("Zener '{n}' stamp: Vd_last={vd:.3f}".format({"n":name, "vd":Vd_last}))
-	
 	# --- Diode Limiting for numerical stability ---
 	var Vcrit_fwd = n_vt * log(1e12)
 	var Vd_limited_fwd = min(Vd_last, Vcrit_fwd)
 	var Vrev = -(Vd_last + Vz)
 	var Vcrit_rev = THERMAL_VOLTAGE * log(1e12)
 	var Vrev_limited = min(Vrev, Vcrit_rev)
-
-	print_debug("  Zener '{n}' stamp: Vd_lim_fwd={vdf:.3f}, Vrev_lim={vr:.3f}".format({"n":name, "vdf":Vd_limited_fwd, "vr":Vrev_limited}))
 
 	# Forward-bias diode model
 	var exp_fwd = exp(Vd_limited_fwd / n_vt)
@@ -214,8 +210,6 @@ func stamp(
 	var I_rev_last = saturation_current * (exp_rev - 1.0)
 	var I_total_last = I_fwd_last - I_rev_last
 	var Ieq = I_total_last - Geq * Vd_last
-	
-	print_debug("  Zener '{n}' stamp: G_fwd={gf:.3g}, G_rev={gr:.3g}, Geq={geq:.3g}, Ieq={ieq:.3g}".format({"n":name, "gf":G_fwd, "gr":G_rev, "geq":Geq, "ieq":Ieq}))
 	
 	CircuitGraph.stamp_conductance(A, Geq, ia, ik)
 

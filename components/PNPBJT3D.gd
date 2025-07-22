@@ -223,7 +223,6 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 			elif Veb > Vth_be: new_region = "SATURATION"
 
 	if new_region != previous_region:
-		print("  PNP '%s' region change: %s -> %s (Veb=%.3f, Vcb=%.3f)" % [name, previous_region, new_region, Veb, Vcb])
 		comp_data.properties["operating_region"] = new_region
 		return true
 	return false
