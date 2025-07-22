@@ -11,7 +11,7 @@ const col_labels = ["a", "b", "c", "d", "e"]
 func init_breadboard(circuit_graph: CircuitGraph) -> void:
 	var all_terminals = generate_terminals()
 	circuit_graph.register_dynamic_terminals(self, all_terminals)
-	call_deferred("connect_internal_strips")
+	call_deferred("connect_internal_strips", circuit_graph)
 
 ## Creates all terminal Area3D nodes for the breadboard.
 func generate_terminals() -> Array[Node]:
@@ -74,8 +74,7 @@ func _create_terminal(pos: Vector3, p_name: String) -> Area3D:
 	return terminal
 
 ## Connects the internal strips of the breadboard after terminals are created.
-func connect_internal_strips():
-	var circuit_graph: CircuitGraph = get_tree().current_scene.get_node_or_null("CircuitGraph")
+func connect_internal_strips(circuit_graph: CircuitGraph):
 	if not is_instance_valid(circuit_graph):
 		printerr("Breadboard3D: cannot connect strips, CircuitGraph is invalid.")
 		return
@@ -103,3 +102,15 @@ func connect_internal_strips():
 		var term_b_n = terminals_container.get_node_or_null("N_r{i_1}".format({"i_1": i+1}))
 		if is_instance_valid(term_a_n) and is_instance_valid(term_b_n):
 			circuit_graph.connect_terminals(term_a_n, term_b_n)
+
+## Returns a dictionary of terminal nodes and their local positions.
+func get_terminal_info() -> Dictionary:
+	var info = {}
+	if not is_instance_valid(terminals_container):
+		return info
+	
+	for terminal in terminals_container.get_children():
+		if terminal is Area3D:
+			info[terminal.name] = {"node": terminal, "pos": terminal.position}
+	
+	return info

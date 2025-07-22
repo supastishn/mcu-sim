@@ -1,9 +1,14 @@
 class_name TestUtils
 
+static var current_test_name := ""
+
 static func _log(success: bool, message: String) -> void:
 	var color = "[color=green]" if success else "[color=red]"
 	var status = "PASSED" if success else "FAILED"
-	print_rich(color + status + ": " + message + "[/color]")
+	var test_prefix = ""
+	if not current_test_name.is_empty():
+		test_prefix = "[b]{name}[/b] - ".format({"name": current_test_name})
+	print_rich(color + status + ": " + test_prefix + message + "[/color]")
 
 ## Asserts that a condition is true.
 static func assert_true(condition: bool, message: String = "", context = null) -> bool:

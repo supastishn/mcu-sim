@@ -68,11 +68,13 @@ func run_all_tests() -> Dictionary:
 	all_tests.append_array(interactions_test_runner.get_tests())
 
 	for test_case in all_tests:
+		TestUtils.current_test_name = test_case.name
 		local_total_tests += 1
 		if await test_case.func.call():
 			local_passed_tests += 1
 		else:
 			local_failed_test_names.push_back(test_case.name)
+		TestUtils.current_test_name = ""
 
 	interactions_test_runner.queue_free()
 	return { "total": local_total_tests, "passed": local_passed_tests, "failed_names": local_failed_test_names }
