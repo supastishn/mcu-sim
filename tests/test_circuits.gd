@@ -2,6 +2,7 @@ extends Node
 
 const CircuitEditorScene = preload("res://CircuitEditor3D.tscn")  # legacy tests need it
 const OpAmpScene = preload("res://components/OpAmp3D.tscn")
+const BreadboardScene = preload("res://components/Breadboard3D.tscn")
 const TestInteractions = preload("res://tests/test_interactions.gd")
 
 ## Emitted when all tests are completed, carrying the results dictionary.
@@ -59,6 +60,7 @@ func run_all_tests() -> Dictionary:
 		{"name": "Test: Linear Regulator Normal Operation", "func": test_linear_regulator_normal},
 		{"name": "Test: Linear Regulator Dropout Scenario", "func": test_linear_regulator_dropout},
 		{"name": "Test: Op-Amp Inverting Amplifier", "func": test_op_amp_inverting_amplifier},
+		{"name": "Test: Breadboard Connectivity", "func": test_breadboard_connectivity},
 	]
 
 	var interactions_test_runner = TestInteractions.new()
@@ -211,6 +213,115 @@ func test_op_amp_inverting_amplifier() -> bool:
 
 		var expected_sat_high_volt = ps_vcc.target_voltage - opamp.rail_saturation_voltage
 		if not TestUtils.assert_approx_equals(results_sat_high.get("Vout", NAN), expected_sat_high_volt, 0.1, "Op-Amp Vout is saturated high", rig): ok = false
+
+	rig.cleanup()
+	return ok
+
+
+## Tests the Breadboard's internal connectivity for terminal strips and power rails.
+func test_breadboard_connectivity() -> bool:
+	var ok := true
+	var rig := TestRig.new()
+	add_child(rig)
+	await rig.init()
+	var ed = rig.editor
+
+	# --- Test 1: Connectivity within a terminal strip ---
+	var bb_node: Node3D = rig.add(BreadboardScene)
+	await get_tree().process_frame # Let breadboard's deferred connections run
+
+	var ps_node: PowerSource3D = rig.add(ed.PowerSourceScene)
+	var res_node: Resistor3D = rig.add(ed.ResistorScene)
+	var led_node: LED3D = rig.add(ed.LEDScene)
+
+	ps_node.target_voltage = 5.0; rig.cfg(ps_node)
+	res_node.resistance = 220.0; rig.cfg(res_node)
+	led_node.min_current_to_light = 0.001; rig.cfg(led_node)
+
+	var term_1a = bb_node.get_node_or_null("Terminals/s1_1a")
+	var term_1e = bb_node.get_node_or_null("Terminals/s1_1e")
+
+	if not is_instance_valid(term_1a) or not is_instance_valid(term_1e):
+		printerr("  FAILED: Could not find required breadboard terminals for strip test.")
+		rig.cleanup()
+		return false
+
+	rig.wire(ps_node.terminal_pos, term_1a)
+	rig.wire(term_1e, res_node.terminal1)
+	rig.wire(res_node.terminal2, led_node.terminal_anode)
+	rig.wire(led_node.terminal_kathode, ps_node.terminal_neg)
+	rig.ground(ps_node.terminal_neg)
+
+	if not TestUtils.assert_true(rig.solve(), "Breadboard Test (Strip): Solve", rig): ok = false
+	if ok:
+		var led_results = rig.results(led_node)
+		if not TestUtils.assert_true(led_results.get("current", NAN) > led_node.min_current_to_light, "Breadboard Test (Strip): LED is ON, strip is connected", rig): ok = false
+
+	# --- Test 2: Isolation between terminal strips ---
+	await rig.reset_graph()
+
+	bb_node = rig.add(BreadboardScene); await get_tree().process_frame
+	ps_node = rig.add(ed.PowerSourceScene)
+	res_node = rig.add(ed.ResistorScene)
+	led_node = rig.add(ed.LEDScene)
+
+	ps_node.target_voltage = 5.0; rig.cfg(ps_node)
+	res_node.resistance = 220.0; rig.cfg(res_node)
+	led_node.min_current_to_light = 0.001; rig.cfg(led_node)
+
+	term_1a = bb_node.get_node_or_null("Terminals/s1_1a")
+	var term_2a = bb_node.get_node_or_null("Terminals/s1_2a")
+
+	if not is_instance_valid(term_1a) or not is_instance_valid(term_2a):
+		printerr("  FAILED: Could not find required breadboard terminals for isolation test.")
+		rig.cleanup()
+		return false
+
+	rig.wire(ps_node.terminal_pos, term_1a)
+	rig.wire(term_2a, res_node.terminal1) # Different strip!
+	rig.wire(res_node.terminal2, led_node.terminal_anode)
+	rig.wire(led_node.terminal_kathode, ps_node.terminal_neg)
+	rig.ground(ps_node.terminal_neg)
+
+	if not TestUtils.assert_true(rig.solve(), "Breadboard Test (Isolation): Solve", rig): ok = false
+	if ok:
+		var led_results_iso = rig.results(led_node)
+		if not TestUtils.assert_approx_equals(led_results_iso.get("current", NAN), 0.0, 1e-6, "Breadboard Test (Isolation): LED is OFF, strips are isolated", rig): ok = false
+
+	# --- Test 3: Power Rail Connectivity ---
+	await rig.reset_graph()
+
+	bb_node = rig.add(BreadboardScene); await get_tree().process_frame
+	ps_node = rig.add(ed.PowerSourceScene)
+	res_node = rig.add(ed.ResistorScene)
+	led_node = rig.add(ed.LEDScene)
+
+	ps_node.target_voltage = 5.0; rig.cfg(ps_node)
+	res_node.resistance = 220.0; rig.cfg(res_node)
+	led_node.min_current_to_light = 0.001; rig.cfg(led_node)
+
+	var rail_p0 = bb_node.get_node_or_null("Terminals/P_r0")
+	var rail_p9 = bb_node.get_node_or_null("Terminals/P_r9")
+	var rail_n0 = bb_node.get_node_or_null("Terminals/N_r0")
+	var rail_n9 = bb_node.get_node_or_null("Terminals/N_r9")
+
+	if not is_instance_valid(rail_p0) or not is_instance_valid(rail_p9) or not is_instance_valid(rail_n0) or not is_instance_valid(rail_n9):
+		printerr("  FAILED: Could not find required breadboard terminals for power rail test.")
+		rig.cleanup()
+		return false
+
+	rig.wire(ps_node.terminal_pos, rail_p0)
+	rig.wire(ps_node.terminal_neg, rail_n0)
+	rig.ground(rail_n0)
+
+	rig.wire(rail_p9, res_node.terminal1)
+	rig.wire(res_node.terminal2, led_node.terminal_anode)
+	rig.wire(led_node.terminal_kathode, rail_n9)
+
+	if not TestUtils.assert_true(rig.solve(), "Breadboard Test (Power Rail): Solve", rig): ok = false
+	if ok:
+		var led_results_rail = rig.results(led_node)
+		if not TestUtils.assert_true(led_results_rail.get("current", NAN) > led_node.min_current_to_light, "Breadboard Test (Power Rail): LED is ON, rail is connected", rig): ok = false
 
 	rig.cleanup()
 	return ok
