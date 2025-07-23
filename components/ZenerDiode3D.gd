@@ -18,11 +18,8 @@ const THERMAL_VOLTAGE: float = 0.02585
 ## The reverse breakdown (Zener) voltage, in Volts.
 @export var zener_voltage: float = 5.1 : set = set_zener_voltage
 
-## Reference to the Anode terminal Area3D node.
 @onready var terminal_anode: Area3D = $TerminalAnode 
-## Reference to the Kathode terminal Area3D node.
 @onready var terminal_kathode: Area3D = $TerminalKathode 
-## Reference to the Label3D for displaying simulation info.
 @onready var info_label: Label3D = $InfoLabel
 
 ## Called when the node enters the scene tree. Initializes the component.

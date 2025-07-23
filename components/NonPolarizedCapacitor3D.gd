@@ -17,11 +17,8 @@ signal configuration_changed(component_node: Node3D)
 ## The Equivalent Series Resistance (ESR) of the capacitor in Ohms.
 @export var equivalent_series_resistance: float = 0.05
 
-## Reference to the first terminal Area3D node.
 @onready var terminal1: Area3D = $Terminal1
-## Reference to the second terminal Area3D node.
 @onready var terminal2: Area3D = $Terminal2
-## Reference to the Label3D for displaying simulation info.
 @onready var info_label: Label3D = $InfoLabel
 var _internal_node_id = -1
 
@@ -113,8 +110,8 @@ func stamp(
 	A: Array,
 	b: Array,
 	node_map: Dictionary,
-	_vs_map: Dictionary, # Unused by NonPolarizedCapacitor
-	_inductor_map: Dictionary, # Unused by NonPolarizedCapacitor
+	_vs_map: Dictionary,
+	_inductor_map: Dictionary,
 	terminal_connections: Dictionary,
 	comp_data: Dictionary, # Used for capacitance, voltage_across_cap_prev_dt
 	delta_time: float

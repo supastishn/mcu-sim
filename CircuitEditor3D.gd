@@ -1,134 +1,76 @@
 extends Node3D
 class_name CircuitEditor3D
 
-## The size of the grid to which components snap.
 const GRID_SIZE: float = 0.05 
-## Default distance from the camera to place a new component if raycast fails.
 const DEFAULT_PLACEMENT_DISTANCE = 5.0 
 
-## Preloaded scene for the Resistor component.
 var ResistorScene = preload("res://components/Resistor3D.tscn")
-## Preloaded scene for the PowerSource component.
 var PowerSourceScene = preload("res://components/PowerSource3D.tscn")
-## Preloaded scene for the LED component.
 var LEDScene = preload("res://components/LED3D.tscn")
-## Preloaded scene for the Switch component.
 var SwitchScene = preload("res://components/Switch3D.tscn")
-## Preloaded scene for the Diode component.
 var DiodeScene = preload("res://components/Diode3D.tscn")
-## Preloaded scene for the Potentiometer component.
 var PotentiometerScene = preload("res://components/Potentiometer3D.tscn")
-## Preloaded scene for the Wire component.
 var WireScene = preload("res://components/Wire3D.tscn")
-## Preloaded scene for the Battery component.
 var BatteryScene = preload("res://components/Battery3D.tscn") 
-## Preloaded scene for the PolarizedCapacitor component.
 var PolarizedCapacitorScene = preload("res://components/PolarizedCapacitor3D.tscn") 
-## Preloaded scene for the NonPolarizedCapacitor component.
 var NonPolarizedCapacitorScene = preload("res://components/NonPolarizedCapacitor3D.tscn") 
-## Preloaded scene for the Inductor component.
 var InductorScene = preload("res://components/Inductor3D.tscn") 
-## Preloaded scene for the NPN BJT component.
 var NPNBJTScene = preload("res://components/NPNBJT3D.tscn") 
-## Preloaded scene for the PNP BJT component.
 var PNPBJTScene = preload("res://components/PNPBJT3D.tscn") 
-## Preloaded scene for the ZenerDiode component.
 var ZenerDiodeScene = preload("res://components/ZenerDiode3D.tscn") 
-## Preloaded scene for the N-Channel MOSFET component.
 var NChannelMOSFETScene = preload("res://components/NChannelMOSFET3D.tscn") 
-## Preloaded scene for the P-Channel MOSFET component.
 var PChannelMOSFETScene = preload("res://components/PChannelMOSFET3D.tscn")
-## Preloaded scene for the Relay component.
 var RelayScene = preload("res://components/Relay3D.tscn") 
-## Preloaded scene for the LinearRegulator component.
 var LinearRegulatorScene = preload("res://components/LinearRegulator3D.tscn")
-## Preloaded scene for the OpAmp component.
 var OpAmpScene = preload("res://components/OpAmp3D.tscn")
-## Preloaded scene for the Breadboard component.
 var BreadboardScene = preload("res://components/Breadboard3D.tscn")
 
 
-## Reference to the main 3D camera.
 @onready var camera: Camera3D = $Camera3D
-## Reference to the CircuitGraph node that manages the simulation logic.
 @onready var circuit_graph: CircuitGraph = $CircuitGraph 
 
 
 enum WireState { IDLE, START_SELECTED }
 var current_wire_state: WireState = WireState.IDLE
-
-## Stores the first terminal selected during the wiring process.
 var first_selected_terminal: Area3D = null
 
-## Parent node for all component instances.
 @onready var components_node: Node3D = $Components
-## Parent node for all wire instances.
 @onready var wires_node: Node3D = $Wires 
 
-
-## The currently selected component in the editor.
 var selected_component: Node3D = null
-## Stores the component that is a candidate for being dragged.
 var _potential_drag_target: Node3D = null 
-## The screen position where a drag operation was initiated.
 var _drag_start_position: Vector2 = Vector2.ZERO 
 
-## Reference to the main UI canvas layer.
 @onready var ui_layer: CanvasLayer = $UI
-## Reference to the virtual joystick for movement on mobile.
 @onready var move_joystick: VirtualJoystick = $UI/MoveJoystick
-## Reference to the virtual joystick for looking on mobile.
 @onready var look_joystick: VirtualJoystick = $UI/LookJoystick
-## The grid container for component creation buttons.
 @onready var component_grid: GridContainer = $UI/ComponentBar/ComponentGrid
-## The VBoxContainer that holds property editors for the selected component.
 @onready var property_container: VBoxContainer = $UI/SelectionBar/PropertyContainer
-## The main container for the selection/property editing UI.
 @onready var selection_bar: VBoxContainer = $UI/SelectionBar
 
-
-## Flag indicating if the fly-camera mode is active.
 var is_flying: bool = false
-## Flag indicating if the simulation is running continuously.
 var is_simulating_continuously: bool = false
-## Flag indicating if voltage labels on terminals should be shown.
 var show_voltage_labels: bool = false
-## Reference to the button that toggles voltage label visibility.
 var display_voltage_button: Button = null
-## Reference to the button that toggles the simulation.
 var simulate_button: Button = null
 
-## Movement speed for the fly-camera.
 @export var fly_speed: float = 5.0
-## Look sensitivity for the fly-camera.
 @export var look_sensitivity: float = 0.002 
 
-## Current movement input vector from the joystick.
 var move_vector: Vector2 = Vector2.ZERO
-## Current look input vector from the joystick.
 var look_vector: Vector2 = Vector2.ZERO
-## Current movement intensity from the joystick (0.0 to 1.0).
 var move_intensity: float = 0.0
-## Current look intensity from the joystick (0.0 to 1.0).
 var look_intensity: float = 0.0
 
-## Flag indicating if the current platform is mobile.
 var is_mobile: bool = false
 
-
-## Flag indicating if a component is currently being dragged.
 var is_dragging_component: bool = false
-## Reference to the component instance being dragged.
 var dragged_component: Node3D = null
-## Flag to prevent input processing immediately after adding a component.
 var _just_added_component: bool = false 
-## The minimum distance the mouse must move to initiate a drag.
 const DRAG_THRESHOLD: float = 5.0 
 
-## Flag to prevent recursive updates when changing a potentiometer slider's value from code.
 var _is_updating_pot_slider_programmatically: bool = false
 
-## The fixed time step used for each simulation solve.
 const SIMULATION_TIME_STEP: float = 0.01
 
 

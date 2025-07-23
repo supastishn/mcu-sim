@@ -16,21 +16,13 @@ signal configuration_changed(component_node: Node3D)
 ## A flag indicating whether the relay coil is currently energized.
 var is_energized: bool = false
 
-## Reference to the coil's positive supply terminal Area3D node.
 @onready var terminal_vcc: Area3D = $TerminalVCC         
-## Reference to the coil's ground terminal Area3D node.
 @onready var terminal_gnd: Area3D = $TerminalGND         
-## Reference to the coil's signal input terminal Area3D node.
 @onready var terminal_signal: Area3D = $TerminalSignal   
-## Reference to the switch's common terminal Area3D node.
 @onready var terminal_com: Area3D = $TerminalCOM         
-## Reference to the switch's normally open terminal Area3D node.
 @onready var terminal_no: Area3D = $TerminalNO           
-## Reference to the switch's normally closed terminal Area3D node.
 @onready var terminal_nc: Area3D = $TerminalNC           
-## Reference to the Label3D for displaying simulation info.
 @onready var info_label: Label3D = $InfoLabel
-## Reference to the main mesh of the component.
 @onready var mesh_instance: MeshInstance3D = $MeshInstance3D 
 
 ## Called when the node enters the scene tree. Initializes the component.

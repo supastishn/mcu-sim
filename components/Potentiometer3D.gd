@@ -16,16 +16,11 @@ signal wiper_position_changed(pot_node: Node3D, new_position: float)
 ## The wiper's position, from 0.0 (closest to terminal 1) to 1.0 (closest to terminal 2).
 @export var wiper_position: float = 0.5 : set = set_wiper_position
 
-## Reference to the first main terminal Area3D node.
 @onready var terminal1: Area3D = $Terminal1 
-## Reference to the second main terminal Area3D node.
 @onready var terminal2: Area3D = $Terminal2 
-## Reference to the wiper terminal Area3D node.
 @onready var terminal_wiper: Area3D = $TerminalWiper 
 
-## Reference to the main body Area3D for collision detection.
 @onready var component_body: Area3D = $ComponentBody
-## Reference to the Label3D for displaying current.
 @onready var current_label: Label3D = $CurrentLabel
 
 ## Called when the node enters the scene tree. Initializes the component.

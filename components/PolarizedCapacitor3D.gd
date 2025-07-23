@@ -17,11 +17,8 @@ signal configuration_changed(component_node: Node3D)
 ## The Equivalent Series Resistance (ESR) of the capacitor in Ohms.
 @export var equivalent_series_resistance: float = 0.01
 
-## Reference to the positive terminal (anode) Area3D node.
 @onready var terminal1: Area3D = $Terminal1
-## Reference to the negative terminal (cathode) Area3D node.
 @onready var terminal2: Area3D = $Terminal2
-## Reference to the Label3D for displaying simulation info.
 @onready var info_label: Label3D = $InfoLabel
 
 ## Flag to track the visual "exploded" state.
@@ -121,8 +118,8 @@ func stamp(
 	A: Array,
 	b: Array,
 	node_map: Dictionary,
-	_vs_map: Dictionary, # Unused by PolarizedCapacitor
-	_inductor_map: Dictionary, # Unused by PolarizedCapacitor
+	_vs_map: Dictionary,
+	_inductor_map: Dictionary,
 	terminal_connections: Dictionary,
 	comp_data: Dictionary, # Used for is_exploded, capacitance, voltage_across_cap_prev_dt
 	delta_time: float

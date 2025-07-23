@@ -2,12 +2,9 @@ extends Path3D
 
 class_name Wire3D
 
-## The CSGPolygon3D node used to render the wire.
 @onready var csg_polygon: CSGPolygon3D = $CSGPolygon3D
 
-## The starting terminal Area3D of the wire connection.
 var terminal_start: Area3D = null
-## The ending terminal Area3D of the wire connection.
 var terminal_end: Area3D = null
 
 ## The 2D polygon shape extruded along the path to create the wire's geometry.

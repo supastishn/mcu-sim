@@ -11,13 +11,9 @@ signal configuration_changed(component_node: Node3D)
 ## The maximum current the regulator can supply.
 @export var max_current: float = 1.0 : set = set_max_current
 
-## Reference to the input voltage terminal Area3D node.
 @onready var terminal_vin: Area3D = $TerminalVin
-## Reference to the output voltage terminal Area3D node.
 @onready var terminal_vout: Area3D = $TerminalVout
-## Reference to the ground terminal Area3D node.
 @onready var terminal_gnd: Area3D = $TerminalGnd
-## Reference to the Label3D for displaying simulation info.
 @onready var info_label: Label3D = $InfoLabel
 
 ## Called when the node enters the scene tree. Initializes the component.

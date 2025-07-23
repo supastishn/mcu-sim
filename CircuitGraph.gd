@@ -10,7 +10,6 @@ const R_DIODE_OFF         := R_LED_OFF
 const R_SWITCH_CLOSED     := 1.0e-3
 const R_SWITCH_OPEN       := 1.0e9
 
-## Helper function for string formatting.
 static func fmt(t : String, d : Dictionary) -> String:
 	return t.format(d)
 

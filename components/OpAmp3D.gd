@@ -14,18 +14,11 @@ signal configuration_changed(component_node: Node3D)
 ## The output resistance in series with the voltage source model.
 @export var output_resistance: float = 50.0
 
-# UI and component node references
-## Reference to the non-inverting input terminal (+) Area3D node.
 @onready var terminal_vp: Area3D = $TerminalVp
-## Reference to the inverting input terminal (-) Area3D node.
 @onready var terminal_vn: Area3D = $TerminalVn
-## Reference to the output terminal Area3D node.
 @onready var terminal_vout: Area3D = $TerminalVout
-## Reference to the positive supply voltage terminal (Vcc) Area3D node.
 @onready var terminal_vcc: Area3D = $TerminalVcc
-## Reference to the negative supply voltage terminal (Vee) Area3D node.
 @onready var terminal_vee: Area3D = $TerminalVee
-## Reference to the Label3D for displaying simulation info.
 @onready var info_label: Label3D = $InfoLabel
 
 const REGION_HYSTERESIS_MARGIN: float = 0.05

@@ -14,11 +14,8 @@ signal configuration_changed(component_node: Node3D)
 ## The DC resistance (DCR) of the inductor's winding in Ohms.
 @export var dc_resistance: float = 0.1
 
-## Reference to the first terminal Area3D node.
 @onready var terminal1: Area3D = $Terminal1
-## Reference to the second terminal Area3D node.
 @onready var terminal2: Area3D = $Terminal2
-## Reference to the Label3D for displaying simulation info.
 @onready var info_label: Label3D = $InfoLabel 
 var _internal_node_id = -1
 
@@ -91,7 +88,7 @@ func stamp(
 	A: Array,
 	b: Array,
 	node_map: Dictionary,
-	_vs_map: Dictionary, # Unused by Inductor
+	_vs_map: Dictionary,
 	inductor_map: Dictionary, # This is inductor_id_to_matrix_index
 	terminal_connections: Dictionary,
 	comp_data: Dictionary, # Used for inductance, current_through_L_prev_dt

@@ -19,13 +19,9 @@ const VOLTAGE_PER_CELL: float = 1.5
 ## The target voltage of the battery, calculated from `num_cells`.
 var target_voltage: float = VOLTAGE_PER_CELL 
 
-## Reference to the positive terminal Area3D node.
 @onready var terminal_pos: Area3D = $TerminalPositive
-## Reference to the negative terminal Area3D node.
 @onready var terminal_neg: Area3D = $TerminalNegative
-## Reference to the Label3D for displaying current.
 @onready var current_label: Label3D = $CurrentLabel
-## An array of MeshInstance3D nodes representing the individual cells.
 var cell_meshes: Array[MeshInstance3D] 
 
 ## Called when the node enters the scene tree. Initializes the component.

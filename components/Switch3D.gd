@@ -17,18 +17,12 @@ enum State {
 ## The current state of the switch (CONNECTED_NC or CONNECTED_NO).
 @export var current_state: State = State.CONNECTED_NC : set = set_state
 
-## Reference to the Common terminal Area3D node.
 @onready var terminal_com: Area3D = $TerminalCOM
-## Reference to the Normally Closed terminal Area3D node.
 @onready var terminal_nc: Area3D = $TerminalNC
-## Reference to the Normally Open terminal Area3D node.
 @onready var terminal_no: Area3D = $TerminalNO
 
-## Reference to the MeshInstance3D for the switch's lever.
 @onready var lever_mesh: MeshInstance3D = $LeverPivot/LeverMesh 
-## Reference to the main body Area3D for collision detection.
 @onready var component_body: Area3D = $ComponentBody
-## Reference to the Label3D for displaying current.
 @onready var current_label: Label3D = $CurrentLabel
 
 ## The rotation angle for the lever when in the NC state.

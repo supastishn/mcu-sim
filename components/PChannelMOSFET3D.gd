@@ -13,13 +13,9 @@ signal configuration_changed(component_node : Node3D)
 ## The channel-length modulation parameter (lambda). A value of 0.0 is ideal.
 @export var lambda: float = 0.01
 
-## Reference to the Drain terminal Area3D node.
 @onready var terminal_d : Area3D = $TerminalD
-## Reference to the Gate terminal Area3D node.
 @onready var terminal_g : Area3D = $TerminalG
-## Reference to the Source terminal Area3D node.
 @onready var terminal_s : Area3D = $TerminalS
-## Reference to the Label3D for displaying simulation info.
 @onready var info_label : Label3D = $InfoLabel
 
 ## Called when the node enters the scene tree. Initializes the component.
@@ -99,7 +95,6 @@ func get_terminal_info() -> Dictionary:
 		"S": {"node": terminal_s, "pos": terminal_s.position}
 	}
 
-# ---------- NON-LINEAR REGION EVAL ----------
 ## Updates the MOSFET's operating region based on an MNA iteration.
 func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter: Array, node_map_iter: Dictionary, _vs_map_iter: Dictionary) -> bool:
 	if x_iter.is_empty():
@@ -140,7 +135,6 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 		return true
 	return false
 
-# ---------- STAMP ----------
 ## Applies the MOSFET's contribution to the MNA matrices based on its current operating region.
 func stamp(A, b, node_map, _vs_map, _inductor_map, term_conn, comp_data, _dt):
 	var reg = comp_data.properties.get("operating_region")
@@ -190,7 +184,6 @@ func stamp(A, b, node_map, _vs_map, _inductor_map, term_conn, comp_data, _dt):
 		if idx_s != -1: b[idx_s] += Ieq_d
 		if idx_d != -1: b[idx_d] -= Ieq_d
 
-# ---------- gather_sim_results ----------
 ## Extracts and stores simulation results (currents, voltages, region) for this component.
 func gather_sim_results(circuit,comp_data,_x,_node_map,_vs_map,_inductor_map,_dt):
 	var cid = comp_data.component_node.get_instance_id()

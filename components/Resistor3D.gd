@@ -6,11 +6,8 @@ class_name Resistor3D
 ## The resistance value in Ohms.
 @export var resistance: float = 1000.0
 
-## Reference to the first terminal Area3D node.
 @onready var terminal1: Area3D = $Terminal1
-## Reference to the second terminal Area3D node.
 @onready var terminal2: Area3D = $Terminal2
-## Reference to the Label3D for displaying current.
 @onready var current_label: Label3D = $CurrentLabel
 
 ## Called when the node enters the scene tree. Initializes the component.

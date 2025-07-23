@@ -15,13 +15,9 @@ signal configuration_changed(component_node: Node3D)
 @export var alpha_reverse: float = 0.5 : set = set_alpha_reverse
 const THERMAL_VOLTAGE: float = 0.02585
 
-## Reference to the Emitter terminal Area3D node.
 @onready var terminal_e: Area3D = $TerminalE 
-## Reference to the Base terminal Area3D node.
 @onready var terminal_b: Area3D = $TerminalB 
-## Reference to the Collector terminal Area3D node.
 @onready var terminal_c: Area3D = $TerminalC 
-## Reference to the Label3D for displaying simulation info.
 @onready var info_label: Label3D = $InfoLabel
 
 ## Called when the node enters the scene tree. Initializes the component.

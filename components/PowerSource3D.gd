@@ -10,11 +10,8 @@ class_name PowerSource3D
 @export var target_current: float = 1.0
 
 
-## Reference to the positive terminal Area3D node.
 @onready var terminal_pos: Area3D = $TerminalPositive
-## Reference to the negative terminal Area3D node.
 @onready var terminal_neg: Area3D = $TerminalNegative
-## Reference to the Label3D for displaying simulation info.
 @onready var current_label: Label3D = $CurrentLabel
 
 ## Called when the node enters the scene tree. Initializes the component.

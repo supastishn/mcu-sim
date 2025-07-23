@@ -17,15 +17,10 @@ signal configuration_changed(component_node: Node3D)
 ## The channel-length modulation parameter (lambda). A value of 0.0 is ideal.
 @export var lambda: float = 0.01
 
-## Reference to the Drain terminal Area3D node.
 @onready var terminal_d: Area3D = $TerminalD 
-## Reference to the Gate terminal Area3D node.
 @onready var terminal_g: Area3D = $TerminalG 
-## Reference to the Source terminal Area3D node.
 @onready var terminal_s: Area3D = $TerminalS 
-## Reference to the Label3D for displaying simulation info.
 @onready var info_label: Label3D = $InfoLabel
-## Reference to the main mesh of the component.
 @onready var mesh_instance: MeshInstance3D = $MeshInstance3D
 
 

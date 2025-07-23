@@ -2,9 +2,7 @@ extends Area3D
 
 class_name TerminalFeedback
 
-## The MeshInstance3D used for visual feedback (e.g., highlighting).
 @onready var visualization_mesh: MeshInstance3D = $Visualization
-## The Label3D used to display terminal information like name or voltage.
 @onready var label: Label3D = $Label3D
 
 ## Stores the default material of the terminal visualization.

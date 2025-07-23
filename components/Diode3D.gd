@@ -11,13 +11,9 @@ const LinearSolver = preload("res://solvers/LinearSolver.gd")
 @export var ideality_factor: float = 1.0
 const THERMAL_VOLTAGE: float = 0.02585 # At room temperature (300K)
 
-## Reference to the Anode terminal Area3D node.
 @onready var terminal_anode: Area3D = $TerminalAnode 
-## Reference to the Kathode terminal Area3D node.
 @onready var terminal_kathode: Area3D = $TerminalKathode 
-## Reference to the visual representation (MeshInstance3D) of the diode.
 @onready var diode_mesh_instance: MeshInstance3D = $MeshInstance3D 
-## Reference to the Label3D node for displaying current flow.
 @onready var current_label: Label3D = $CurrentLabel
 
 ## Called when the node enters the scene tree for the first time. Initializes the component.
