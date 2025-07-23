@@ -32,7 +32,7 @@ func get_interactive_object_at(camera: Camera3D, screen_pos: Vector2, components
 				var cam_transform = camera.global_transform
 				var to_terminal = terminal_node.global_position - cam_transform.origin
 				if to_terminal.dot(-cam_transform.basis.z) > 0: # Check if in front of camera
-					var terminal_screen_pos = camera.project_position(terminal_node.global_position)
+					var terminal_screen_pos = camera.unproject_position(terminal_node.global_position)
 					var dist_sq = terminal_screen_pos.distance_squared_to(screen_pos)
 					if dist_sq < min_dist_sq:
 						min_dist_sq = dist_sq
@@ -72,5 +72,3 @@ func get_interactive_object_at(camera: Camera3D, screen_pos: Vector2, components
 		return {"type": "ground", "node": collider, "position": position}
 		
 	return {"type": "none", "node": null, "position": Vector3.ZERO}
-
-
