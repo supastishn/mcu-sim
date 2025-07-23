@@ -542,7 +542,6 @@ func _populate_component_bar():
 		{"name": "P-MOS", "scene": PChannelMOSFETScene},
 		{"name": "Relay", "scene": RelayScene},
 		{"name": "Regulator", "scene": LinearRegulatorScene},
-		{"name": "Breadboard", "scene": BreadboardScene},
 	]
 	
 	var enable_beta = ProjectSettings.get_setting("mcu_sim/features/enable_beta_components", false)
@@ -555,6 +554,11 @@ func _populate_component_bar():
 		btn.pressed.connect(_on_add_component_button_pressed.bind(comp_def.scene))
 		component_grid.add_child(btn)
 	
+	var breadboard_btn = Button.new()
+	breadboard_btn.text = "Breadboard"
+	breadboard_btn.pressed.connect(_on_add_component_button_pressed.bind(BreadboardScene))
+	component_grid.add_child(breadboard_btn)
+
 	# Action buttons
 	simulate_button = Button.new()
 	simulate_button.text = "Simulate"
@@ -896,6 +900,14 @@ func _update_component_visuals():
 		var comp_node = comp_data.component_node
 		if not is_instance_valid(comp_node): continue
 		var results = circuit_graph.component_results.get(comp_node.get_instance_id(), {})
+
+		# Always update visual state for components like LEDs (lit/unlit) regardless of labels
+		if comp_node.has_method("update_visual_state") and comp_node is LED3D:
+			comp_node.update_visual_state(results.get("current", NAN), comp_data.get("is_burned", false))
+
+		if not show_voltage_labels:
+			continue # Don't show any info/current labels if not requested
+
 		if results.is_empty() and comp_node.has_method("reset_visual_state"):
 			comp_node.reset_visual_state(); continue
 		if comp_node.has_method("show_info"):
@@ -906,8 +918,6 @@ func _update_component_visuals():
 			if comp_node is PowerSource3D or comp_node is Battery3D: comp_node.show_current(results.get("current", NAN), results.get("voltage", NAN), results.get("operating_mode", "CV"))
 			elif comp_node is Potentiometer3D: comp_node.show_current(results.get("current_T1_W", NAN), results.get("current_W_T2", NAN))
 			else: comp_node.show_current(results.get("current", NAN))
-		if comp_node.has_method("update_visual_state") and comp_node is LED3D:
-			comp_node.update_visual_state(results.get("current", NAN), comp_data.get("is_burned", false))
 
 ## Shows voltage labels on all terminals.
 func _update_voltage_displays():
@@ -920,10 +930,19 @@ func _update_voltage_displays():
 				if is_instance_valid(terminal) and terminal is TerminalFeedback:
 					terminal.show_voltage(voltage)
 
-## Hides all voltage labels on terminals.
+## Hides all voltage labels on terminals and info/current labels on components.
 func _hide_voltage_displays():
 	for comp_data in circuit_graph.components:
+		# Hide terminal voltage labels
 		for term_name in comp_data.terminals:
 			var terminal = comp_data.terminals[term_name]
 			if is_instance_valid(terminal) and terminal is TerminalFeedback and not terminal.is_selected:
 				terminal.hide_voltage()
+		
+		# Hide component info/current labels
+		var comp_node = comp_data.component_node
+		if is_instance_valid(comp_node):
+			if comp_node.has_method("hide_info"):
+				comp_node.hide_info()
+			if comp_node.has_method("hide_current"):
+				comp_node.hide_current()
