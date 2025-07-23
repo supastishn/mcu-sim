@@ -542,6 +542,7 @@ func _populate_component_bar():
 		{"name": "P-MOS", "scene": PChannelMOSFETScene},
 		{"name": "Relay", "scene": RelayScene},
 		{"name": "Regulator", "scene": LinearRegulatorScene},
+		{"name": "Breadboard", "scene": BreadboardScene},
 	]
 	
 	var enable_beta = ProjectSettings.get_setting("mcu_sim/features/enable_beta_components", false)
@@ -554,11 +555,6 @@ func _populate_component_bar():
 		btn.pressed.connect(_on_add_component_button_pressed.bind(comp_def.scene))
 		component_grid.add_child(btn)
 	
-	var breadboard_btn = Button.new()
-	breadboard_btn.text = "Breadboard"
-	breadboard_btn.pressed.connect(_on_add_component_button_pressed.bind(BreadboardScene))
-	component_grid.add_child(breadboard_btn)
-
 	# Action buttons
 	simulate_button = Button.new()
 	simulate_button.text = "Simulate"
