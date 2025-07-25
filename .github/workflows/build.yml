@@ -17,24 +17,49 @@ jobs:
         with:
           lfs: true # In case some assets are stored in LFS
 
-      - name: Set up Godot
-        uses: godot-ci/godot-ci@v4.2.0
+      - name: Set up JDK for Android jarsigner
+        uses: actions/setup-java@v4
         with:
-          # Using a recent stable Godot 4 version. The project file mentions "4.4"
-          # which is not yet released. This can be updated by the user if a
-          # specific version is required.
-          version: 4.2.2
-          use_gl_compatibility: true # As per project.godot setting
-          # The godot-ci action needs Android export templates to build for Android
-          target_platform: android
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Download and prepare Godot
+        env:
+          GODOT_VERSION: 4.2.2
+          GODOT_VERSION_STRING: 4.2.2.stable
+        run: |
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends wget unzip
+          
+          # Download Godot headless executable
+          wget "https://downloads.tuxfamily.org/godotengine/${GODOT_VERSION}/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip" -O godot.zip
+          unzip godot.zip
+          rm godot.zip
+          mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" godot
+          chmod +x godot
+          ./godot --version # Print version for logs
+
+          # Download and install export templates
+          wget "https://downloads.tuxfamily.org/godotengine/${GODOT_VERSION}/Godot_v${GODOT_VERSION}-stable_export_templates.tpz" -O templates.tpz
+          mkdir -p ~/.local/share/godot/export_templates/${GODOT_VERSION_STRING}
+          unzip templates.tpz -d ~/.local/share/godot/export_templates/${GODOT_VERSION_STRING}
+          rm templates.tpz
+          mv ~/.local/share/godot/export_templates/${GODOT_VERSION_STRING}/templates/* ~/.local/share/godot/export_templates/${GODOT_VERSION_STRING}/
+          rmdir ~/.local/share/godot/export_templates/${GODOT_VERSION_STRING}/templates
+
+      - name: Create Android debug keystore
+        run: |
+          mkdir -p ~/.android
+          keytool -keyalg RSA -genkeypair -alias androiddebugkey -keypass android -keystore ~/.android/debug.keystore -storepass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999
+          # The export preset is configured to sign, and Godot will automatically
+          # use this debug keystore if it exists at the default location.
 
       - name: Build All Platforms
         run: |
           mkdir -p web exports exports/test
-          godot -v --headless --export-release "Windows Desktop"
-          godot -v --headless --export-release "Linux"
-          godot -v --headless --export-release "Android"
-          godot -v --headless --export-release "Web"
+          ./godot -v --headless --export-release "Windows Desktop"
+          ./godot -v --headless --export-release "Linux"
+          ./godot -v --headless --export-release "Android"
+          ./godot -v --headless --export-release "Web"
 
       - name: Upload Windows Build
         uses: actions/upload-artifact@v4
