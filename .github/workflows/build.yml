@@ -18,7 +18,7 @@ jobs:
           lfs: true # In case some assets are stored in LFS
 
       - name: Set up Godot
-        uses: godot-ci/godot-ci@v4
+        uses: godot-ci/godot-ci@v4.2.0
         with:
           # Using a recent stable Godot 4 version. The project file mentions "4.4"
           # which is not yet released. This can be updated by the user if a
