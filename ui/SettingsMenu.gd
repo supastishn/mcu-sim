@@ -20,6 +20,7 @@ const BETA_COMPONENTS_SETTING = "mcu_sim/features/enable_beta_components"
 ## Called when the node enters the scene tree. Initializes the beta features checkbox.
 func _ready():
 	beta_features_check_button.button_pressed = ProjectSettings.get_setting(BETA_COMPONENTS_SETTING, false)
+	beta_features_check_button.disabled = true
 
 ## Called when the Back button is pressed. Returns to the main menu.
 func _on_back_button_pressed():
@@ -41,10 +42,6 @@ func _on_run_tests_button_pressed():
 
 	test_runner_instance.run_tests_from_ui()
 
-## Called when the Beta Features checkbox is toggled. Saves the setting.
-func _on_beta_features_check_button_toggled(button_pressed: bool):
-	ProjectSettings.set_setting(BETA_COMPONENTS_SETTING, button_pressed)
-	ProjectSettings.save()
 
 ## Callback function for when the test runner completes. Displays the results.
 func _on_tests_completed(results: Dictionary):

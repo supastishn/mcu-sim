@@ -9,7 +9,7 @@ const LinearSolver = preload("res://solvers/LinearSolver.gd")
 @export var saturation_current: float = 1.0e-12
 ## The ideality factor (emission coefficient) of the diode.
 @export var ideality_factor: float = 1.0
-const THERMAL_VOLTAGE: float = 0.02585 # At room temperature (300K)
+const THERMAL_VOLTAGE: float = 0.02585
 
 @onready var terminal_anode: Area3D = $TerminalAnode 
 @onready var terminal_kathode: Area3D = $TerminalKathode 
@@ -102,16 +102,12 @@ func stamp(
 	comp_data: Dictionary,
 	_delta_time: float
 ):
-	# This function now stamps a linearized model for the Newton-Raphson solver.
 	var Vd_last_iter = comp_data.properties.get("_internal_voltage", 0.0)
 	var n_vt = ideality_factor * THERMAL_VOLTAGE
 
-	# --- Diode Limiting for numerical stability ---
-	# To prevent floating point overflow in exp(), we clamp the diode voltage.
-	var Vcrit = n_vt * log(1e12) # A large but numerically stable conductance
+	var Vcrit = n_vt * log(1e12)
 	var Vd_limited = min(Vd_last_iter, Vcrit)
 
-	# Linearized model from Shockley equation: Geq
 	var exp_term = exp(Vd_limited / n_vt)
 	var Geq = (saturation_current / n_vt) * exp_term
 
@@ -120,13 +116,10 @@ func stamp(
 	var ia = node_map.get(na, -1)
 	var ik = node_map.get(nk, -1)
 
-	# Companion model current source: I(V0) - G*V0
 	var I_last = saturation_current * (exp_term - 1.0)
 	var Ieq = I_last - Geq * Vd_limited
 
-	# Stamp the equivalent conductance
 	CircuitGraph.stamp_conductance(A, Geq, ia, ik)
 
-	# Stamp the equivalent current source. Ieq flows anode to cathode.
 	if ia != -1: b[ia] -= Ieq
 	if ik != -1: b[ik] += Ieq

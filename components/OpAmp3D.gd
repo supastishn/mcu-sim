@@ -8,7 +8,7 @@ signal configuration_changed(component_node: Node3D)
 ## The open-loop voltage gain of the op-amp.
 @export var open_loop_gain: float = 200000.0 : set = set_open_loop_gain
 ## The voltage drop from the supply rails for output saturation.
-@export var rail_saturation_voltage: float = 1.5 : set = set_rail_saturation_voltage # Voltage drop from the supply rails
+@export var rail_saturation_voltage: float = 1.5 : set = set_rail_saturation_voltage
 ## The input resistance between the Vp and Vn terminals.
 @export var input_resistance: float = 1.0e6
 ## The output resistance in series with the voltage source model.
@@ -41,7 +41,6 @@ func set_rail_saturation_voltage(value: float):
 		if is_inside_tree():
 			emit_signal("configuration_changed", self)
 
-# --- Visual Feedback ---
 ## Displays the calculated operating region and voltages on the component's 3D label.
 func show_info(results: Dictionary):
 	if not is_instance_valid(info_label): return
@@ -111,7 +110,6 @@ func update_nonlinear_state(
 	var Vcc = solution_vector[vcc_idx] if vcc_idx != -1 else (0.0 if vcc_node_id == circuit.ground_node_id else NAN)
 	var Vee = solution_vector[vee_idx] if vee_idx != -1 else (0.0 if vee_node_id == circuit.ground_node_id else NAN)
 
-	# Store the rail voltages for the stamp function to use.
 	comp_data.properties["Vcc_last_iter"] = Vcc
 	comp_data.properties["Vee_last_iter"] = Vee
 
@@ -119,7 +117,7 @@ func update_nonlinear_state(
 	if is_nan(Vp) or is_nan(Vn) or is_nan(Vcc) or is_nan(Vee):
 		new_region = "OFF"
 	else:
-		if Vcc < Vee: # Swap if rails are inverted
+		if Vcc < Vee:
 			var temp = Vcc
 			Vcc = Vee
 			Vee = temp
@@ -131,7 +129,6 @@ func update_nonlinear_state(
 		var high_rail = Vcc - rail_drop
 		var low_rail  = Vee + rail_drop
 
-		# Hysteresis to prevent region oscillation
 		var prev_region = comp_data.properties["operating_region"]
 		
 		new_region = prev_region
@@ -186,32 +183,24 @@ func stamp(
 	CircuitGraph.stamp_conductance(A, g_in, vp_idx, vn_idx)
 
 	# Model output as a Norton equivalent: I_n in parallel with Ro
-	var Gbig = 1e9 # Large conductance for voltage stamping in saturation
+	var Gbig = 1e9
 
 	if region == "OFF":
 		if vout_idx != -1:
-			A[vout_idx][vout_idx] += 1e-9 # High impedance to ground
+			A[vout_idx][vout_idx] += 1e-9
 	elif region == "LINEAR":
-		# Model as Norton equivalent: VCCS in parallel with output resistance.
 		var g_out = 1.0 / output_resistance if output_resistance > 1e-9 else 1e9
 		var transconductance = open_loop_gain * g_out
 		
-		# Stamp output resistance (to ground)
 		if vout_idx != -1:
 			A[vout_idx][vout_idx] += g_out
 			
-		# Stamp VCCS: i = transconductance * (Vp - Vn)
-		# KCL at Vout is ... - i = 0. So d/dV terms are for -i.
 		if vout_idx != -1:
 			if vp_idx != -1:
 				A[vout_idx][vp_idx] -= transconductance
 			if vn_idx != -1:
 				A[vout_idx][vn_idx] += transconductance
 	elif region == "SAT_HIGH":
-		# Enforce Vout = Vcc - rail_saturation_voltage.
-		# This is a VCVS where Vout = 1*Vcc - sat_drop.
-		# KCL at Vout node: G(Vout - (Vcc - sat_drop)) = 0
-		# G*Vout - G*Vcc = -G*sat_drop
 		var sat_drop = comp_data.properties["rail_saturation_voltage"]
 		if vout_idx != -1:
 			A[vout_idx][vout_idx] += Gbig
@@ -220,9 +209,6 @@ func stamp(
 				A[vout_idx][vcc_idx] -= Gbig
 
 	elif region == "SAT_LOW":
-		# Enforce Vout = Vee + rail_saturation_voltage.
-		# Vout = 1*Vee + sat_drop
-		# G*Vout - G*Vee = G*sat_drop
 		var sat_drop = comp_data.properties["rail_saturation_voltage"]
 		if vout_idx != -1:
 			A[vout_idx][vout_idx] += Gbig

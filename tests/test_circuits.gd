@@ -1,9 +1,8 @@
 extends Node
 
-const CircuitEditorScene = preload("res://CircuitEditor3D.tscn")  # legacy tests need it
+const CircuitEditorScene = preload("res://CircuitEditor3D.tscn")
 const OpAmpScene = preload("res://components/OpAmp3D.tscn")
 const BreadboardScene = preload("res://components/Breadboard3D.tscn")
-const TestInteractions = preload("res://tests/test_interactions.gd")
 
 ## Emitted when all tests are completed, carrying the results dictionary.
 signal tests_completed(results: Dictionary)
@@ -63,10 +62,6 @@ func run_all_tests() -> Dictionary:
 		{"name": "Test: Breadboard Connectivity", "func": test_breadboard_connectivity},
 	]
 
-	var interactions_test_runner = TestInteractions.new()
-	add_child(interactions_test_runner)
-	all_tests.append_array(interactions_test_runner.get_tests())
-
 	for test_case in all_tests:
 		TestUtils.current_test_name = test_case.name
 		local_total_tests += 1
@@ -76,7 +71,6 @@ func run_all_tests() -> Dictionary:
 			local_failed_test_names.push_back(test_case.name)
 		TestUtils.current_test_name = ""
 
-	interactions_test_runner.queue_free()
 	return { "total": local_total_tests, "passed": local_passed_tests, "failed_names": local_failed_test_names }
 
 

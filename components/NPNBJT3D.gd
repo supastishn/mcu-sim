@@ -157,8 +157,7 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 	var Vbe = Vb - Ve
 	var Vbc = Vb - Vc
 
-	# Clamp junction voltages to prevent extreme values in the stamp function
-	var Vcrit_clamp = THERMAL_VOLTAGE * log(1e14) # Use same Vcrit as in stamp() for consistency
+	var Vcrit_clamp = THERMAL_VOLTAGE * log(1e14)
 	comp_data.properties["_internal_vbe"] = clampf(Vbe, -5.0, Vcrit_clamp)
 	comp_data.properties["_internal_vbc"] = clampf(Vbc, -5.0, Vcrit_clamp)
 
@@ -187,10 +186,8 @@ func stamp(
 	comp_data: Dictionary,
 	_delta_time: float
 ):
-	# Null check for terminals
 	if not is_instance_valid(terminal_c) or not is_instance_valid(terminal_b) or not is_instance_valid(terminal_e):
 		return
-	# Simplified Ebers-Moll Model Stamp
 	var Vbe = comp_data.properties.get("_internal_vbe", 0.0)
 	var Vbc = comp_data.properties.get("_internal_vbc", 0.0)
 	var Is = saturation_current
@@ -198,51 +195,37 @@ func stamp(
 	var alpha_r = alpha_reverse
 	var Vt = THERMAL_VOLTAGE
 
-	# --- Diode Limiting for numerical stability ---
-	# The Vbe and Vbc values are already clamped in update_nonlinear_state.
-	
-	# Conductances of the BE and BC diodes
 	var I_es = Is / alpha_f
 	var I_cs = Is / alpha_r
 	var g_pi = (I_es / Vt) * exp(Vbe / Vt)
 	var g_mu = (I_cs / Vt) * exp(Vbc / Vt)
 
-	# Transconductances
 	var gm_f = alpha_f * g_pi
 	var gm_r = alpha_r * g_mu
 
-	# Get node indices
 	var idx_c = node_map.get(terminal_connections.get(terminal_c.get_instance_id(), -1), -1)
 	var idx_b = node_map.get(terminal_connections.get(terminal_b.get_instance_id(), -1), -1)
 	var idx_e = node_map.get(terminal_connections.get(terminal_e.get_instance_id(), -1), -1)
 
-	# KCL Error vector F is [F_c, F_b, F_e] = [Ic, Ib, -Ie]. Stamp Jacobian dF/dV.
-	# Collector Row: d(Ic)/dV
 	if idx_c != -1:
 		if idx_c != -1: A[idx_c][idx_c] += g_mu
 		if idx_b != -1: A[idx_c][idx_b] += gm_f - g_mu
 		if idx_e != -1: A[idx_c][idx_e] -= gm_f
-	# Base Row: d(Ib)/dV = d(Ie-Ic)/dV
 	if idx_b != -1:
 		if idx_c != -1: A[idx_b][idx_c] += gm_r - g_mu
 		if idx_b != -1: A[idx_b][idx_b] += g_pi - gm_f + g_mu - gm_r
 		if idx_e != -1: A[idx_b][idx_e] += gm_f - g_pi
-	# Emitter Row: d(-Ie)/dV
 	if idx_e != -1:
 		if idx_c != -1: A[idx_e][idx_c] += -gm_r
 		if idx_b != -1: A[idx_e][idx_b] += gm_r - g_pi
 		if idx_e != -1: A[idx_e][idx_e] += g_pi
 
-	# Companion model current sources
 	var Ie_last = I_es * (exp(Vbe / Vt) - 1.0) - alpha_r * I_cs * (exp(Vbc / Vt) - 1.0)
 	var Ic_last = alpha_f * I_es * (exp(Vbe / Vt) - 1.0) - I_cs * (exp(Vbc / Vt) - 1.0)
 	var Ib_last = Ie_last - Ic_last
 	
-	# We need to add the RHS for the Newton-Raphson update, which is J*V_last - F(V_last).
-	# F(V_last) is the vector of KCL errors [Ic, Ib, -Ie].
 	var rhs_c = (gm_f * Vbe - g_mu * Vbc) - Ic_last
 	var rhs_b = ((g_pi - gm_f) * Vbe + (g_mu - gm_r) * Vbc) - Ib_last
-	# For the emitter, F_e = -Ie. So the RHS contribution is d(-Ie)/dV * V - (-Ie) = Ie_last - d(Ie)/dV * V
 	var rhs_e = Ie_last - (g_pi * Vbe - gm_r * Vbc)
 	
 	if idx_c != -1: b[idx_c] += rhs_c

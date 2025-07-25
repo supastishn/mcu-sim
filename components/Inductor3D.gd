@@ -89,12 +89,11 @@ func stamp(
 	b: Array,
 	node_map: Dictionary,
 	_vs_map: Dictionary,
-	inductor_map: Dictionary, # This is inductor_id_to_matrix_index
+	inductor_map: Dictionary,
 	terminal_connections: Dictionary,
-	comp_data: Dictionary, # Used for inductance, current_through_L_prev_dt
+	comp_data: Dictionary,
 	delta_time: float
 ):
-	# --- Numerical stability: clamp delta_time ---
 	delta_time = clamp(delta_time, 1e-12, 0.1)
 
 	var dcr = dc_resistance
@@ -103,7 +102,6 @@ func stamp(
 	var t1_idx = node_map.get(terminal_connections.get(terminal1.get_instance_id(), -1), -1)
 	var t2_idx = node_map.get(terminal_connections.get(terminal2.get_instance_id(), -1), -1)
 	
-	# Stamp DCR between terminal 1 and internal node
 	if dcr > 1e-9:
 		var g_dcr = 1.0 / dcr
 		CircuitGraph.stamp_conductance(A, g_dcr, t1_idx, internal_node_idx)
@@ -111,7 +109,7 @@ func stamp(
 		CircuitGraph.stamp_conductance(A, 1e9, t1_idx, internal_node_idx)
 
 	var L_val_prop = inductance
-	if L_val_prop <= 1e-12: L_val_prop = 1e-12 # Ensure L is not zero
+	if L_val_prop <= 1e-12: L_val_prop = 1e-12
 	var I_L_prev_dt_val_prop = comp_data.properties.get("current_through_L_prev_dt", 0.0)
 
 	var t2_instance_id = terminal2.get_instance_id() if is_instance_valid(terminal2) else -1
@@ -124,10 +122,6 @@ func stamp(
 		return
 	var idx_I_L_val = inductor_map[self_instance_id]
 
-	# Inductor equation: V1 - V2 - L * d(I_L)/dt = 0
-	# Using Backward Euler: V_internal(t) - V2(t) - L * (I_L(t) - I_L(t-dt))/dt = 0
-	# Row for I_L: V_internal(t) - V2(t) - (L/dt)*I_L(t) = -(L/dt)*I_L(t-dt)
-	
 	var L_div_dt: float
 	if delta_time <= 1e-9:
 		L_div_dt = L_val_prop / 1e-9
@@ -140,7 +134,6 @@ func stamp(
 	
 	b[idx_I_L_val] = -L_div_dt * I_L_prev_dt_val_prop
 	
-	# KCL equations for ideal inductor
 	if internal_node_idx != -1: A[internal_node_idx][idx_I_L_val] = 1.0
 	if t2_idx != -1: A[t2_idx][idx_I_L_val] = -1.0
 
@@ -155,7 +148,7 @@ func gather_sim_results(
 		_delta_time   : float) -> void:
 	var comp_node = comp_data.component_node
 	var comp_id = comp_node.get_instance_id()
-	var solved_current_L : float = NAN # holds I_L for later reuse
+	var solved_current_L : float = NAN
 
 	if not inductor_map.has(comp_id):
 		LinearSolver.print_vector(x, "x on inductor results fail")
@@ -180,6 +173,5 @@ func gather_sim_results(
 	if not is_nan(V1_L) and not is_nan(V2_L): actual_V_across_L = V1_L - V2_L
 	circuit.component_results[comp_id]["voltage_across"] = actual_V_across_L
 
-	# Store current for next time-step (needed by stamp’s Backward-Euler)
 	if not is_nan(solved_current_L):
 		comp_data.properties["current_through_L_prev_dt"] = solved_current_L

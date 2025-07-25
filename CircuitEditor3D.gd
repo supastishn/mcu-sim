@@ -105,8 +105,6 @@ func _ready():
 	
 	_deselect_component()
 	_hide_voltage_displays() 
-	
-	# The op-amp button will be handled in _populate_component_bar now.
 
 ## Handles all input events, including mouse clicks for selecting/wiring/dragging and keyboard controls for camera flight.
 func _input(event):
@@ -543,12 +541,9 @@ func _populate_component_bar():
 		{"name": "Relay", "scene": RelayScene},
 		{"name": "Regulator", "scene": LinearRegulatorScene},
 		{"name": "Breadboard", "scene": BreadboardScene},
+		{"name": "Op-Amp", "scene": OpAmpScene},
 	]
 	
-	var enable_beta = ProjectSettings.get_setting("mcu_sim/features/enable_beta_components", false)
-	if enable_beta:
-		components_to_add.append({"name": "Op-Amp", "scene": OpAmpScene})
-
 	for comp_def in components_to_add:
 		var btn = Button.new()
 		btn.text = comp_def.name

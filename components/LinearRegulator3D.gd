@@ -114,8 +114,6 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 func stamp(
 	A, b, node_map, _vs_map, _inductor_map, terminal_connections, comp_data, _delta_time
 ):
-	# Use a large conductance to enforce Vout = regulated_voltage or Vout = Vin - dropout_voltage
-	# This preserves KCL and circuit topology, similar to a SPICE voltage source with large G
 	var idx_vin = node_map.get(terminal_connections.get(terminal_vin.get_instance_id(), -1), -1)
 	var idx_vout = node_map.get(terminal_connections.get(terminal_vout.get_instance_id(), -1), -1)
 	var idx_gnd = node_map.get(terminal_connections.get(terminal_gnd.get_instance_id(), -1), -1)
@@ -124,22 +122,19 @@ func stamp(
 		return
 	
 	var status = comp_data.properties.get("status", "DISCONNECTED")
-	var Gbig = 1e9  # Large conductance for voltage stamping
+	var Gbig = 1e9
 	
 	if status == "REGULATED":
-		# Enforce Vout - GND = regulated_voltage using large conductance model
 		CircuitGraph.stamp_conductance(A, Gbig, idx_vout, idx_gnd)
 		if idx_vout != -1: b[idx_vout] += Gbig * regulated_voltage
 		if idx_gnd != -1: b[idx_gnd] -= Gbig * regulated_voltage
 
 	elif status == "DROPOUT":
-		# Enforce Vout - Vin = -dropout_voltage using large conductance model
 		CircuitGraph.stamp_conductance(A, Gbig, idx_vout, idx_vin)
 		if idx_vout != -1: b[idx_vout] -= Gbig * dropout_voltage
 		if idx_vin != -1: b[idx_vin] += Gbig * dropout_voltage
 
 	elif status == "DISCONNECTED":
-		# No constraint, but add a tiny conductance to ground to avoid singular matrix
 		CircuitGraph.stamp_conductance(A, 1e-9, idx_vout, idx_gnd)
 
 ## Extracts simulation results and updates the info label.
@@ -153,6 +148,5 @@ func gather_sim_results(circuit, comp_data, _x, _node_map, _vs_map, _inductor_ma
 	else:
 		hide_info()
 	
-	# Store results in circuit graph for test access
 	circuit.component_results[comp_id]["status"] = comp_data.properties.get("status", "UNKNOWN")
 	circuit.component_results[comp_id]["voltage"] = v_vout

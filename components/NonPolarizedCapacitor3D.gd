@@ -113,10 +113,9 @@ func stamp(
 	_vs_map: Dictionary,
 	_inductor_map: Dictionary,
 	terminal_connections: Dictionary,
-	comp_data: Dictionary, # Used for capacitance, voltage_across_cap_prev_dt
+	comp_data: Dictionary,
 	delta_time: float
 ):
-	# --- Numerical stability: clamp delta_time ---
 	delta_time = clamp(delta_time, 1e-12, 0.1)
 
 	var esr = equivalent_series_resistance
@@ -138,14 +137,13 @@ func stamp(
 	var G_eq: float
 	var I_eq_source: float
 	
-	if delta_time <= 1e-9: # Avoid division by zero or very small dt
-		G_eq = 1e9 # Effectively a short for DC analysis if dt is zero
+	if delta_time <= 1e-9:
+		G_eq = 1e9
 		I_eq_source = 0.0
 	else:
 		G_eq = C_val / delta_time
 		I_eq_source = G_eq * Vc_prev_dt_val
 
-	# Stamp ideal capacitor between internal node and terminal 2
 	CircuitGraph.stamp_conductance(A, G_eq, internal_node_idx, t2_idx)
 		
 	if internal_node_idx != -1: b[internal_node_idx] += I_eq_source

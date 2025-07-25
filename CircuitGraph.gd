@@ -54,7 +54,7 @@ var _cached_system: Dictionary = {}
 
 ## A counter to generate unique electrical node IDs.
 var _next_node_id: int = 0
-var _next_internal_node_id: int = -1 # Use negative numbers for internal nodes
+var _next_internal_node_id: int = -1
 
 var _last_solver_debug_info: Array = []
 
@@ -493,7 +493,6 @@ func solve_single_time_step(delta_time: float) -> bool:
 	# Reset stateful components that have state machines
 	for comp_data_item in components:
 		if comp_data_item.type in ["ZenerDiode", "Relay", "NPNBJT", "PNPBJT", "NChannelMOSFET", "PChannelMOSFET"]:
-			# The old BJT/MOSFET models need this reset. It's safe for new models.
 			if comp_data_item.has("properties") and comp_data_item.properties.has("operating_region"):
 				comp_data_item.properties["operating_region"] = "OFF"
 			if comp_data_item.has("properties") and comp_data_item.properties.has("operating_state"):
@@ -513,20 +512,16 @@ func solve_single_time_step(delta_time: float) -> bool:
 	var converged = NewtonRaphsonSolver.solve(self, system, delta_time)
 	
 	if not converged:
-		# Clear results to indicate failure
 		component_results.clear()
 		return false
 	
 	_is_solved = true
-	# Re-build and solve the final system one last time to get correct currents
-	# for voltage sources and inductors, which are state variables.
 	var final_matrices = _stamp_mna_matrices(system, delta_time)
 	var final_solution = LinearSolver.solve(final_matrices.A, final_matrices.b)
 
 	if final_solution.is_empty():
 		var debug_info = get_solver_debug_info_as_string()
 		assert(not final_solution.is_empty(), "Final linear solve failed after convergence. Results may be inaccurate." + debug_info)
-		# Proceed with voltages from NR, but currents might be wrong.
 		final_solution.resize(final_matrices.A.size())
 		final_solution.fill(NAN)
 
@@ -602,7 +597,6 @@ func get_solver_debug_info_as_string() -> String:
 			output += "Error Vector (-F):\n" + LinearSolver.vector_to_string(iter_info.error_vector_neg_F)
 			output += "Update Vector (dx):\n" + LinearSolver.vector_to_string(iter_info.update_vector_dx)
 
-			# Only print full Jacobian for the very last failed iteration to avoid excessive logging
 			if i == _last_solver_debug_info.size() - 1:
 				output += "Jacobian (A) for last iteration:\n" + LinearSolver.matrix_to_string(iter_info.jacobian_A)
 
@@ -656,7 +650,6 @@ func _stamp_mna_matrices(system: Dictionary, delta_time: float) -> Dictionary:
 
 ## Builds the structural part of the MNA system (node maps, matrix sizes).
 func _build_system_structure() -> Dictionary:
-	# Discover internal nodes required by components first, to exclude them from the main node list.
 	var internal_nodes: Array[int] = []
 	for comp in components:
 		if comp.component_node.has_method("get_internal_nodes"):

@@ -146,7 +146,7 @@ func stamp(A, b, node_map, _vs_map, _inductor_map, term_conn, comp_data, _dt):
 	var idx_s = node_map.get(term_conn.get(terminal_s.get_instance_id(),-1), -1)
 	var idx_g = node_map.get(term_conn.get(terminal_g.get_instance_id(),-1), -1)
 
-	CircuitGraph.stamp_conductance(A, 1e-12, idx_g, idx_s) # Gate leakage
+	CircuitGraph.stamp_conductance(A, 1e-12, idx_g, idx_s)
 	
 	var Vsg = comp_data.properties.get("_int_Vs",0.0) - comp_data.properties.get("_int_Vg",0.0)
 	var Vsd = comp_data.properties.get("_int_Vs",0.0) - comp_data.properties.get("_int_Vd",0.0)
@@ -154,33 +154,26 @@ func stamp(A, b, node_map, _vs_map, _inductor_map, term_conn, comp_data, _dt):
 	if reg=="OFF":
 		CircuitGraph.stamp_conductance(A, 1e-9, idx_s, idx_d)
 	elif reg=="TRIODE":
-		# Simplified model: treat as a resistor R_ds = 1 / (Kp * (Vsg - |Vt|))
 		var vsg_minus_vt = max(0, Vsg - vt)
 		var g_ds_triode = kp * vsg_minus_vt
 		CircuitGraph.stamp_conductance(A, g_ds_triode, idx_s, idx_d)
-	else: # SATURATION
-		# Small-signal parameters (Jacobian elements) for Id(Vsg, Vsd)
+	else:
 		var vsg_minus_vt = max(0, Vsg - vt)
 		var g_ds = 0.5 * kp * pow(vsg_minus_vt, 2.0) * p_lambda
 		var gm = kp * vsg_minus_vt * (1.0 + p_lambda * Vsd)
 
-		# KCL error at Source is Id, at Drain is -Id. Current flows S -> D.
-		# Stamp Source row: d(Id)/dV
 		if idx_s != -1:
 			A[idx_s][idx_s] += gm + g_ds
 			A[idx_s][idx_g] -= gm
 			A[idx_s][idx_d] -= g_ds
-		# Stamp Drain row: d(-Id)/dV
 		if idx_d != -1:
 			A[idx_d][idx_s] -= (gm + g_ds)
 			A[idx_d][idx_g] += gm
 			A[idx_d][idx_d] += g_ds
 
-		# Companion model current source
 		var Id_last = 0.5 * kp * pow(vsg_minus_vt, 2.0) * (1 + p_lambda * Vsd)
 		var Ieq_d = Id_last - (gm * Vsg + g_ds * Vsd)
 		
-		# Current flows S to D. Ieq is for Id.
 		if idx_s != -1: b[idx_s] += Ieq_d
 		if idx_d != -1: b[idx_d] -= Ieq_d
 
@@ -207,7 +200,7 @@ func gather_sim_results(circuit,comp_data,_x,_node_map,_vs_map,_inductor_map,_dt
 			Id = 0.0
 		elif reg=="TRIODE":
 			Id =  transconductance_parameter * ( (Vsg - vt) * Vsd - 0.5*pow(Vsd,2) ) * (1 + lambda * Vsd)
-		else: # SATURATION
+		else:
 			Id = 0.5 * transconductance_parameter * pow(Vsg - vt,2) * (1 + lambda * Vsd)
 	if not !is_nan(Id):
 		LinearSolver.print_vector(_x, "x on P-MOS results fail")

@@ -7,7 +7,7 @@ class_name LED3D
 @export var saturation_current: float = 1.0e-12
 ## The ideality factor (emission coefficient) of the diode model.
 @export var ideality_factor: float = 1.5
-const THERMAL_VOLTAGE: float = 0.02585 # At room temperature (300K)
+const THERMAL_VOLTAGE: float = 0.02585
 
 ## The color of the light emitted by the LED.
 @export var led_color: Color = Color.RED
@@ -152,12 +152,11 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 	var was_burned = comp_data.get("is_burned", false)
 	if was_burned:
 		comp_data.properties["_internal_voltage"] = Vd
-		return false # Once burned, state doesn't change
+		return false
 
 	comp_data.properties["_internal_voltage"] = Vd
 
 	var is_burned_now = false
-	# Check if forward voltage would cause overcurrent.
 	var Vd_max = (ideality_factor * THERMAL_VOLTAGE) * log(max_current_before_burn / saturation_current + 1.0)
 	
 	if Vd < -REVERSE_BREAKDOWN_VOLTAGE:
@@ -168,7 +167,7 @@ func update_nonlinear_state(circuit: CircuitGraph, comp_data: Dictionary, x_iter
 	if is_burned_now and not was_burned:
 		comp_data["is_burned"] = true
 		print("LED '{n}' burned: Vd={vd:.3f}, Vd_max={vmax:.3f}".format({"n":name, "vd":Vd, "vmax":Vd_max}))
-		return true # State changed from not-burned to burned
+		return true
 	
 	return false
 
@@ -193,7 +192,6 @@ func gather_sim_results(
 		current = 0.0
 	elif not is_nan(Va) and not is_nan(Vk):
 		var Vd = Va - Vk
-		# Use the full Shockley equation for final result, not the limited one
 		current = saturation_current * (exp(Vd / (ideality_factor * THERMAL_VOLTAGE)) - 1.0)
 	
 	circuit.component_results[comp_id]["current"] = current
@@ -222,11 +220,9 @@ func stamp(
 	var Vd_last_iter = comp_data.properties.get("_internal_voltage", 0.0)
 	var n_vt = ideality_factor * THERMAL_VOLTAGE
 
-	# --- Diode Limiting for numerical stability ---
 	var Vcrit = n_vt * log(1e12)
 	var Vd_limited = min(Vd_last_iter, Vcrit)
 
-	# Linearized model from Shockley equation
 	var exp_term = exp(Vd_limited / n_vt)
 	var Geq = (saturation_current / n_vt) * exp_term
 
@@ -235,6 +231,5 @@ func stamp(
 
 	CircuitGraph.stamp_conductance(A, Geq, ia, ik)
 	
-	# Stamp the equivalent current source
 	if ia != -1: b[ia] -= Ieq
 	if ik != -1: b[ik] += Ieq
