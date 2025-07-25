@@ -1,0 +1,86 @@
+name: Build Project
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build All Platforms
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true # In case some assets are stored in LFS
+
+      - name: Set up Godot
+        uses: godot-ci/godot-ci@v4
+        with:
+          # Using a recent stable Godot 4 version. The project file mentions "4.4"
+          # which is not yet released. This can be updated by the user if a
+          # specific version is required.
+          version: 4.2.2
+          use_gl_compatibility: true # As per project.godot setting
+          # The godot-ci action needs Android export templates to build for Android
+          target_platform: android
+
+      - name: Build All Platforms
+        run: |
+          mkdir -p web exports exports/test
+          godot -v --headless --export-release "Windows Desktop"
+          godot -v --headless --export-release "Linux"
+          godot -v --headless --export-release "Android"
+          godot -v --headless --export-release "Web"
+
+      - name: Upload Windows Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-windows
+          path: exports/MCU-Sim.exe
+
+      - name: Upload Linux Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-linux
+          path: exports/test/MCU-Sim.x86_64
+
+      - name: Upload Android Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-android
+          path: exports/MCU-Sim.apk
+
+      - name: Upload Web Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-web
+          path: web/
+
+  deploy-pages:
+    name: Deploy to GitHub Pages
+    needs: build
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download web build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-web
+          path: ./dist
+
+      - name: Deploy to gh-pages branch
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages
+          folder: dist
+          target-folder: program
