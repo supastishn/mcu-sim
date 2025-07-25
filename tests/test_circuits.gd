@@ -7,6 +7,9 @@ const BreadboardScene = preload("res://components/Breadboard3D.tscn")
 ## Emitted when all tests are completed, carrying the results dictionary.
 signal tests_completed(results: Dictionary)
 
+@onready var results_label: RichTextLabel = get_node_or_null("ResultsUI/MarginContainer/ScrollContainer/ResultsLabel")
+
+
 ## Godot's ready function.
 func _ready():
 	run_from_cli()
@@ -14,7 +17,28 @@ func _ready():
 ## Runs all tests when the script is executed from the command line and then quits.
 func run_from_cli():
 	print_rich("[b]Starting Circuit Simulation Tests...[/b]")
+	if is_instance_valid(results_label):
+		results_label.text = "Running tests..."
+
 	var results = await run_all_tests()
+	
+	# --- Build summary text for UI ---
+	var summary_text = ""
+	summary_text += "Test run complete.\n"
+	summary_text += "Summary: {p}/{t} tests passed.\n\n".format({"p": results.passed, "t": results.total})
+
+	if results.passed == results.total:
+		summary_text += "[color=green]All tests successful![/color]"
+	else:
+		summary_text += "[color=red][b]----- FAILED TESTS ----- [/b][/color]\n"
+		for failed_test_name in results.failed_names:
+			summary_text += "  - {name}\n".format({"name": failed_test_name})
+		summary_text += "\n{f} test(s) failed overall.".format({"f": results.total - results.passed})
+	
+	if is_instance_valid(results_label):
+		results_label.text = summary_text
+
+	# --- Print to console for command-line runners ---
 	print_rich("[b]All tests completed.[/b]")
 	print_rich("[b]Summary: {p}/{t} tests passed.[/b]".format({"p": results.passed, "t": results.total}))
 
@@ -25,8 +49,10 @@ func run_from_cli():
 		for failed_test_name in results.failed_names:
 			printerr("  - {name}".format({"name": failed_test_name}))
 		printerr("\n{f} test(s) failed overall.".format({"f": results.total - results.passed}))
-
-	get_tree().quit()
+		
+	# --- Quit if in headless mode ---
+	if OS.has_feature("server"):
+		get_tree().quit()
 
 ## Runs all tests and emits a signal with the results, intended for use with the UI.
 func run_tests_from_ui():
