@@ -851,11 +851,14 @@ func save_circuit_to_file(file_path: String) -> void:
 		elif component is PolarizedCapacitor3D:
 			comp_data["properties"]["capacitance"] = component.capacitance
 			comp_data["properties"]["max_voltage"] = component.max_voltage
+			comp_data["properties"]["equivalent_series_resistance"] = component.equivalent_series_resistance
 		elif component is NonPolarizedCapacitor3D:
 			comp_data["properties"]["capacitance"] = component.capacitance
 			comp_data["properties"]["max_voltage"] = component.max_voltage
+			comp_data["properties"]["equivalent_series_resistance"] = component.equivalent_series_resistance
 		elif component is Inductor3D:
 			comp_data["properties"]["inductance"] = component.inductance
+			comp_data["properties"]["dc_resistance"] = component.dc_resistance
 		elif component is NPNBJT3D:
 			comp_data["properties"]["saturation_current"] = component.saturation_current
 			comp_data["properties"]["alpha_forward"] = component.alpha_forward
@@ -871,9 +874,11 @@ func save_circuit_to_file(file_path: String) -> void:
 		elif component is NChannelMOSFET3D:
 			comp_data["properties"]["threshold_voltage"] = component.threshold_voltage
 			comp_data["properties"]["transconductance_parameter"] = component.transconductance_parameter
+			comp_data["properties"]["lambda"] = component.lambda
 		elif component is PChannelMOSFET3D:
 			comp_data["properties"]["threshold_voltage"] = component.threshold_voltage
 			comp_data["properties"]["transconductance_parameter"] = component.transconductance_parameter
+			comp_data["properties"]["lambda"] = component.lambda
 		elif component is Relay3D:
 			comp_data["properties"]["signal_voltage_threshold"] = component.signal_voltage_threshold
 			comp_data["properties"]["coil_resistance"] = component.coil_resistance
@@ -881,6 +886,8 @@ func save_circuit_to_file(file_path: String) -> void:
 			comp_data["properties"]["regulated_voltage"] = component.regulated_voltage
 		elif component is OpAmp3D:
 			comp_data["properties"]["open_loop_gain"] = component.open_loop_gain
+			comp_data["properties"]["input_resistance"] = component.input_resistance
+			comp_data["properties"]["output_resistance"] = component.output_resistance
 			
 		components_data.append(comp_data)
 	
@@ -1001,6 +1008,16 @@ func load_circuit_from_file(file_path: String) -> void:
 					component.regulated_voltage = comp_data["properties"]["regulated_voltage"]
 				if comp_data["properties"].has("open_loop_gain"):
 					component.open_loop_gain = comp_data["properties"]["open_loop_gain"]
+				if comp_data["properties"].has("equivalent_series_resistance"):
+					component.equivalent_series_resistance = comp_data["properties"]["equivalent_series_resistance"]
+				if comp_data["properties"].has("dc_resistance"):
+					component.dc_resistance = comp_data["properties"]["dc_resistance"]
+				if comp_data["properties"].has("lambda"):
+					component.lambda = comp_data["properties"]["lambda"]
+				if comp_data["properties"].has("input_resistance"):
+					component.input_resistance = comp_data["properties"]["input_resistance"]
+				if comp_data["properties"].has("output_resistance"):
+					component.output_resistance = comp_data["properties"]["output_resistance"]
 				
 				circuit_graph.component_config_changed(component)
 	
