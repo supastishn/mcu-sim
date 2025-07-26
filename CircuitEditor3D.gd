@@ -826,7 +826,11 @@ func save_circuit_to_file(file_path: String) -> void:
 		var comp_data = {
 			"name": component.name,
 			"type": "" if component.scene_file_path.is_empty() else component.scene_file_path.get_file().get_basename(),
-			"position": component.global_position,
+			"position": {
+				"x": component.global_position.x,
+				"y": component.global_position.y,
+				"z": component.global_position.z
+			},
 			"properties": {}
 		}
 		
@@ -971,7 +975,9 @@ func load_circuit_from_file(file_path: String) -> void:
 			var scene = _get_component_scene(comp_data["type"])
 			if scene:
 				var component_name = comp_data.get("name", "")
-				var component = _add_component(scene, comp_data["position"], component_name)
+				var pos_data = comp_data["position"]
+				var position = Vector3(pos_data["x"], pos_data["y"], pos_data["z"])
+				var component = _add_component(scene, position, component_name)
 				component_map[component.name] = component
 				
 				# Restore properties
