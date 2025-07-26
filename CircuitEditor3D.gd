@@ -349,9 +349,13 @@ func _stop_component_drag():
 	dragged_component = null
 
 ## Adds a new component instance to the scene and the circuit graph.
-func _add_component(scene: PackedScene, pos: Vector3):
+func _add_component(scene: PackedScene, pos: Vector3, p_name: String = ""):
 	var component_instance: Node3D = scene.instantiate()
-	components_node.add_child(component_instance) 
+	if not p_name.is_empty():
+		component_instance.name = p_name
+	else:
+		component_instance.name = _generate_unique_name(component_instance.get_class())
+	components_node.add_child(component_instance)
 	component_instance.global_position = pos
 	
 	
@@ -819,6 +823,7 @@ func save_circuit_to_file(file_path: String) -> void:
 			continue  # Wires are reconstructed from connections
 			
 		var comp_data = {
+			"name": component.name,
 			"type": component.get_class(),
 			"position": component.global_position,
 			"properties": {}
@@ -951,8 +956,8 @@ func load_circuit_from_file(file_path: String) -> void:
 		for comp_data in save_data["components"]:
 			var scene = _get_component_scene(comp_data["type"])
 			if scene:
-				var component = _add_component(scene, comp_data["position"])
-				component.name = _generate_unique_name(comp_data["type"])
+				var component_name = comp_data.get("name", "")
+				var component = _add_component(scene, comp_data["position"], component_name)
 				component_map[component.name] = component
 				
 				# Restore properties
