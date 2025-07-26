@@ -409,8 +409,8 @@ func test_save_and_load_circuit() -> bool:
 	if not TestUtils.assert_equals(ed.components_node.get_children().size(), num_components_before, "Component count after load is correct", rig): ok = false
 	if not TestUtils.assert_equals(ed.wires_node.get_children().size(), num_wires_before, "Wire count after load is correct", rig): ok = false
 
-	var loaded_ps_node = ed.components_node.get_node_or_null(ps_name)
-	var loaded_res_node = ed.components_node.get_node_or_null(res_name)
+	var loaded_ps_node = ed.components_node.get_node_or_null(NodePath(ps_name))
+	var loaded_res_node = ed.components_node.get_node_or_null(NodePath(res_name))
 
 	if not TestUtils.assert_true(is_instance_valid(loaded_ps_node), "Loaded PowerSource node is valid", rig):
 		ok = false

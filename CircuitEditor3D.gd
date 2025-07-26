@@ -976,8 +976,8 @@ func load_circuit_from_file(file_path: String) -> void:
 			if scene:
 				var component_name = comp_data.get("name", "")
 				var pos_data = comp_data["position"]
-				var position = Vector3(pos_data["x"], pos_data["y"], pos_data["z"])
-				var component = _add_component(scene, position, component_name)
+				var comp_pos = Vector3(pos_data["x"], pos_data["y"], pos_data["z"])
+				var component = _add_component(scene, comp_pos, component_name)
 				component_map[component.name] = component
 				
 				# Restore properties
