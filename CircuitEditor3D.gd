@@ -999,9 +999,6 @@ func load_circuit_from_file(file_path: String) -> void:
 				
 				circuit_graph.component_config_changed(component)
 	
-	# Rebuild graph connections
-	_rebuild_graph_from_scene()
-	
 	# Load wires
 	if save_data.has("wires"):
 		for wire_info in save_data["wires"]:
