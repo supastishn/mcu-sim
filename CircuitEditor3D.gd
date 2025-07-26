@@ -1126,7 +1126,6 @@ func _rebuild_graph_from_scene():
 
 	# --- Invalidate MNA system cache ---
 	circuit_graph._cached_system = {}
-	circuit_graph._cached_delta_time = 0.0
 	
 	# Re-add components
 	for comp in all_components:
