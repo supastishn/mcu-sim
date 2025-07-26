@@ -58,7 +58,7 @@ jobs:
           mkdir -p web exports exports/test
           ./godot -v --headless --export-release "Windows Desktop"
           ./godot -v --headless --export-release "Linux"
-          ./godot -v --headless --export-release "Android"
+          ./godot -v --headless --export-debug "Android"
           ./godot -v --headless --export-release "Web"
 
       - name: Upload Windows Build
