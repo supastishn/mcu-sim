@@ -25,13 +25,13 @@ jobs:
 
       - name: Download and prepare Godot
         env:
-          GODOT_VERSION: 4.2.2
-          GODOT_VERSION_STRING: 4.2.2.stable
+          GODOT_VERSION: 4.4.1
+          GODOT_VERSION_STRING: 4.4.1.stable
         run: |
           sudo apt-get update && sudo apt-get install -y --no-install-recommends wget unzip
           
           # Download Godot headless executable
-          wget "https://downloads.tuxfamily.org/godotengine/${GODOT_VERSION}/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip" -O godot.zip
+          wget "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip" -O godot.zip
           unzip godot.zip
           rm godot.zip
           mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" godot
@@ -39,7 +39,7 @@ jobs:
           ./godot --version # Print version for logs
 
           # Download and install export templates
-          wget "https://downloads.tuxfamily.org/godotengine/${GODOT_VERSION}/Godot_v${GODOT_VERSION}-stable_export_templates.tpz" -O templates.tpz
+          wget "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz" -O templates.tpz
           mkdir -p ~/.local/share/godot/export_templates/${GODOT_VERSION_STRING}
           unzip templates.tpz -d ~/.local/share/godot/export_templates/${GODOT_VERSION_STRING}
           rm templates.tpz
