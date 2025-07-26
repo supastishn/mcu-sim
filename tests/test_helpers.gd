@@ -27,7 +27,7 @@ func cfg(comp: Node3D) -> void:
 	graph.component_config_changed(comp)
 
 func wire(a: Area3D, b: Area3D) -> void:
-	graph.connect_terminals(a, b)
+	editor._create_wire(a, b)
 
 func ground(t: Area3D) -> void:
 	graph.set_ground_node(t)

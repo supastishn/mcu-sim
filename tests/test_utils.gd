@@ -47,17 +47,17 @@ static func assert_approx_equals(actual: float, expected: float, tolerance: floa
 	if not message.is_empty():
 		msg_prefix = message
 	
-	var msg = "{pfx} (Actual: {act}, Expected: {exp}, Tolerance: {tol}) - Difference: {diff}".format({"pfx": msg_prefix, "act": actual, "exp": expected, "tol": tolerance, "diff": abs(actual - expected)})
+	var log_msg = "{pfx} (Actual: {act}, Expected: {exp}, Tolerance: {tol}) - Difference: {diff}".format({"pfx": msg_prefix, "act": actual, "exp": expected, "tol": tolerance, "diff": abs(actual - expected)})
 	if not are_equal:
-		var err_msg = "FAILED: " + msg
+		var err_msg = "FAILED: " + log_msg
 		if context is TestRig and is_instance_valid(context.graph):
 			err_msg += "\n" + context.graph.get_solver_debug_info_as_string()
 		elif context is CircuitGraph and is_instance_valid(context):
 			err_msg += "\n" + context.get_solver_debug_info_as_string()
-		_log(are_equal, msg)
+		_log(are_equal, log_msg)
 		assert(are_equal, err_msg)
 	else:
-		_log(are_equal, msg)
+		_log(are_equal, log_msg)
 	return are_equal
 
 ## Asserts that two values are equal.
@@ -67,17 +67,17 @@ static func assert_equals(actual, expected, message: String = "", context = null
 	if not message.is_empty():
 		msg_prefix = message
 	
-	var msg = "{pfx} (Actual: {act}, Expected: {exp})".format({"pfx": msg_prefix, "act": actual, "exp": expected})
+	var log_msg = "{pfx} (Actual: {act}, Expected: {exp})".format({"pfx": msg_prefix, "act": actual, "exp": expected})
 	if not are_equal:
-		var err_msg = "FAILED: " + msg
+		var err_msg = "FAILED: " + log_msg
 		if context is TestRig and is_instance_valid(context.graph):
 			err_msg += "\n" + context.graph.get_solver_debug_info_as_string()
 		elif context is CircuitGraph and is_instance_valid(context):
 			err_msg += "\n" + context.get_solver_debug_info_as_string()
-		_log(are_equal, msg)
+		_log(are_equal, log_msg)
 		assert(are_equal, err_msg)
 	else:
-		_log(are_equal, msg)
+		_log(are_equal, log_msg)
 	return are_equal
 
 ## Asserts that a float value is not NaN (Not a Number).
@@ -87,15 +87,15 @@ static func assert_not_nan(value: float, message: String = "", context = null) -
 	if not message.is_empty():
 		msg_prefix = message
 	
-	var msg = "{pfx} (Actual: {act})".format({"pfx": msg_prefix, "act": value})
+	var log_msg = "{pfx} (Actual: {act})".format({"pfx": msg_prefix, "act": value})
 	if not is_not_nan:
-		var err_msg = "FAILED: " + msg
+		var err_msg = "FAILED: " + log_msg
 		if context is TestRig and is_instance_valid(context.graph):
 			err_msg += "\n" + context.graph.get_solver_debug_info_as_string()
 		elif context is CircuitGraph and is_instance_valid(context):
 			err_msg += "\n" + context.get_solver_debug_info_as_string()
-		_log(is_not_nan, msg)
+		_log(is_not_nan, log_msg)
 		assert(is_not_nan, err_msg)
 	else:
-		_log(is_not_nan, msg)
+		_log(is_not_nan, log_msg)
 	return is_not_nan

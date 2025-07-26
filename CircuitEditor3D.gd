@@ -825,7 +825,7 @@ func save_circuit_to_file(file_path: String) -> void:
 			
 		var comp_data = {
 			"name": component.name,
-			"type": component.get_class(),
+			"type": "" if component.scene_file_path.is_empty() else component.scene_file_path.get_file().get_basename(),
 			"position": component.global_position,
 			"properties": {}
 		}
