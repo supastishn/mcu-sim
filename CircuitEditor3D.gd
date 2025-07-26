@@ -851,6 +851,77 @@ func _on_display_voltage_button_pressed():
 		display_voltage_button.text = "Display Voltages"
 		_hide_voltage_displays()
 
+## Callback for the "Save Circuit" button.
+func _on_save_button_pressed():
+	_show_save_slots(false)  # false for saving
+
+## Callback for the "Load Circuit" button.
+func _on_load_button_pressed():
+	_show_save_slots(true)  # true for loading
+
+## Shows the save slots UI.
+func _show_save_slots(is_loading: bool) -> void:
+	# Create a simple save slot selection dialog
+	var dialog = ConfirmationDialog.new()
+	dialog.title = "Select Save Slot"
+	dialog.dialog_text = "Choose a save slot (1-4):"
+	
+	var vbox = VBoxContainer.new()
+	
+	for i in range(1, 5):
+		var button = Button.new()
+		button.text = "Slot " + str(i)
+		button.connect("pressed", _on_save_slot_selected.bind(i, is_loading, dialog))
+		vbox.add_child(button)
+	
+	var cancel_button = Button.new()
+	cancel_button.text = "Cancel"
+	cancel_button.connect("pressed", func(): dialog.queue_free())
+	vbox.add_child(cancel_button)
+	
+	dialog.add_child(vbox)
+	dialog.size = Vector2(200, 200)
+	add_child(dialog)
+	dialog.popup_centered()
+
+## Handles save slot selection.
+func _on_save_slot_selected(slot: int, is_loading: bool, dialog: ConfirmationDialog) -> void:
+	dialog.queue_free()
+	
+	if is_loading:
+		_load_from_slot(slot)
+	else:
+		_save_to_slot(slot)
+
+## Saves the current circuit to the specified slot.
+func _save_to_slot(slot: int) -> void:
+	var save_path = "user://circuit_save_" + str(slot) + ".save"
+	save_circuit_to_file(save_path)
+	
+	# Show confirmation
+	var confirmation = AcceptDialog.new()
+	confirmation.dialog_text = "Circuit saved to slot " + str(slot)
+	add_child(confirmation)
+	confirmation.popup_centered()
+
+## Loads a circuit from the specified slot.
+func _load_from_slot(slot: int) -> void:
+	var save_path = "user://circuit_save_" + str(slot) + ".save"
+	if FileAccess.file_exists(save_path):
+		load_circuit_from_file(save_path)
+		
+		# Show confirmation
+		var confirmation = AcceptDialog.new()
+		confirmation.dialog_text = "Circuit loaded from slot " + str(slot)
+		add_child(confirmation)
+		confirmation.popup_centered()
+	else:
+		# Show error
+		var error_dialog = AcceptDialog.new()
+		error_dialog.dialog_text = "No saved circuit in slot " + str(slot)
+		add_child(error_dialog)
+		error_dialog.popup_centered()
+
 ## Generic callback for any component configuration change.
 func _on_any_component_config_changed(component_node: Node3D):
 	circuit_graph.component_config_changed(component_node)
