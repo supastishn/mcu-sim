@@ -86,6 +86,7 @@ func run_all_tests() -> Dictionary:
 		{"name": "Test: Linear Regulator Dropout Scenario", "func": test_linear_regulator_dropout},
 		{"name": "Test: Op-Amp Inverting Amplifier", "func": test_op_amp_inverting_amplifier},
 		{"name": "Test: Breadboard Connectivity", "func": test_breadboard_connectivity},
+		{"name": "Test: Save and Load Circuit", "func": test_save_and_load_circuit},
 	]
 
 	for test_case in all_tests:
@@ -357,6 +358,86 @@ func test_breadboard_connectivity() -> bool:
 		if not TestUtils.assert_true(led_results_rail.get("current", NAN) > led_node.min_current_to_light, "Breadboard Test (Power Rail): LED is ON, rail is connected", rig): ok = false
 
 	rig.cleanup()
+	return ok
+
+
+## Tests that a circuit can be saved to a file and loaded back correctly.
+func test_save_and_load_circuit() -> bool:
+	var ok := true
+	var rig := TestRig.new()
+	add_child(rig)
+	await rig.init()
+	var ed = rig.editor
+
+	# 1. Build a simple circuit
+	var ps_node : PowerSource3D = rig.add(ed.PowerSourceScene, Vector3(0,0,-2))
+	ps_node.target_voltage = 9.0
+	var ps_name = ps_node.name
+	rig.cfg(ps_node)
+
+	var res_node : Resistor3D = rig.add(ed.ResistorScene, Vector3(1,0,-2))
+	res_node.resistance = 330.0
+	var res_name = res_node.name
+	rig.cfg(res_node)
+
+	rig.wire(ps_node.terminal_pos, res_node.terminal1)
+	rig.wire(res_node.terminal2, ps_node.terminal_neg)
+	rig.ground(ps_node.terminal_neg)
+	
+	var num_components_before = ed.components_node.get_children().size()
+	var num_wires_before = ed.wires_node.get_children().size()
+
+	# 2. Save the circuit
+	var save_path = "user://test_circuit_save.save"
+	if FileAccess.file_exists(save_path):
+		DirAccess.remove_absolute(save_path) # Clean up from previous failed run
+	
+	ed.save_circuit_to_file(save_path)
+	if not TestUtils.assert_true(FileAccess.file_exists(save_path), "Save file was created", rig): ok = false
+
+	# 3. Clear the circuit
+	await rig.reset_graph()
+
+	if not TestUtils.assert_equals(ed.components_node.get_children().size(), 0, "Component count after clear is correct", rig): ok = false
+	if not TestUtils.assert_equals(ed.wires_node.get_children().size(), 0, "Wire count after clear is correct", rig): ok = false
+
+	# 4. Load the circuit
+	ed.load_circuit_from_file(save_path)
+	await get_tree().process_frame # Allow scene to update
+
+	# 5. Verify the circuit was restored
+	if not TestUtils.assert_equals(ed.components_node.get_children().size(), num_components_before, "Component count after load is correct", rig): ok = false
+	if not TestUtils.assert_equals(ed.wires_node.get_children().size(), num_wires_before, "Wire count after load is correct", rig): ok = false
+
+	var loaded_ps_node = ed.components_node.get_node_or_null(ps_name)
+	var loaded_res_node = ed.components_node.get_node_or_null(res_name)
+
+	if not TestUtils.assert_true(is_instance_valid(loaded_ps_node), "Loaded PowerSource node is valid", rig):
+		ok = false
+	else:
+		if not TestUtils.assert_equals(loaded_ps_node.get_class(), "PowerSource3D", "Loaded node is a PowerSource", rig): ok = false
+		if not TestUtils.assert_approx_equals(loaded_ps_node.target_voltage, 9.0, 1e-5, "Loaded PowerSource has correct voltage", rig): ok = false
+
+	if not TestUtils.assert_true(is_instance_valid(loaded_res_node), "Loaded Resistor node is valid", rig):
+		ok = false
+	else:
+		if not TestUtils.assert_equals(loaded_res_node.get_class(), "Resistor3D", "Loaded node is a Resistor", rig): ok = false
+		if not TestUtils.assert_approx_equals(loaded_res_node.resistance, 330.0, 1e-5, "Loaded Resistor has correct resistance", rig): ok = false
+
+	# 6. Verify circuit solves correctly after load
+	if ok:
+		if not TestUtils.assert_true(rig.solve(), "Circuit solves correctly after load", rig): 
+			ok = false
+		else:
+			var res_results = rig.results(loaded_res_node)
+			var expected_current = 9.0 / 330.0
+			if not TestUtils.assert_approx_equals(res_results.get("current", NAN), expected_current, 1e-4, "Resistor current is correct after load", rig): ok = false
+
+	# 7. Cleanup
+	rig.cleanup()
+	if FileAccess.file_exists(save_path):
+		DirAccess.remove_absolute(save_path)
+
 	return ok
 
 

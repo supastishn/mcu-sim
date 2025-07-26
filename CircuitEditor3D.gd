@@ -814,6 +814,7 @@ func _on_delete_button_pressed():
 
 ## Saves the current circuit to a file.
 func save_circuit_to_file(file_path: String) -> void:
+	print("--- Saving circuit to file: {p} ---".format({"p": file_path}))
 	var save_data = {}
 	
 	# Save components
@@ -927,17 +928,20 @@ func save_circuit_to_file(file_path: String) -> void:
 	
 	var file = FileAccess.open(file_path, FileAccess.WRITE)
 	if file:
-		file.store_string(JSON.stringify(save_data))
+		var json_string = JSON.stringify(save_data, "  ", true) # Pretty print
+		print("Saving data:\n" + json_string)
+		file.store_string(json_string)
 		file.close()
-		print("Circuit saved to: ", file_path)
+		print("--- Circuit successfully saved to: {p} ---".format({"p": file_path}))
 	else:
-		print("Failed to save circuit to: ", file_path)
+		printerr("Failed to save circuit to: {p}".format({"p": file_path}))
 
 ## Loads a circuit from a file.
 func load_circuit_from_file(file_path: String) -> void:
+	print("--- Loading circuit from file: {p} ---".format({"p": file_path}))
 	var file = FileAccess.open(file_path, FileAccess.READ)
 	if not file:
-		print("Failed to load circuit from: ", file_path)
+		printerr("Failed to load circuit from: {p}".format({"p": file_path}))
 		return
 	
 	var content = file.get_as_text()
@@ -951,8 +955,11 @@ func load_circuit_from_file(file_path: String) -> void:
 	
 	var save_data = json.data
 	if typeof(save_data) != TYPE_DICTIONARY:
-		print("Invalid save data format")
+		printerr("Invalid save data format in file: {p}".format({"p": file_path}))
 		return
+	
+	var json_string = JSON.stringify(save_data, "  ", true)
+	print("Loaded data:\n" + json_string)
 	
 	# Clear existing circuit
 	_clear_circuit()
@@ -1043,7 +1050,7 @@ func load_circuit_from_file(file_path: String) -> void:
 			if ground_terminal and ground_terminal is Area3D:
 				circuit_graph.set_ground_node(ground_terminal)
 	
-	print("Circuit loaded from: ", file_path)
+	print("--- Circuit successfully loaded from: {p} ---".format({"p": file_path}))
 
 ## Clears the current circuit.
 func _clear_circuit() -> void:
