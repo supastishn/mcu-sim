@@ -563,6 +563,16 @@ func _populate_component_bar():
 	display_voltage_button.pressed.connect(_on_display_voltage_button_pressed)
 	component_grid.add_child(display_voltage_button)
 
+	var save_button = Button.new()
+	save_button.text = "Save Circuit"
+	save_button.pressed.connect(_on_save_button_pressed)
+	component_grid.add_child(save_button)
+
+	var load_button = Button.new()
+	load_button.text = "Load Circuit"
+	load_button.pressed.connect(_on_load_button_pressed)
+	component_grid.add_child(load_button)
+
 
 ## Removes all dynamically generated property editors from the selection bar.
 func _clear_properties():
@@ -797,6 +807,303 @@ func _on_delete_button_pressed():
 		component_to_delete.queue_free()
 
 	_hide_voltage_displays()
+
+## Saves the current circuit to a file.
+func save_circuit_to_file(file_path: String) -> void:
+	var save_data = {}
+	
+	# Save components
+	var components_data = []
+	for component in components_node.get_children():
+		if component is Wire3D:
+			continue  # Wires are reconstructed from connections
+			
+		var comp_data = {
+			"type": component.get_class(),
+			"position": component.global_position,
+			"properties": {}
+		}
+		
+		# Save component-specific properties
+		if component is Resistor3D:
+			comp_data["properties"]["resistance"] = component.resistance
+		elif component is PowerSource3D:
+			comp_data["properties"]["target_voltage"] = component.target_voltage
+			comp_data["properties"]["target_current"] = component.target_current
+		elif component is LED3D:
+			comp_data["properties"]["saturation_current"] = component.saturation_current
+			comp_data["properties"]["ideality_factor"] = component.ideality_factor
+		elif component is Switch3D:
+			comp_data["properties"]["current_state"] = component.current_state
+		elif component is Diode3D:
+			comp_data["properties"]["saturation_current"] = component.saturation_current
+			comp_data["properties"]["ideality_factor"] = component.ideality_factor
+		elif component is Potentiometer3D:
+			comp_data["properties"]["total_resistance"] = component.total_resistance
+			comp_data["properties"]["wiper_position"] = component.wiper_position
+		elif component is Battery3D:
+			comp_data["properties"]["num_cells"] = component.num_cells
+		elif component is PolarizedCapacitor3D:
+			comp_data["properties"]["capacitance"] = component.capacitance
+			comp_data["properties"]["max_voltage"] = component.max_voltage
+		elif component is NonPolarizedCapacitor3D:
+			comp_data["properties"]["capacitance"] = component.capacitance
+			comp_data["properties"]["max_voltage"] = component.max_voltage
+		elif component is Inductor3D:
+			comp_data["properties"]["inductance"] = component.inductance
+		elif component is NPNBJT3D:
+			comp_data["properties"]["saturation_current"] = component.saturation_current
+			comp_data["properties"]["alpha_forward"] = component.alpha_forward
+			comp_data["properties"]["alpha_reverse"] = component.alpha_reverse
+		elif component is PNPBJT3D:
+			comp_data["properties"]["saturation_current"] = component.saturation_current
+			comp_data["properties"]["alpha_forward"] = component.alpha_forward
+			comp_data["properties"]["alpha_reverse"] = component.alpha_reverse
+		elif component is ZenerDiode3D:
+			comp_data["properties"]["saturation_current"] = component.saturation_current
+			comp_data["properties"]["ideality_factor"] = component.ideality_factor
+			comp_data["properties"]["zener_voltage"] = component.zener_voltage
+		elif component is NChannelMOSFET3D:
+			comp_data["properties"]["threshold_voltage"] = component.threshold_voltage
+			comp_data["properties"]["transconductance_parameter"] = component.transconductance_parameter
+		elif component is PChannelMOSFET3D:
+			comp_data["properties"]["threshold_voltage"] = component.threshold_voltage
+			comp_data["properties"]["transconductance_parameter"] = component.transconductance_parameter
+		elif component is Relay3D:
+			comp_data["properties"]["signal_voltage_threshold"] = component.signal_voltage_threshold
+			comp_data["properties"]["coil_resistance"] = component.coil_resistance
+		elif component is LinearRegulator3D:
+			comp_data["properties"]["regulated_voltage"] = component.regulated_voltage
+		elif component is OpAmp3D:
+			comp_data["properties"]["open_loop_gain"] = component.open_loop_gain
+			
+		components_data.append(comp_data)
+	
+	save_data["components"] = components_data
+	
+	# Save wire connections (terminal pairs)
+	var wire_data = []
+	for wire in wires_node.get_children():
+		if wire is Wire3D and is_instance_valid(wire.terminal_start) and is_instance_valid(wire.terminal_end):
+			# Store component names and terminal names for reconstruction
+			var start_parent = wire.terminal_start.get_parent()
+			var end_parent = wire.terminal_end.get_parent()
+			
+			if start_parent and end_parent:
+				wire_data.append({
+					"start_component": start_parent.name,
+					"start_terminal": wire.terminal_start.name,
+					"end_component": end_parent.name,
+					"end_terminal": wire.terminal_end.name
+				})
+	
+	save_data["wires"] = wire_data
+	
+	# Save ground connection
+	if circuit_graph.ground_node_id != -1:
+		for node_id in circuit_graph.electrical_nodes:
+			var node_data = circuit_graph.electrical_nodes[node_id]
+			if node_id == circuit_graph.ground_node_id and not node_data.terminals.is_empty():
+				var ground_terminal = node_data.terminals[0]
+				var ground_parent = ground_terminal.get_parent()
+				if ground_parent:
+					save_data["ground"] = {
+						"component": ground_parent.name,
+						"terminal": ground_terminal.name
+					}
+				break
+	
+	var file = FileAccess.open(file_path, FileAccess.WRITE)
+	if file:
+		file.store_string(JSON.stringify(save_data))
+		file.close()
+		print("Circuit saved to: ", file_path)
+	else:
+		print("Failed to save circuit to: ", file_path)
+
+## Loads a circuit from a file.
+func load_circuit_from_file(file_path: String) -> void:
+	var file = FileAccess.open(file_path, FileAccess.READ)
+	if not file:
+		print("Failed to load circuit from: ", file_path)
+		return
+	
+	var content = file.get_as_text()
+	file.close()
+	
+	var json = JSON.new()
+	var parse_result = json.parse(content)
+	if parse_result != OK:
+		print("Failed to parse save file: ", file_path)
+		return
+	
+	var save_data = json.data
+	if typeof(save_data) != TYPE_DICTIONARY:
+		print("Invalid save data format")
+		return
+	
+	# Clear existing circuit
+	_clear_circuit()
+	
+	# Load components
+	var component_map = {}  # Map component names to instances
+	if save_data.has("components"):
+		for comp_data in save_data["components"]:
+			var scene = _get_component_scene(comp_data["type"])
+			if scene:
+				var component = _add_component(scene, comp_data["position"])
+				component.name = _generate_unique_name(comp_data["type"])
+				component_map[component.name] = component
+				
+				# Restore properties
+				if comp_data["properties"].has("resistance"):
+					component.resistance = comp_data["properties"]["resistance"]
+				if comp_data["properties"].has("target_voltage"):
+					component.target_voltage = comp_data["properties"]["target_voltage"]
+				if comp_data["properties"].has("target_current"):
+					component.target_current = comp_data["properties"]["target_current"]
+				if comp_data["properties"].has("saturation_current"):
+					component.saturation_current = comp_data["properties"]["saturation_current"]
+				if comp_data["properties"].has("ideality_factor"):
+					component.ideality_factor = comp_data["properties"]["ideality_factor"]
+				if comp_data["properties"].has("current_state"):
+					component.set_state(comp_data["properties"]["current_state"])
+				if comp_data["properties"].has("wiper_position"):
+					component.set_wiper_position(comp_data["properties"]["wiper_position"])
+				if comp_data["properties"].has("num_cells"):
+					component.set_num_cells(comp_data["properties"]["num_cells"])
+				if comp_data["properties"].has("capacitance"):
+					component.capacitance = comp_data["properties"]["capacitance"]
+				if comp_data["properties"].has("max_voltage"):
+					component.max_voltage = comp_data["properties"]["max_voltage"]
+				if comp_data["properties"].has("inductance"):
+					component.inductance = comp_data["properties"]["inductance"]
+				if comp_data["properties"].has("alpha_forward"):
+					component.alpha_forward = comp_data["properties"]["alpha_forward"]
+				if comp_data["properties"].has("alpha_reverse"):
+					component.alpha_reverse = comp_data["properties"]["alpha_reverse"]
+				if comp_data["properties"].has("zener_voltage"):
+					component.zener_voltage = comp_data["properties"]["zener_voltage"]
+				if comp_data["properties"].has("threshold_voltage"):
+					component.threshold_voltage = comp_data["properties"]["threshold_voltage"]
+				if comp_data["properties"].has("transconductance_parameter"):
+					component.transconductance_parameter = comp_data["properties"]["transconductance_parameter"]
+				if comp_data["properties"].has("signal_voltage_threshold"):
+					component.signal_voltage_threshold = comp_data["properties"]["signal_voltage_threshold"]
+				if comp_data["properties"].has("coil_resistance"):
+					component.coil_resistance = comp_data["properties"]["coil_resistance"]
+				if comp_data["properties"].has("regulated_voltage"):
+					component.regulated_voltage = comp_data["properties"]["regulated_voltage"]
+				if comp_data["properties"].has("open_loop_gain"):
+					component.open_loop_gain = comp_data["properties"]["open_loop_gain"]
+				
+				circuit_graph.component_config_changed(component)
+	
+	# Rebuild graph connections
+	_rebuild_graph_from_scene()
+	
+	# Load wires
+	if save_data.has("wires"):
+		for wire_info in save_data["wires"]:
+			var start_component = component_map.get(wire_info["start_component"])
+			var end_component = component_map.get(wire_info["end_component"])
+			
+			if start_component and end_component:
+				var start_terminal = start_component.get_node_or_null(wire_info["start_terminal"])
+				var end_terminal = end_component.get_node_or_null(wire_info["end_terminal"])
+				
+				if start_terminal and end_terminal and start_terminal is Area3D and end_terminal is Area3D:
+					_create_wire(start_terminal, end_terminal)
+	
+	# Load ground connection
+	if save_data.has("ground"):
+		var ground_info = save_data["ground"]
+		var ground_component = component_map.get(ground_info["component"])
+		if ground_component:
+			var ground_terminal = ground_component.get_node_or_null(ground_info["terminal"])
+			if ground_terminal and ground_terminal is Area3D:
+				circuit_graph.set_ground_node(ground_terminal)
+	
+	print("Circuit loaded from: ", file_path)
+
+## Clears the current circuit.
+func _clear_circuit() -> void:
+	# Remove all components
+	for component in components_node.get_children():
+		if component != null:
+			component.queue_free()
+	
+	# Remove all wires
+	for wire in wires_node.get_children():
+		if wire != null:
+			wire.queue_free()
+	
+	# Reset circuit graph
+	circuit_graph.components.clear()
+	circuit_graph.component_node_map.clear()
+	circuit_graph.electrical_nodes.clear()
+	circuit_graph.terminal_connections.clear()
+	circuit_graph.ground_node_id = -1
+	circuit_graph._next_node_id = 0
+	circuit_graph._is_solved = false
+	circuit_graph._needs_rebuild = true
+	circuit_graph._cached_system = {}
+
+## Gets the appropriate scene for a component type.
+func _get_component_scene(type_name: String):
+	match type_name:
+		"Resistor3D":
+			return ResistorScene
+		"PowerSource3D":
+			return PowerSourceScene
+		"LED3D":
+			return LEDScene
+		"Switch3D":
+			return SwitchScene
+		"Diode3D":
+			return DiodeScene
+		"Potentiometer3D":
+			return PotentiometerScene
+		"Battery3D":
+			return BatteryScene
+		"PolarizedCapacitor3D":
+			return PolarizedCapacitorScene
+		"NonPolarizedCapacitor3D":
+			return NonPolarizedCapacitorScene
+		"Inductor3D":
+			return InductorScene
+		"NPNBJT3D":
+			return NPNBJTScene
+		"PNPBJT3D":
+			return PNPBJTScene
+		"ZenerDiode3D":
+			return ZenerDiodeScene
+		"NChannelMOSFET3D":
+			return NChannelMOSFETScene
+		"PChannelMOSFET3D":
+			return PChannelMOSFETScene
+		"Relay3D":
+			return RelayScene
+		"LinearRegulator3D":
+			return LinearRegulatorScene
+		"OpAmp3D":
+			return OpAmpScene
+		_:
+			return null
+
+## Generates a unique name for a component.
+func _generate_unique_name(base_name: String) -> String:
+	var existing_names = []
+	for child in components_node.get_children():
+		existing_names.append(child.name)
+	
+	var counter = 1
+	var new_name = base_name + str(counter)
+	while existing_names.has(new_name):
+		counter += 1
+		new_name = base_name + str(counter)
+	
+	return new_name
 
 ## Forces a full rebuild of the circuit graph based on the components and wires in the scene.
 func _rebuild_graph_from_scene():
