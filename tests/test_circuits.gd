@@ -419,13 +419,13 @@ func test_save_and_load_circuit() -> bool:
 	if not TestUtils.assert_true(is_instance_valid(loaded_ps_node), "Loaded PowerSource node is valid", rig):
 		ok = false
 	else:
-		if not TestUtils.assert_equals(loaded_ps_node.get_class(), "PowerSource3D", "Loaded node is a PowerSource", rig): ok = false
+		if not TestUtils.assert_true(loaded_ps_node is PowerSource3D, "Loaded node is a PowerSource", rig): ok = false
 		if not TestUtils.assert_approx_equals(loaded_ps_node.target_voltage, 9.0, 1e-5, "Loaded PowerSource has correct voltage", rig): ok = false
 
 	if not TestUtils.assert_true(is_instance_valid(loaded_res_node), "Loaded Resistor node is valid", rig):
 		ok = false
 	else:
-		if not TestUtils.assert_equals(loaded_res_node.get_class(), "Resistor3D", "Loaded node is a Resistor", rig): ok = false
+		if not TestUtils.assert_true(loaded_res_node is Resistor3D, "Loaded node is a Resistor", rig): ok = false
 		if not TestUtils.assert_approx_equals(loaded_res_node.resistance, 330.0, 1e-5, "Loaded Resistor has correct resistance", rig): ok = false
 
 	# 6. Verify circuit solves correctly after load

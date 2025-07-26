@@ -2,6 +2,8 @@ extends Node
 
 class_name NewtonRaphsonSolver
 
+const LinearSolver = preload("res://solvers/LinearSolver.gd")
+
 ## Solves a non-linear circuit using Newton-Raphson.
 static func solve(circuit_graph: CircuitGraph, system: Dictionary, delta_time: float) -> bool:
 	var max_iter = 100

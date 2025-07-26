@@ -2,6 +2,7 @@ extends Node
 
 class_name CircuitGraph
 
+const LinearSolver = preload("res://solvers/LinearSolver.gd")
 const GMIN                := 1.0e-12 # Minimum conductance to ground for all nodes
 const R_LED_ON            := 0.1
 const R_LED_OFF           := 1.0e9

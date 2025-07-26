@@ -354,7 +354,8 @@ func _add_component(scene: PackedScene, pos: Vector3, p_name: String = ""):
 	if not p_name.is_empty():
 		component_instance.name = p_name
 	else:
-		component_instance.name = _generate_unique_name(component_instance.get_class())
+		var base_name = scene.resource_path.get_file().get_basename() if not scene.resource_path.is_empty() else component_instance.get_class()
+		component_instance.name = _generate_unique_name(base_name)
 	components_node.add_child(component_instance)
 	component_instance.global_position = pos
 	
