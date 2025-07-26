@@ -93,6 +93,9 @@ jobs:
         continue-on-error: true
         run: ./godot -v --headless --export-release "Web"
 
+      - name: Rename Web build to index.html
+        run: mv web/MCU-Sim.html web/index.html
+
       - name: Upload Web Build
         if: ${{ success() }}
         uses: actions/upload-artifact@v4
