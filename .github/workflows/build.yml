@@ -53,33 +53,48 @@ jobs:
           # The export preset is configured to sign, and Godot will automatically
           # use this debug keystore if it exists at the default location.
 
-      - name: Build All Platforms
-        run: |
-          mkdir -p web exports exports/test
-          ./godot -v --headless --export-release "Windows Desktop"
-          ./godot -v --headless --export-release "Linux"
-          ./godot -v --headless --export-debug "Android"
-          ./godot -v --headless --export-release "Web"
+      - name: Create Export Directories
+        run: mkdir -p web exports exports/test
+
+      - name: Export Windows
+        continue-on-error: true
+        run: ./godot -v --headless --export-release "Windows Desktop"
 
       - name: Upload Windows Build
+        if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
           name: build-windows
           path: exports/MCU-Sim.exe
 
+      - name: Export Linux
+        continue-on-error: true
+        run: ./godot -v --headless --export-release "Linux"
+
       - name: Upload Linux Build
+        if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
           name: build-linux
           path: exports/test/MCU-Sim.x86_64
 
+      - name: Export Android
+        continue-on-error: true
+        run: ./godot -v --headless --export-debug "Android"
+
       - name: Upload Android Build
+        if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
           name: build-android
           path: exports/MCU-Sim.apk
 
+      - name: Export Web
+        continue-on-error: true
+        run: ./godot -v --headless --export-release "Web"
+
       - name: Upload Web Build
+        if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
           name: build-web
