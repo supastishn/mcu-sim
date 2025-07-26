@@ -179,24 +179,27 @@
       <p class="warning" style="color:var(--color-danger); font-weight:bold; text-align:center; margin:1rem 0;">
         WARNING: Windows and Linux builds may or may not work
       </p>
+      <div id="download-warning" class="warning" style="display:none;">
+        <!-- Loading/error messages will appear here -->
+      </div>
       <div class="download-options">
-        <a href="https://github.com/supastishn/mcu-sim/releases/download/alpha/MCU-Sim.exe" class="download-option">
+        <a id="windows-download" class="download-option">
           <i class="fab fa-windows"></i>
           <h3>Windows</h3>
           <p>Windows Installer (.exe)</p>
-          <span class="button">Download</span>
+          <span class="button"><i class="fas fa-spinner fa-spin"></i> Loading...</span>
         </a>
-        <a href="https://github.com/supastishn/mcu-sim/releases/download/alpha/MCU-Sim.apk" class="download-option">
+        <a id="android-download" class="download-option">
           <i class="fab fa-android"></i>
           <h3>Android</h3>
           <p>Android APK (.apk)</p>
-          <span class="button">Download</span>
+          <span class="button"><i class="fas fa-spinner fa-spin"></i> Loading...</span>
         </a>
-        <a href="https://github.com/supastishn/mcu-sim/releases/download/alpha/linux.zip" class="download-option">
+        <a id="linux-download" class="download-option">
           <i class="fab fa-linux"></i>
           <h3>Linux</h3>
           <p>Linux Package (.zip)</p>
-          <span class="button">Download</span>
+          <span class="button"><i class="fas fa-spinner fa-spin"></i> Loading...</span>
         </a>
       </div>
     </section>
